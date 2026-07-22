@@ -67,14 +67,15 @@ The main repo had stayed silent for 5 months, with nobody actually responding to
 **Update**: They have contacted me and apologized for this incident, but the fact it **happened** still motivated me to start my own fork.
 
 ## Downloads
-* [Download APK directly](https://github.com/ClassicOldSong/moonlight-android/releases)
-* [Use Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.limelight.noir%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2FClassicOldSong%2Fmoonlight-android%22%2C%22author%22%3A%22ClassicOldSong%22%2C%22name%22%3A%22Artemis%22%2C%22additionalSettings%22%3A%22%7B%5C%22apkFilterRegEx%5C%22%3A%5C%22nonRoot%5C%22%2C%5C%22matchGroutToUse%5C%22%3A%5C%22%241%5C%22%2C%5C%22versionExtractionRegEx%5C%22%3A%5C%22v(.%2B)%5C%22%7D%22%7D) (recommended)
+* [Download Artemis TouchKit releases](https://github.com/LitchiCore/moonlight-android/releases)
+* [Use Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.litchicore.artemis.touchkit.noir%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2FLitchiCore%2Fmoonlight-android%22%2C%22author%22%3A%22LitchiCore%22%2C%22name%22%3A%22Artemis%20TouchKit%22%2C%22additionalSettings%22%3A%22%7B%5C%22apkFilterRegEx%5C%22%3A%5C%22nonRoot_game-arm64-v8a-release%5C%5C%5C%5C.apk%24%5C%22%2C%5C%22matchGroupToUse%5C%22%3A%5C%22%241%5C%22%2C%5C%22versionExtractionRegEx%5C%22%3A%5C%22v(.%2B)%5C%22%7D%22%7D) (recommended)
 
 ## Building
 * Install Android Studio and the Android NDK
 * Run ‘git submodule update --init --recursive’ from within moonlight-android/
 * In moonlight-android/, create a file called ‘local.properties’. Add an ‘ndk.dir=’ property to the local.properties file and set it equal to your NDK directory.
 * Build the APK using Android Studio or gradle
+* TouchKit maintainers should follow the [Chinese release and signing guide](docs/touchkit/RELEASE_GUIDE.zh-CN.md).
 
 ## Authors
 

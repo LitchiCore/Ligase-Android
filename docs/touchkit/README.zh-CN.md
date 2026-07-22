@@ -3,6 +3,8 @@
 TouchKit 是 Artemis 面向触屏云游戏的鼠标、键盘与悬浮按键方案。全部控件都绘制在串流
 界面内部，不需要申请 Android 的系统悬浮窗权限。
 
+维护者准备 APK 和 GitHub Release 时，请阅读[发布与签名手册](RELEASE_GUIDE.zh-CN.md)。
+
 ## 快速开始
 
 1. 打开 **设置 > 云游戏操作**。
