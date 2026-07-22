@@ -42,6 +42,31 @@ final class TouchKitKeyBindingParser {
         return new BindingLine(line, "");
     }
 
+    /** Splits LABEL=description for fixed controls such as mouse buttons. */
+    static BindingLine splitFixedBindingLine(String rawLine, String currentLabel) {
+        String line = rawLine == null ? "" : rawLine.trim();
+        if (line.isEmpty()) return new BindingLine("", "");
+
+        String label = currentLabel == null ? "" : currentLabel.trim();
+        if (!label.isEmpty()) {
+            if (line.equals(label)) {
+                return new BindingLine(label, "");
+            }
+            String descriptionPrefix = label + '=';
+            if (line.startsWith(descriptionPrefix)) {
+                return new BindingLine(label,
+                        line.substring(descriptionPrefix.length()).trim());
+            }
+        }
+
+        int separator = line.indexOf('=');
+        if (separator > 0) {
+            return new BindingLine(line.substring(0, separator).trim(),
+                    line.substring(separator + 1).trim());
+        }
+        return new BindingLine(line, "");
+    }
+
     static int parseKeyCode(String rawToken) {
         String token = rawToken.trim().toUpperCase(Locale.ROOT);
         if (token.matches("(NUM|NUMPAD|KP)[0-9]")) {

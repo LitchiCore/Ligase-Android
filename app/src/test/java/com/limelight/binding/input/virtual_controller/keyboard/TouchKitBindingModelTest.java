@@ -169,6 +169,24 @@ public class TouchKitBindingModelTest {
         assertEquals("", equalsOnly.description);
     }
 
+    @Test
+    public void fixedBindingLine_preservesLocalizedMouseDescription() {
+        TouchKitKeyBindingParser.BindingLine middleMouse =
+                TouchKitKeyBindingParser.splitFixedBindingLine("中键=测距", "中键");
+        assertEquals("中键", middleMouse.keySpec);
+        assertEquals("测距", middleMouse.description);
+
+        TouchKitKeyBindingParser.BindingLine renamed =
+                TouchKitKeyBindingParser.splitFixedBindingLine("M3=Rangefinder", "中键");
+        assertEquals("M3", renamed.keySpec);
+        assertEquals("Rangefinder", renamed.description);
+
+        TouchKitKeyBindingParser.BindingLine equalsLabel =
+                TouchKitKeyBindingParser.splitFixedBindingLine("==补充成员", "=");
+        assertEquals("=", equalsLabel.keySpec);
+        assertEquals("补充成员", equalsLabel.description);
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void comboParser_rejectsUnknownKeys() {
         TouchKitKeyBindingParser.parseCombo("CTRL+NOT_A_REAL_KEY");

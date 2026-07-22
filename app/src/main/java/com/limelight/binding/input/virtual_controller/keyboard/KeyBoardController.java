@@ -907,7 +907,11 @@ public class KeyBoardController {
                 .setPositiveButton(R.string.save, (dialog, which) -> {
                     String line = bindingLine.getText().toString().trim();
                     TouchKitKeyBindingParser.BindingLine parsedLine =
-                            TouchKitKeyBindingParser.splitBindingLine(line);
+                            button instanceof TouchKitComboButton ||
+                                    button.hasEditableKeyBinding()
+                                    ? TouchKitKeyBindingParser.splitBindingLine(line)
+                                    : TouchKitKeyBindingParser.splitFixedBindingLine(
+                                            line, actualBinding);
                     String label = parsedLine.keySpec;
                     String description = parsedLine.description;
                     if (!label.isEmpty()) {
