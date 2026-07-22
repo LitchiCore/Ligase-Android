@@ -36,9 +36,10 @@ public class TouchKitGameLayoutStoreTest {
 
     @Test
     public void rememberedLayout_isScopedByHostAndGame() {
+        String rememberedLayout = TouchKitLayoutNames.add(context, "Game layout");
         PreferenceManager.getDefaultSharedPreferences(context).edit()
                 .putString(KeyBoardControllerConfigurationLoader.OSC_PREFERENCE,
-                        "OSC_Keyboard_3").commit();
+                        rememberedLayout).commit();
         TouchKitGameLayoutStore.rememberCurrent(context, "pc-a", "game-a", 10);
 
         PreferenceManager.getDefaultSharedPreferences(context).edit()
@@ -46,18 +47,20 @@ public class TouchKitGameLayoutStoreTest {
                         "OSC_Keyboard").commit();
         TouchKitGameLayoutStore.applyRemembered(context, "pc-a", "game-a", 10);
 
-        assertEquals("OSC_Keyboard_3", PreferenceManager.getDefaultSharedPreferences(context)
+        assertEquals(rememberedLayout, PreferenceManager.getDefaultSharedPreferences(context)
                 .getString(KeyBoardControllerConfigurationLoader.OSC_PREFERENCE, null));
     }
 
     @Test
-    public void differentGame_doesNotReplaceCurrentLayout() {
+    public void differentGame_usesConfiguredDefaultLayout() {
+        String configuredDefault = TouchKitLayoutNames.add(context, "Default layout");
         PreferenceManager.getDefaultSharedPreferences(context).edit()
+                .putString(TouchKitLayoutNames.DEFAULT_LAYOUT_PREF, configuredDefault)
                 .putString(KeyBoardControllerConfigurationLoader.OSC_PREFERENCE,
-                        "OSC_Keyboard_2").commit();
+                        "OSC_Keyboard").commit();
         TouchKitGameLayoutStore.applyRemembered(context, "pc-a", "game-b", 11);
 
-        assertEquals("OSC_Keyboard_2", PreferenceManager.getDefaultSharedPreferences(context)
+        assertEquals(configuredDefault, PreferenceManager.getDefaultSharedPreferences(context)
                 .getString(KeyBoardControllerConfigurationLoader.OSC_PREFERENCE, null));
     }
 

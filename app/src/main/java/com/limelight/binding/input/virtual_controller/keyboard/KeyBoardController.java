@@ -480,6 +480,13 @@ public class KeyBoardController {
     }
 
     private void setControllerMode(ControllerMode mode) {
+        if (mode != ControllerMode.Active) {
+            for (keyBoardVirtualControllerElement element : elements) {
+                if (element instanceof TouchKitGyroMouseButton) {
+                    ((TouchKitGyroMouseButton) element).setActive(false);
+                }
+            }
+        }
         currentMode = mode;
         if (mode == ControllerMode.DisableEnableButtons) {
             showElements();
@@ -493,10 +500,7 @@ public class KeyBoardController {
 
     /** Enables drag-to-move and tap-to-edit without dispatching input. */
     public void enterLayoutEditorMode() {
-        currentMode = ControllerMode.LayoutEditor;
-        showEnabledElements();
-        showControlButtons(false);
-        invalidateElements();
+        setControllerMode(ControllerMode.LayoutEditor);
     }
 
     private void invalidateElements() {
@@ -509,6 +513,8 @@ public class KeyBoardController {
     void showElementEditor(keyBoardVirtualControllerElement element) {
         if (element instanceof TouchKitSoftKeyboardButton) {
             showSoftKeyboardButtonEditor((TouchKitSoftKeyboardButton) element);
+        } else if (element instanceof TouchKitGyroMouseButton) {
+            showGyroMouseButtonEditor((TouchKitGyroMouseButton) element);
         } else if (element instanceof KeyBoardDigitalButton) {
             showDigitalButtonEditor((KeyBoardDigitalButton) element);
         } else if (element instanceof TouchKitRadialMenuButton) {
@@ -608,6 +614,80 @@ public class KeyBoardController {
                 })
                 .setNeutralButton(R.string.touchkit_delete_control,
                         (dialog, which) -> deleteElementFromLayout(element))
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    private void showGyroMouseButtonEditor(TouchKitGyroMouseButton button) {
+        LinearLayout container = createEditorContainer();
+        AppearanceControls appearance = new AppearanceControls(container, button);
+
+        TextView sensitivityValue = new TextView(context);
+        container.addView(sensitivityValue);
+        SeekBar sensitivity = new SeekBar(context);
+        sensitivity.setMax(290);
+        sensitivity.setProgress(button.getSensitivityPercent() - 10);
+        Runnable updateSensitivity = () -> sensitivityValue.setText(context.getString(
+                R.string.touchkit_gyro_sensitivity_value, 10 + sensitivity.getProgress()));
+        updateSensitivity.run();
+        sensitivity.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar seekBar, int progress,
+                                                    boolean fromUser) {
+                updateSensitivity.run();
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) { }
+            @Override public void onStopTrackingTouch(SeekBar seekBar) { }
+        });
+        container.addView(sensitivity);
+
+        TextView deadzoneValue = new TextView(context);
+        container.addView(deadzoneValue);
+        SeekBar deadzone = new SeekBar(context);
+        deadzone.setMax(50);
+        deadzone.setProgress(Math.round(button.getDeadzoneDegreesPerSecond() * 10f));
+        Runnable updateDeadzone = () -> deadzoneValue.setText(context.getString(
+                R.string.touchkit_gyro_deadzone_value, deadzone.getProgress() / 10f));
+        updateDeadzone.run();
+        deadzone.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar seekBar, int progress,
+                                                    boolean fromUser) {
+                updateDeadzone.run();
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) { }
+            @Override public void onStopTrackingTouch(SeekBar seekBar) { }
+        });
+        container.addView(deadzone);
+
+        CheckBox invertHorizontal = new CheckBox(context);
+        invertHorizontal.setText(R.string.touchkit_gyro_invert_horizontal);
+        invertHorizontal.setChecked(button.isInvertHorizontal());
+        container.addView(invertHorizontal);
+
+        CheckBox invertVertical = new CheckBox(context);
+        invertVertical.setText(R.string.touchkit_gyro_invert_vertical);
+        invertVertical.setChecked(button.isInvertVertical());
+        container.addView(invertVertical);
+
+        TextView help = new TextView(context);
+        help.setText(button.isGyroscopeAvailable()
+                ? R.string.touchkit_gyro_editor_help
+                : R.string.touchkit_gyro_unavailable);
+        container.addView(help);
+
+        new AlertDialog.Builder(context)
+                .setTitle(R.string.touchkit_gyro_editor_title)
+                .setView(createScrollableEditorView(container))
+                .setPositiveButton(R.string.save, (dialog, which) -> {
+                    button.setActive(false);
+                    button.setSensitivityPercent(10 + sensitivity.getProgress());
+                    button.setDeadzoneDegreesPerSecond(deadzone.getProgress() / 10f);
+                    button.setInvertHorizontal(invertHorizontal.isChecked());
+                    button.setInvertVertical(invertVertical.isChecked());
+                    appearance.apply(button);
+                    KeyBoardControllerConfigurationLoader.saveProfile(this, context);
+                })
+                .setNeutralButton(R.string.touchkit_delete_control,
+                        (dialog, which) -> deleteElementFromLayout(button))
                 .setNegativeButton(R.string.cancel, null)
                 .show();
     }
@@ -1310,6 +1390,13 @@ public class KeyBoardController {
                 softKeyboard.put("elementId", "touchkit_soft_keyboard");
                 allItemsList.add(softKeyboard);
                 keyNamesList.add(softKeyboard.getString("name"));
+
+                JSONObject gyroMouse = new JSONObject();
+                gyroMouse.put("type", 9);
+                gyroMouse.put("name", context.getString(R.string.touchkit_gyro_control));
+                gyroMouse.put("elementId", "touchkit_gyro_mouse");
+                allItemsList.add(gyroMouse);
+                keyNamesList.add(gyroMouse.getString("name"));
             }
 
             if (category == 1) {
@@ -1564,6 +1651,11 @@ public class KeyBoardController {
                             } else if (type == 8) { // Artemis soft keyboard
                                 newElement = KeyBoardControllerConfigurationLoader
                                         .createSoftKeyboardButton(elementId, this, context);
+                                addElement(newElement, position.x, position.y, w, w);
+
+                            } else if (type == 9) { // Lockable gyroscope mouse aiming
+                                newElement = KeyBoardControllerConfigurationLoader
+                                        .createGyroMouseButton(elementId, this, context);
                                 addElement(newElement, position.x, position.y, w, w);
 
                             } else {

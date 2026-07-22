@@ -392,6 +392,11 @@ public class KeyBoardControllerConfigurationLoader {
         return new TouchKitSoftKeyboardButton(controller, context, elementId);
     }
 
+    public static TouchKitGyroMouseButton createGyroMouseButton(
+            String elementId, KeyBoardController controller, Context context) {
+        return new TouchKitGyroMouseButton(controller, context, elementId);
+    }
+
     public static void createDefaultLayout(final KeyBoardController controller, final Context context, final NvConnection conn) {
 
         DisplayMetrics screen = context.getResources().getDisplayMetrics();
@@ -628,6 +633,12 @@ public class KeyBoardControllerConfigurationLoader {
         softKeyboard.enabled = false;
         softKeyboard.setVisibility(android.view.View.GONE);
 
+        TouchKitGyroMouseButton gyroMouse = createGyroMouseButton(
+                "touchkit_gyro_mouse", controller, context);
+        controller.addElement(gyroMouse, w * 3, w, w, w);
+        gyroMouse.enabled = false;
+        gyroMouse.setVisibility(android.view.View.GONE);
+
         // Pre-create reusable combo slots so their position and binding survive
         // layout reloads. They become visible only when explicitly added.
         for (int comboIndex = 1; comboIndex <= 8; comboIndex++) {
@@ -795,6 +806,7 @@ public class KeyBoardControllerConfigurationLoader {
                 obj.getInt("scroll"), controller, context);
         if (type == 7) return createComboButton(elementId, controller, context);
         if (type == 8) return createSoftKeyboardButton(elementId, controller, context);
+        if (type == 9) return createGyroMouseButton(elementId, controller, context);
         if (type == 4) {
             JSONArray keysJson = obj.getJSONArray("keys");
             short[] keys = new short[keysJson.length()];
