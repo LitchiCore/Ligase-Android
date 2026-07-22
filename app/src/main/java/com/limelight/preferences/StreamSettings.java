@@ -170,6 +170,7 @@ public class StreamSettings extends AppCompatActivity {
     public static class SettingsFragment extends PreferenceFragmentCompat {
         private int nativeResolutionStartIndex = Integer.MAX_VALUE;
         private boolean nativeFramerateShown = false;
+        private boolean syncingTouchKitMouseMode;
 
         private PreferenceConfiguration prevPrefConfig;
 
@@ -338,6 +339,45 @@ public class StreamSettings extends AppCompatActivity {
             initializePreferences();
         }
 
+        private void configureTouchKitMouseModePreferences() {
+            CheckBoxPreference cloudMode =
+                    findPreference("checkbox_touchkit_cloud_gaming_mode");
+            ListPreference mouseMode = findPreference("mouse_mode_list");
+            if (cloudMode == null || mouseMode == null) {
+                return;
+            }
+
+            syncingTouchKitMouseMode = true;
+            if (cloudMode.isChecked()) {
+                mouseMode.setValue(TouchKitMouseModeSync.CLOUD_MODE);
+            } else if (TouchKitMouseModeSync.isCloudMode(mouseMode.getValue())) {
+                cloudMode.setChecked(true);
+            }
+            syncingTouchKitMouseMode = false;
+
+            cloudMode.setOnPreferenceChangeListener((preference, newValue) -> {
+                if (syncingTouchKitMouseMode) {
+                    return true;
+                }
+                syncingTouchKitMouseMode = true;
+                mouseMode.setValue(TouchKitMouseModeSync.mouseModeForCloudToggle(
+                        (Boolean) newValue, mouseMode.getValue()));
+                syncingTouchKitMouseMode = false;
+                return true;
+            });
+
+            mouseMode.setOnPreferenceChangeListener((preference, newValue) -> {
+                if (syncingTouchKitMouseMode) {
+                    return true;
+                }
+                syncingTouchKitMouseMode = true;
+                cloudMode.setChecked(TouchKitMouseModeSync.isCloudMode(
+                        String.valueOf(newValue)));
+                syncingTouchKitMouseMode = false;
+                return true;
+            });
+        }
+
         public void initializePreferences() {
             addPreferencesFromResource(R.xml.preferences);
             PreferenceScreen screen = getPreferenceScreen();
@@ -353,6 +393,7 @@ public class StreamSettings extends AppCompatActivity {
             }
 
             configureTouchKitLayoutPreferences();
+            configureTouchKitMouseModePreferences();
 
             Preference mouseMode = findPreference("mouse_mode_list");
             if (mouseMode != null) mouseMode.setOrder(0);

@@ -916,6 +916,7 @@ private static int getFramePacingValue(Context context) {
                 break;
             case 2: // Trackpad (natural)
             case 3: // Trackpad (gaming)
+            case 6: // TouchKit cloud gaming
                 config.enableMultiTouchScreen = false;
                 config.touchscreenTrackpad = true;
                 break;
@@ -991,7 +992,10 @@ private static int getFramePacingValue(Context context) {
 
         config.enableMultiTouchGestures = prefs.getBoolean("checkbox_multi_touch_gestures", false);
 
-        config.touchkitCloudGamingMode = prefs.getBoolean("checkbox_touchkit_cloud_gaming_mode", false);
+        config.touchkitCloudGamingMode = prefs.getBoolean(
+                "checkbox_touchkit_cloud_gaming_mode", false) ||
+                TouchKitMouseModeSync.isCloudMode(
+                        prefs.getString("mouse_mode_list", TouchKitMouseModeSync.DEFAULT_MODE));
         config.touchkitLinearPointer = "linear".equals(
                 prefs.getString("list_touchkit_input_mode", "accelerated"));
         config.touchkitDisableGestures = prefs.getBoolean(
