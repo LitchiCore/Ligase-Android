@@ -174,7 +174,7 @@
     },
     "__touchkit_deleted_base_elements": {
       "type": "string",
-      "value": "[\"dpad_1\",\"key_121\",\"key_120\",\"key_116\",\"key_114\",\"key_118\",\"key_58\",\"key_82\",\"key_60\",\"key_115\",\"key_81\",\"key_69\",\"key_68\",\"key_70\",\"key_71\",\"key_72\",\"key_73\",\"key_74\",\"key_75\",\"key_154\",\"key_143\",\"key_155\",\"key_55\",\"key_156\",\"key_158\",\"key_157\",\"key_76\",\"key_56\"]"
+      "value": "[\"dpad_1\",\"key_121\",\"key_120\",\"key_116\",\"key_114\",\"key_118\",\"key_58\",\"key_82\",\"key_60\",\"key_115\",\"key_81\",\"key_69\",\"key_68\",\"key_70\",\"key_71\",\"key_72\",\"key_73\",\"key_74\",\"key_75\",\"key_154\",\"key_143\",\"key_155\",\"key_55\",\"key_156\",\"key_158\",\"key_157\",\"key_76\",\"key_56\",\"touchkit_gyro_mouse\"]"
     },
     "key_44": {
       "type": "string",
