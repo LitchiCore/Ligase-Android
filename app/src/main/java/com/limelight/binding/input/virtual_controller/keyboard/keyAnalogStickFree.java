@@ -239,7 +239,7 @@ public class keyAnalogStickFree extends keyBoardVirtualControllerElement {
 
         if (bIsMoving || bIsResizing || bIsEnable) {
             canvas.drawColor(getDefaultColor());
-            paint.setColor(Color.WHITE);
+            paint.setColor(applyForegroundOpacity(Color.WHITE));
             int nWidth = getWidth();
             int nHeight = getHeight();
 
@@ -295,6 +295,16 @@ public class keyAnalogStickFree extends keyBoardVirtualControllerElement {
                 }
             }
         }
+    }
+
+    @Override
+    protected boolean shouldDrawGrayBackground() {
+        return true;
+    }
+
+    @Override
+    protected boolean isGrayBackgroundCircular() {
+        return true;
     }
 
 
@@ -391,6 +401,11 @@ public class keyAnalogStickFree extends keyBoardVirtualControllerElement {
                 break;
             }
             // up event (revoke touch)
+            case MotionEvent.ACTION_CANCEL: {
+                setPressed(false);
+                bIsFingerOnScreen = false;
+                break;
+            }
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_POINTER_UP: {
                 if (touchID == event.getPointerId(event.getActionIndex())) {

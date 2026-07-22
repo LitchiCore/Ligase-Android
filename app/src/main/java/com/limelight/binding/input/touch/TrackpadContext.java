@@ -8,6 +8,9 @@ import com.limelight.nvstream.NvConnection;
 import com.limelight.nvstream.input.MouseButtonPacket;
 
 public class TrackpadContext implements TouchContext {
+    public interface MouseButtonState {
+        boolean isHeld(byte buttonIndex);
+    }
     private double pendingDeltaX = 0;
     private double pendingDeltaY = 0;
     private int lastTouchX = 0;
@@ -38,6 +41,9 @@ public class TrackpadContext implements TouchContext {
     private boolean swapAxis = false;
     private float sensitivityX = 1;
     private float sensitivityY = 1;
+    private boolean pointerAcceleration = true;
+    private boolean touchGesturesEnabled = true;
+    private MouseButtonState externalMouseButtonState = buttonIndex -> false;
 
     private static final int TAP_MOVEMENT_THRESHOLD = 30;
     private static final int TAP_TIME_THRESHOLD = 230;
@@ -51,6 +57,7 @@ public class TrackpadContext implements TouchContext {
     private static final int MOMENTUM_FRAME_INTERVAL_MS = 10;
     private static final int FLICK_VELOCITY_DECAY_TIMEOUT_MS = 50;
     private static final int SCROLL_TRANSITION_TIMEOUT_MS = 200;
+    private static final int MAX_HELD_POINTER_DELTA = 256;
 
     public TrackpadContext(NvConnection conn, int actionIndex) {
         this.conn = conn;
@@ -63,6 +70,26 @@ public class TrackpadContext implements TouchContext {
         this.swapAxis = swapAxis;
         this.sensitivityX = (float) sensitivityX / 100;
         this.sensitivityY = (float) sensitivityY / 100;
+    }
+
+    public TrackpadContext(NvConnection conn, int actionIndex, boolean swapAxis,
+                           int sensitivityX, int sensitivityY,
+                           boolean pointerAcceleration,
+                           MouseButtonState externalMouseButtonState) {
+        this(conn, actionIndex, swapAxis, sensitivityX, sensitivityY,
+                pointerAcceleration, true, externalMouseButtonState);
+    }
+
+    public TrackpadContext(NvConnection conn, int actionIndex, boolean swapAxis,
+                           int sensitivityX, int sensitivityY,
+                           boolean pointerAcceleration,
+                           boolean touchGesturesEnabled,
+                           MouseButtonState externalMouseButtonState) {
+        this(conn, actionIndex, swapAxis, sensitivityX, sensitivityY);
+        this.pointerAcceleration = pointerAcceleration;
+        this.touchGesturesEnabled = touchGesturesEnabled;
+        this.externalMouseButtonState = externalMouseButtonState == null
+                ? buttonIndex -> false : externalMouseButtonState;
     }
 
     private final Runnable scrollTransitionRunnable = new Runnable() {
@@ -97,7 +124,10 @@ public class TrackpadContext implements TouchContext {
             if (Math.sqrt(velocityX * velocityX + velocityY * velocityY) * MOMENTUM_FRAME_INTERVAL_MS < 0.5) {
                 isFlicking = false;
                 if (confirmedDrag) {
-                    conn.sendMouseButtonUp(getMouseButtonIndex());
+                    byte buttonIndex = getMouseButtonIndex();
+                    if (!externalMouseButtonState.isHeld(buttonIndex)) {
+                        conn.sendMouseButtonUp(buttonIndex);
+                    }
                     confirmedDrag = false;
                 }
             }
@@ -203,23 +233,32 @@ public class TrackpadContext implements TouchContext {
             velocityX = 0;
             velocityY = 0;
             lastMoveTime = eventTime;
-            if (isClickPending) {
+            if (touchGesturesEnabled && isClickPending) {
                 isClickPending = false;
                 isDblClickPending = true;
                 confirmedDrag = true;
             }
-        } else {
+            if (externalMouseButtonState.isHeld(MouseButtonPacket.BUTTON_LEFT)) {
+                isClickPending = false;
+                isDblClickPending = false;
+                confirmedDrag = false;
+            }
+        } else if (touchGesturesEnabled) {
             if (pointerCount == 2 && !confirmedMove) {
-                conn.sendMouseButtonDown(MouseButtonPacket.BUTTON_MIDDLE);
-                conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_MIDDLE);
+                if (!externalMouseButtonState.isHeld(MouseButtonPacket.BUTTON_MIDDLE)) {
+                    conn.sendMouseButtonDown(MouseButtonPacket.BUTTON_MIDDLE);
+                    conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_MIDDLE);
+                }
                 isClickPending = false;
                 isDblClickPending = false;
                 confirmedDrag = false;
                 clickedMiddle = true;
             // Second finger released, should trigger right click immediately
             } else if (pointerCount == 1 && !confirmedMove && !clickedMiddle) {
-                conn.sendMouseButtonDown(MouseButtonPacket.BUTTON_RIGHT);
-                conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_RIGHT);
+                if (!externalMouseButtonState.isHeld(MouseButtonPacket.BUTTON_RIGHT)) {
+                    conn.sendMouseButtonDown(MouseButtonPacket.BUTTON_RIGHT);
+                    conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_RIGHT);
+                }
                 isClickPending = false;
                 isDblClickPending = false;
                 confirmedDrag = false;
@@ -240,6 +279,16 @@ public class TrackpadContext implements TouchContext {
             return;
         }
 
+        if (!touchGesturesEnabled) {
+            handler.removeCallbacksAndMessages(null);
+            isClickPending = false;
+            isDblClickPending = false;
+            confirmedDrag = false;
+            confirmedScroll = false;
+            isFlicking = false;
+            return;
+        }
+
         // Decay velocity based on time since last move event to avoid
         // flicks when the user pauses before lifting their finger.
         long timeSinceLastMove = eventTime - lastMoveTime;
@@ -253,14 +302,21 @@ public class TrackpadContext implements TouchContext {
 
         if (isDblClickPending) {
             handler.removeCallbacksAndMessages(null);
-            conn.sendMouseButtonUp(buttonIndex);
-            conn.sendMouseButtonDown(buttonIndex);
-            conn.sendMouseButtonUp(buttonIndex);
+            if (!externalMouseButtonState.isHeld(buttonIndex)) {
+                conn.sendMouseButtonUp(buttonIndex);
+                conn.sendMouseButtonDown(buttonIndex);
+                conn.sendMouseButtonUp(buttonIndex);
+            }
             isClickPending = false;
             confirmedDrag = false;
         }
         else if (confirmedDrag) {
             handler.removeCallbacksAndMessages(null);
+
+            if (externalMouseButtonState.isHeld(buttonIndex)) {
+                confirmedDrag = false;
+                return;
+            }
 
             double speed = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
             if (speed > FLICK_THRESHOLD) {
@@ -272,6 +328,12 @@ public class TrackpadContext implements TouchContext {
             }
         }
         else if (isTap(eventTime)) {
+            if (shouldSuppressButtonTap(
+                    externalMouseButtonState.isHeld(buttonIndex))) {
+                isClickPending = false;
+                isDblClickPending = false;
+                return;
+            }
             conn.sendMouseButtonDown(buttonIndex);
             isClickPending = true;
 
@@ -307,6 +369,14 @@ public class TrackpadContext implements TouchContext {
             return true;
         }
 
+        if (!touchGesturesEnabled && pointerCount != 1) {
+            lastTouchX = eventX;
+            lastTouchY = eventY;
+            lastMoveTime = eventTime;
+            pendingDeltaX = pendingDeltaY = 0;
+            return true;
+        }
+
         if (eventX != lastTouchX || eventY != lastTouchY) {
             long deltaTime = eventTime - lastMoveTime;
 
@@ -319,10 +389,20 @@ public class TrackpadContext implements TouchContext {
 
             int rawDeltaX = eventX - lastTouchX;
             int rawDeltaY = eventY - lastTouchY;
+            if (isAnyExternalMouseButtonHeld() &&
+                    isDiscontinuousPointerDelta(rawDeltaX, rawDeltaY)) {
+                // Rebase a replaced pointer instead of turning the coordinate
+                // discontinuity into a large relative cursor movement.
+                lastTouchX = eventX;
+                lastTouchY = eventY;
+                lastMoveTime = eventTime;
+                pendingDeltaX = pendingDeltaY = 0;
+                return true;
+            }
             int absDeltaX, absDeltaY;
 
-            double magnitude = Math.sqrt(rawDeltaX * rawDeltaX + rawDeltaY * rawDeltaY);
-            double precisionMultiplier = Math.cbrt(magnitude / ACCELERATION_THRESHOLD);
+            double precisionMultiplier = pointerResponseMultiplier(
+                    rawDeltaX, rawDeltaY, pointerAcceleration);
 
             float deltaX, deltaY;
             if (swapAxis) {
@@ -411,6 +491,19 @@ public class TrackpadContext implements TouchContext {
         return true;
     }
 
+    static boolean isDiscontinuousPointerDelta(int deltaX, int deltaY) {
+        return Math.abs(deltaX) > MAX_HELD_POINTER_DELTA ||
+                Math.abs(deltaY) > MAX_HELD_POINTER_DELTA;
+    }
+
+    private boolean isAnyExternalMouseButtonHeld() {
+        return externalMouseButtonState.isHeld(MouseButtonPacket.BUTTON_LEFT) ||
+                externalMouseButtonState.isHeld(MouseButtonPacket.BUTTON_MIDDLE) ||
+                externalMouseButtonState.isHeld(MouseButtonPacket.BUTTON_RIGHT) ||
+                externalMouseButtonState.isHeld(MouseButtonPacket.BUTTON_X1) ||
+                externalMouseButtonState.isHeld(MouseButtonPacket.BUTTON_X2);
+    }
+
     @Override
     public void cancelTouch() {
         cancelled = true;
@@ -421,7 +514,10 @@ public class TrackpadContext implements TouchContext {
         }
 
         if (confirmedDrag) {
-            conn.sendMouseButtonUp(getMouseButtonIndex());
+            byte buttonIndex = getMouseButtonIndex();
+            if (!externalMouseButtonState.isHeld(buttonIndex)) {
+                conn.sendMouseButtonUp(buttonIndex);
+            }
         }
     }
 
@@ -432,6 +528,20 @@ public class TrackpadContext implements TouchContext {
 
     @Override
     public void setPointerCount(int pointerCount) {
+        if (!touchGesturesEnabled) {
+            handler.removeCallbacks(scrollTransitionRunnable);
+            isScrollTransitioning = false;
+            isClickPending = false;
+            isDblClickPending = false;
+            confirmedDrag = false;
+            confirmedScroll = false;
+            this.pointerCount = pointerCount;
+            if (pointerCount > maxPointerCountInGesture) {
+                maxPointerCountInGesture = pointerCount;
+            }
+            return;
+        }
+
         if (this.pointerCount == 2 && pointerCount == 1) {
             // We just finished a 2-finger scroll.
             // Block mouse movement for a short period to avoid stray movement
@@ -445,7 +555,10 @@ public class TrackpadContext implements TouchContext {
         }
 
         if (pointerCount < this.pointerCount && confirmedDrag && !isFlicking) {
-            conn.sendMouseButtonUp(getMouseButtonIndex());
+            byte buttonIndex = getMouseButtonIndex();
+            if (!externalMouseButtonState.isHeld(buttonIndex)) {
+                conn.sendMouseButtonUp(buttonIndex);
+            }
             confirmedDrag = false;
             confirmedMove = false;
             confirmedScroll = false;
@@ -481,5 +594,16 @@ public class TrackpadContext implements TouchContext {
 
     private void checkForConfirmedScroll() {
         confirmedScroll = (actionIndex == 1 && pointerCount == 2 && confirmedMove);
+    }
+
+    static boolean shouldSuppressButtonTap(boolean sameButtonHeld) {
+        return sameButtonHeld;
+    }
+
+    static double pointerResponseMultiplier(int deltaX, int deltaY,
+                                            boolean accelerationEnabled) {
+        if (!accelerationEnabled) return 1.0;
+        double magnitude = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        return Math.cbrt(magnitude / ACCELERATION_THRESHOLD);
     }
 }

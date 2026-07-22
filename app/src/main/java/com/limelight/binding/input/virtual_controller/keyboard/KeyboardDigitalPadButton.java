@@ -147,6 +147,11 @@ public class KeyboardDigitalPadButton extends keyBoardVirtualControllerElement{
         );
     }
 
+    @Override
+    protected boolean shouldDrawGrayBackground() {
+        return true;
+    }
+
     private void newDirectionCallback(int direction) {
         _DBG("direction: " + direction);
 

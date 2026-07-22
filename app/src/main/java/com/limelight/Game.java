@@ -173,6 +173,8 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
     private VirtualController virtualController;
 
     private KeyBoardController keyBoardController;
+    private final int[] emulatedMouseButtonHoldCounts = new int[6];
+    private int touchKitTrackpadPointerId = -1;
 
     private KeyBoardLayoutController keyBoardLayoutController;
 
@@ -193,6 +195,7 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
     private boolean attemptedConnection = false;
     private int suppressPipRefCount = 0;
     private String pcName;
+    private String pcUuid;
     private String appName;
     private NvApp app;
     private float desiredRefreshRate;
@@ -563,6 +566,7 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
 
         appName = Game.this.getIntent().getStringExtra(EXTRA_APP_NAME);
         pcName = Game.this.getIntent().getStringExtra(EXTRA_PC_NAME);
+        pcUuid = Game.this.getIntent().getStringExtra(EXTRA_PC_UUID);
 
         host = Game.this.getIntent().getStringExtra(EXTRA_HOST);
         port = Game.this.getIntent().getIntExtra(EXTRA_PORT, NvHTTP.DEFAULT_HTTP_PORT);
@@ -592,6 +596,9 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
             finish();
             return;
         }
+
+        // Each host/game pair reuses the overlay layout it last ran with.
+        TouchKitGameLayoutStore.applyRemembered(this, pcUuid, appUUID, appId);
 
         // Initialize the MediaCodec helper before creating the decoder
         GlPreferences glPrefs = GlPreferences.readPreferences(this);
@@ -828,9 +835,14 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
                 listenForExternalDisplayRemoval();
             }
 
-            // Initialize touch contexts based on preferences
-            // The mouse mode preference is also read in PreferenceConfiguration to set the boolean flags
-            initMouseMode();
+            // TouchKit cloud mode is an explicit, reversible override. The user's
+            // normal Artemis mouse mode remains stored for when this switch is off.
+            if (prefConfig.touchkitCloudGamingMode) {
+                allowChangeMouseMode = false;
+                applyMouseMode(6);
+            } else {
+                initMouseMode();
+            }
         }
 
         if (prefConfig.onscreenController) {
@@ -845,7 +857,7 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
         }
 
         //特殊按键屏幕布局
-        if(prefConfig.enableKeyboard){
+        if (prefConfig.touchkitAdjustableOverlay) {
             initKeyboardController();
         }
 
@@ -1760,6 +1772,10 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
     @Override
     protected void onStop() {
         super.onStop();
+
+        if (appId != StreamConfiguration.INVALID_APP_ID) {
+            TouchKitGameLayoutStore.rememberCurrent(this, pcUuid, appUUID, appId);
+        }
 
         SpinnerDialog.closeDialogs(this);
         Dialog.closeDialogs();
@@ -3083,7 +3099,78 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
                         return true;
                     }
 
-                    if (prefConfig.enableMultiTouchGestures || !prefConfig.enableMultiTouchScreen) {
+                    // Android may deliver a full multi-pointer event to the stream even
+                    // when one pointer is owned by a TouchKit overlay button. Strip those
+                    // pointers before trackpad processing. Otherwise the button position
+                    // becomes an uninitialized first touch and creates a huge cursor delta.
+                    if (prefConfig.touchkitCloudGamingMode && keyBoardController != null &&
+                            keyBoardController.hasActiveControlPointers()) {
+                        int nonControlPointerCount;
+                        int nonControlPointerIndex;
+                        if (event.getPointerCount() == 1) {
+                            // With split touch dispatch, sibling views can each receive a
+                            // one-pointer event using the same pointer ID. Since this event
+                            // reached the stream/background view, it is the trackpad finger.
+                            nonControlPointerCount = 1;
+                            nonControlPointerIndex = 0;
+                        } else {
+                            nonControlPointerCount = 0;
+                            nonControlPointerIndex = -1;
+                            for (int i = 0; i < event.getPointerCount(); i++) {
+                                int pointerId = event.getPointerId(i);
+                                if (!keyBoardController.isControlPointerActive(pointerId)) {
+                                    nonControlPointerCount++;
+                                    nonControlPointerIndex = i;
+                                }
+                            }
+                        }
+                        if (nonControlPointerCount == 0) {
+                            touchKitTrackpadPointerId = -1;
+                            return true;
+                        }
+                        if (nonControlPointerCount == 1) {
+                            int pointerId = event.getPointerId(nonControlPointerIndex);
+                            int sourceAction = event.getActionMasked();
+                            boolean pointerEnding = sourceAction == MotionEvent.ACTION_CANCEL ||
+                                    sourceAction == MotionEvent.ACTION_UP ||
+                                    (sourceAction == MotionEvent.ACTION_POINTER_UP &&
+                                            event.getActionIndex() == nonControlPointerIndex);
+
+                            // A stream finger can first arrive as MOVE when another finger
+                            // is already held on an overlay child. Force a fresh DOWN to
+                            // rebase TrackpadContext instead of calculating a delta from the
+                            // previous gesture, which can fling the cursor to a screen edge.
+                            int trackpadAction;
+                            if (touchKitTrackpadPointerId != pointerId ||
+                                    sourceAction == MotionEvent.ACTION_DOWN) {
+                                if (pointerEnding) {
+                                    touchKitTrackpadPointerId = -1;
+                                    return true;
+                                }
+                                touchKitTrackpadPointerId = pointerId;
+                                trackpadAction = MotionEvent.ACTION_DOWN;
+                            } else if (pointerEnding) {
+                                trackpadAction = sourceAction == MotionEvent.ACTION_CANCEL
+                                        ? MotionEvent.ACTION_CANCEL : MotionEvent.ACTION_UP;
+                            } else {
+                                trackpadAction = MotionEvent.ACTION_MOVE;
+                            }
+
+                            MotionEvent trackpadOnlyEvent = obtainSinglePointerMotionEvent(
+                                    event, nonControlPointerIndex, trackpadAction);
+                            try {
+                                return handleTouchInput(trackpadOnlyEvent, touchContextMap, true);
+                            } finally {
+                                trackpadOnlyEvent.recycle();
+                                if (pointerEnding) {
+                                    touchKitTrackpadPointerId = -1;
+                                }
+                            }
+                        }
+                    }
+
+                    if (!(prefConfig.touchkitCloudGamingMode && prefConfig.touchkitDisableGestures) &&
+                            (prefConfig.enableMultiTouchGestures || !prefConfig.enableMultiTouchScreen)) {
                         int pointerCount = event.getPointerCount();
                         if (pointerCount > 2) {
                             int eventAction = event.getActionMasked();
@@ -3116,6 +3203,32 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
 
         // Unknown class
         return false;
+    }
+
+    private MotionEvent obtainSinglePointerMotionEvent(MotionEvent source, int pointerIndex,
+                                                       int action) {
+        MotionEvent.PointerProperties properties = new MotionEvent.PointerProperties();
+        MotionEvent.PointerCoords coordinates = new MotionEvent.PointerCoords();
+        source.getPointerProperties(pointerIndex, properties);
+        source.getPointerCoords(pointerIndex, coordinates);
+
+        long downTime = action == MotionEvent.ACTION_DOWN
+                ? source.getEventTime() : source.getDownTime();
+        return MotionEvent.obtain(
+                downTime,
+                source.getEventTime(),
+                action,
+                1,
+                new MotionEvent.PointerProperties[] { properties },
+                new MotionEvent.PointerCoords[] { coordinates },
+                source.getMetaState(),
+                source.getButtonState(),
+                source.getXPrecision(),
+                source.getYPrecision(),
+                source.getDeviceId(),
+                source.getEdgeFlags(),
+                source.getSource(),
+                source.getFlags());
     }
 
     private boolean handleTouchInput(MotionEvent event, TouchContext[] inputContextMap, boolean isTouchScreen) {
@@ -3227,7 +3340,8 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
                 break;
             case MotionEvent.ACTION_POINTER_UP:
             case MotionEvent.ACTION_UP:
-                if (prefConfig.touchscreenTrackpad) {
+                if (prefConfig.touchscreenTrackpad &&
+                        !(prefConfig.touchkitCloudGamingMode && prefConfig.touchkitDisableGestures)) {
                     if (pointerCount == 1 &&
                             (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || (event.getFlags() & MotionEvent.FLAG_CANCELED) == 0)) {
                         // All fingers up
@@ -3875,11 +3989,24 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
                 return;
         }
 
-        if (down) {
-            conn.sendMouseButtonDown(buttonIndex);
+        synchronized (emulatedMouseButtonHoldCounts) {
+            int index = buttonIndex & 0xFF;
+            if (down) {
+                if (emulatedMouseButtonHoldCounts[index]++ == 0) {
+                    conn.sendMouseButtonDown(buttonIndex);
+                }
+            } else if (emulatedMouseButtonHoldCounts[index] > 0 &&
+                    --emulatedMouseButtonHoldCounts[index] == 0) {
+                conn.sendMouseButtonUp(buttonIndex);
+            }
         }
-        else {
-            conn.sendMouseButtonUp(buttonIndex);
+    }
+
+    private boolean isEmulatedMouseButtonHeld(byte buttonIndex) {
+        synchronized (emulatedMouseButtonHoldCounts) {
+            int index = buttonIndex & 0xFF;
+            return index < emulatedMouseButtonHoldCounts.length &&
+                    emulatedMouseButtonHoldCounts[index] > 0;
         }
     }
 
@@ -4163,6 +4290,7 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
                 break;
             case 2: // Trackpad (natural)
             case 3: // Trackpad (gaming)
+            case 6: // TouchKit cloud gaming preset
                 prefConfig.enableMultiTouchScreen = false;
                 prefConfig.touchscreenTrackpad = true;
                 break;
@@ -4183,7 +4311,15 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
             } else if (mode == 3) {
                 touchContextMap[i] = new RelativeTouchContext(conn, i, REFERENCE_HORIZ_RES, REFERENCE_VERT_RES, streamContainer, prefConfig);
             } else {
-                touchContextMap[i] = new TrackpadContext(conn, i);
+                // TouchKit keeps the natural cloud-desktop gestures while honoring
+                // the user's X/Y sensitivity settings for game-oriented control.
+                touchContextMap[i] = mode == 6
+                        ? new TrackpadContext(conn, i, false,
+                                prefConfig.trackpadSensitivityX, prefConfig.trackpadSensitivityY,
+                                !prefConfig.touchkitLinearPointer,
+                                !prefConfig.touchkitDisableGestures,
+                                this::isEmulatedMouseButtonHeld)
+                        : new TrackpadContext(conn, i);
             }
         }
 

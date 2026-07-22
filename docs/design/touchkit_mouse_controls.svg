@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="680" viewBox="0 0 960 680">
+  <rect width="960" height="680" rx="36" fill="#17191d"/>
+  <text x="48" y="62" fill="#ffffff" font-family="sans-serif" font-size="30" font-weight="600">TouchKit 鼠标按键图标方案</text>
+  <text x="48" y="96" fill="#a9adb5" font-family="sans-serif" font-size="16">灰色圆形外框 · 白色鼠标图标 · 实心区域表示触发部位</text>
+
+  <defs>
+    <g id="button-frame">
+      <circle cx="0" cy="0" r="88" fill="#666666" fill-opacity=".42" stroke="#888888" stroke-width="4"/>
+    </g>
+    <g id="mouse-body">
+      <path d="M 0 -52 C -29 -52 -42 -30 -42 0 L -42 24 C -42 53 -24 70 0 70 C 24 70 42 53 42 24 L 42 0 C 42 -30 29 -52 0 -52 Z"
+            fill="none" stroke="#ffffff" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M 0 -50 L 0 -10" fill="none" stroke="#ffffff" stroke-width="4"/>
+      <path d="M -40 -10 L 40 -10" fill="none" stroke="#ffffff" stroke-width="4"/>
+    </g>
+    <clipPath id="mouse-clip">
+      <path d="M 0 -52 C -29 -52 -42 -30 -42 0 L -42 24 C -42 53 -24 70 0 70 C 24 70 42 53 42 24 L 42 0 C 42 -30 29 -52 0 -52 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- Left click -->
+  <g transform="translate(170 235)">
+    <use href="#button-frame"/>
+    <path d="M -44 -7 L -44 -20 C -44 -44 -29 -54 -2 -54 L -2 -9 Z" fill="#ffffff" clip-path="url(#mouse-clip)"/>
+    <use href="#mouse-body"/>
+    <text x="0" y="126" fill="#ffffff" font-family="sans-serif" font-size="22" text-anchor="middle">左键</text>
+  </g>
+
+  <!-- Right click -->
+  <g transform="translate(480 235)">
+    <use href="#button-frame"/>
+    <path d="M 2 -54 C 29 -54 44 -44 44 -20 L 44 -7 L 2 -9 Z" fill="#ffffff" clip-path="url(#mouse-clip)"/>
+    <use href="#mouse-body"/>
+    <text x="0" y="126" fill="#ffffff" font-family="sans-serif" font-size="22" text-anchor="middle">右键</text>
+  </g>
+
+  <!-- Middle click -->
+  <g transform="translate(790 235)">
+    <use href="#button-frame"/>
+    <use href="#mouse-body"/>
+    <rect x="-8" y="-39" width="16" height="25" rx="8" fill="#ffffff"/>
+    <text x="0" y="126" fill="#ffffff" font-family="sans-serif" font-size="22" text-anchor="middle">中键</text>
+  </g>
+
+  <!-- Scroll up -->
+  <g transform="translate(170 510)">
+    <use href="#button-frame"/>
+    <use href="#mouse-body"/>
+    <rect x="-7" y="-28" width="14" height="18" rx="7" fill="#ffffff"/>
+    <path d="M -17 -40 L 0 -57 L 17 -40" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="0" y="126" fill="#ffffff" font-family="sans-serif" font-size="22" text-anchor="middle">上滚</text>
+  </g>
+
+  <!-- Scroll down -->
+  <g transform="translate(480 510)">
+    <use href="#button-frame"/>
+    <use href="#mouse-body"/>
+    <rect x="-7" y="-28" width="14" height="18" rx="7" fill="#ffffff"/>
+    <path d="M 0 -7 L 0 20 M -17 8 L 0 25 L 17 8" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="0" y="126" fill="#ffffff" font-family="sans-serif" font-size="22" text-anchor="middle">下滚</text>
+  </g>
+
+  <!-- Side button -->
+  <g transform="translate(790 510)">
+    <use href="#button-frame"/>
+    <use href="#mouse-body"/>
+    <rect x="-53" y="-10" width="18" height="28" rx="7" fill="#ffffff"/>
+    <text x="0" y="126" fill="#ffffff" font-family="sans-serif" font-size="22" text-anchor="middle">侧键</text>
+  </g>
+</svg>

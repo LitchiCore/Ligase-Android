@@ -149,11 +149,11 @@
 
 
     <string-array name="keyboard_axi_names">
-        <item>@string/keyboard_layout_set_1</item>
-        <item>@string/keyboard_layout_set_1</item>
-        <item>@string/keyboard_layout_set_1</item>
-        <item>@string/keyboard_layout_set_1</item>
-        <item>@string/keyboard_layout_set_1</item>
+          <item>@string/keyboard_layout_set_1</item>
+          <item>@string/keyboard_layout_set_2</item>
+          <item>@string/keyboard_layout_set_3</item>
+          <item>@string/keyboard_layout_set_4</item>
+          <item>@string/keyboard_layout_set_5</item>
     </string-array>
     <string-array name="keyboard_axi_values" translatable="false">
         <item>OSC_Keyboard</item>
@@ -187,6 +187,15 @@
         <item>3</item>
         <item>4</item>
         <item>5</item>
+    </string-array>
+
+    <string-array name="touchkit_input_mode_names">
+        <item>@string/touchkit_input_mode_accelerated</item>
+        <item>@string/touchkit_input_mode_linear</item>
+    </string-array>
+    <string-array name="touchkit_input_mode_values" translatable="false">
+        <item>accelerated</item>
+        <item>linear</item>
     </string-array>
 
     <string-array name="onscreen_keyboard_align_modes">

@@ -46,6 +46,9 @@ If you switch back to the main stream version, you'll be missing the following a
 29. Server Command integration with [Apollo](https://github.com/ClassicOldSong/Apollo)
 30. Clipboard sync (requires Apollo)
 31. SBS 3D for external Displays (Using AI MiDaS v2 Lite)
+32. [TouchKit cloud gaming controls](docs/touchkit/README.md): touch-oriented relative mouse
+    input, editable floating keyboard/mouse controls, key wheels, per-game layouts, and layout
+    import/export. [简体中文说明](docs/touchkit/README.zh-CN.md)
 
 # Disclaimer
 

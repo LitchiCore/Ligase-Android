@@ -227,32 +227,41 @@ public class KeyAnalogStick extends keyBoardVirtualControllerElement {
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(getDefaultStrokeWidth());
 
-        // draw outer circle
-        if (!isPressed() || click_state == CLICK_STATE.SINGLE) {
-            paint.setColor(getDefaultColor());
-        } else {
-            paint.setColor(pressedColor);
-        }
+        int outlineColor = virtualController.getControllerMode() ==
+                KeyBoardController.ControllerMode.Active ? getGrayOutlineColor() : getDefaultColor();
+
+        // Outer guides stay gray in normal play. The movable center remains white.
+        paint.setColor(outlineColor);
         canvas.drawCircle(getWidth() / 2, getHeight() / 2, radius_complete, paint);
 
-        paint.setColor(getDefaultColor());
+        paint.setColor(outlineColor);
         // draw dead zone
         canvas.drawCircle(getWidth() / 2, getHeight() / 2, radius_dead_zone, paint);
 
         // draw stick depending on state
         switch (stick_state) {
             case NO_MOVEMENT: {
-                paint.setColor(getDefaultColor());
+                paint.setColor(applyForegroundOpacity(Color.WHITE));
                 canvas.drawCircle(getWidth() / 2, getHeight() / 2, radius_analog_stick, paint);
                 break;
             }
             case MOVED_IN_DEAD_ZONE:
             case MOVED_ACTIVE: {
-                paint.setColor(pressedColor);
+                paint.setColor(applyForegroundOpacity(Color.WHITE));
                 canvas.drawCircle(position_stick_x, position_stick_y, radius_analog_stick, paint);
                 break;
             }
         }
+    }
+
+    @Override
+    protected boolean shouldDrawGrayBackground() {
+        return true;
+    }
+
+    @Override
+    protected boolean isGrayBackgroundCircular() {
+        return true;
     }
 
     private void updatePosition(long eventTime) {

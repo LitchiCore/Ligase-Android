@@ -1,0 +1,444 @@
+{
+  "format": "artemis-touchkit-layout",
+  "version": 1,
+  "name": "原神",
+  "sourceLayoutId": "OSC_Keyboard",
+  "preferences": {
+    "key_42": {
+      "type": "string",
+      "value": "{\"LEFT\":817,\"TOP\":533,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"N\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":42,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "m_11": {
+      "type": "string",
+      "value": "{\"LEFT\":375,\"TOP\":720,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42}"
+    },
+    "key_43": {
+      "type": "string",
+      "value": "{\"LEFT\":950,\"TOP\":533,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"O\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":43,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_40": {
+      "type": "string",
+      "value": "{\"LEFT\":2095,\"TOP\":480,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"L\",\"DESCRIPTION\":\"配队\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":40,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_41": {
+      "type": "string",
+      "value": "{\"LEFT\":256,\"TOP\":144,\"WIDTH\":136,\"HEIGHT\":136,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"M\",\"DESCRIPTION\":\"地图\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":41,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "m_10": {
+      "type": "string",
+      "value": "{\"LEFT\":255,\"TOP\":720,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42}"
+    },
+    "key_131": {
+      "type": "string",
+      "value": "{\"LEFT\":1586,\"TOP\":426,\"WIDTH\":160,\"HEIGHT\":160,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"F1\",\"DESCRIPTION\":\"冒险之证\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":131,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "m_1__instance_1446092635127208": {
+      "type": "string",
+      "value": "{\"LEFT\":0,\"TOP\":593,\"WIDTH\":135,\"HEIGHT\":135,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"左键\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_111__instance_1446331434645086": {
+      "type": "string",
+      "value": "{\"LEFT\":53,\"TOP\":479,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Esc\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":111,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "__touchkit_layout_format_version": {
+      "type": "int",
+      "value": 2
+    },
+    "touchkit_radial_1__instance_1446188116815818": {
+      "type": "string",
+      "value": "{\"LEFT\":1668,\"TOP\":196,\"WIDTH\":330,\"HEIGHT\":330,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"RADIAL_NAME\":\"角色\",\"RADIAL_SPEC\":\"4\\n3\\n2\\n1\"}"
+    },
+    "rocker_1": {
+      "type": "string",
+      "value": "{\"LEFT\":271,\"TOP\":580,\"WIDTH\":333,\"HEIGHT\":333,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"STICK_BINDINGS\":\"上=W\\n下=S\\n左=A\\n右=D\"}"
+    },
+    "key_133": {
+      "type": "string",
+      "value": "{\"LEFT\":417,\"TOP\":133,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"F3\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":133,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_39": {
+      "type": "string",
+      "value": "{\"LEFT\":417,\"TOP\":533,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"K\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":39,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "m_1__instance_1433868104466820": {
+      "type": "string",
+      "value": "{\"LEFT\":83,\"TOP\":307,\"WIDTH\":166,\"HEIGHT\":166,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"左键\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "touchkit_soft_keyboard": {
+      "type": "string",
+      "value": "{\"LEFT\":367,\"TOP\":909,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42}"
+    },
+    "key_132": {
+      "type": "string",
+      "value": "{\"LEFT\":283,\"TOP\":133,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"F2\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":132,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_135": {
+      "type": "string",
+      "value": "{\"LEFT\":683,\"TOP\":133,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"F5\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":135,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_37": {
+      "type": "string",
+      "value": "{\"LEFT\":150,\"TOP\":533,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"I\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":37,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_134": {
+      "type": "string",
+      "value": "{\"LEFT\":550,\"TOP\":133,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"F4\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":134,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_38": {
+      "type": "string",
+      "value": "{\"LEFT\":283,\"TOP\":533,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"J\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":38,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_137": {
+      "type": "string",
+      "value": "{\"LEFT\":950,\"TOP\":133,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"F7\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":137,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_35": {
+      "type": "string",
+      "value": "{\"LEFT\":1493,\"TOP\":400,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"G\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":35,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_136": {
+      "type": "string",
+      "value": "{\"LEFT\":817,\"TOP\":133,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"F6\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":136,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_36": {
+      "type": "string",
+      "value": "{\"LEFT\":17,\"TOP\":533,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"H\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":36,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_139": {
+      "type": "string",
+      "value": "{\"LEFT\":1088,\"TOP\":133,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"F9\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":139,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_33": {
+      "type": "string",
+      "value": "{\"LEFT\":1591,\"TOP\":907,\"WIDTH\":144,\"HEIGHT\":144,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"E\",\"DESCRIPTION\":\"战技\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":33,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_138": {
+      "type": "string",
+      "value": "{\"LEFT\":1083,\"TOP\":133,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"F8\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":138,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_34": {
+      "type": "string",
+      "value": "{\"LEFT\":1494,\"TOP\":555,\"WIDTH\":149,\"HEIGHT\":149,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"F\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":34,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_53": {
+      "type": "string",
+      "value": "{\"LEFT\":340,\"TOP\":260,\"WIDTH\":106,\"HEIGHT\":106,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Y\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":53,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_54": {
+      "type": "string",
+      "value": "{\"LEFT\":679,\"TOP\":919,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Z\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":54,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_51": {
+      "type": "string",
+      "value": "{\"LEFT\":199,\"TOP\":508,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"W\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"TOGGLE\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":51,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_52": {
+      "type": "string",
+      "value": "{\"LEFT\":1843,\"TOP\":928,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"X\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":52,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_50": {
+      "type": "string",
+      "value": "{\"LEFT\":17,\"TOP\":667,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"V\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":50,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "touchkit_scroll_down": {
+      "type": "string",
+      "value": "{\"LEFT\":0,\"TOP\":256,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"下滚\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"SHOW_PHYSICAL_KEY_NAMES\":false,\"SCROLL_STEP\":4,\"CONTINUOUS_SCROLL\":true}"
+    },
+    "key_122": {
+      "type": "string",
+      "value": "{\"LEFT\":17,\"TOP\":267,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Home\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":122,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_124": {
+      "type": "string",
+      "value": "{\"LEFT\":683,\"TOP\":667,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Insert\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":124,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_48": {
+      "type": "string",
+      "value": "{\"LEFT\":1475,\"TOP\":726,\"WIDTH\":107,\"HEIGHT\":107,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"T\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":48,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_123": {
+      "type": "string",
+      "value": "{\"LEFT\":150,\"TOP\":267,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"End\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":123,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_49": {
+      "type": "string",
+      "value": "{\"LEFT\":1493,\"TOP\":533,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"U\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":49,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_46": {
+      "type": "string",
+      "value": "{\"LEFT\":193,\"TOP\":247,\"WIDTH\":106,\"HEIGHT\":106,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"R\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":46,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_47": {
+      "type": "string",
+      "value": "{\"LEFT\":1227,\"TOP\":533,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"S\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":47,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "__touchkit_deleted_base_elements": {
+      "type": "string",
+      "value": "[\"dpad_1\",\"key_121\",\"key_120\",\"key_116\",\"key_114\",\"key_118\",\"key_58\",\"key_82\",\"key_60\",\"key_115\",\"key_81\",\"key_69\",\"key_68\",\"key_70\",\"key_71\",\"key_72\",\"key_73\",\"key_74\",\"key_75\",\"key_154\",\"key_143\",\"key_155\",\"key_55\",\"key_156\",\"key_158\",\"key_157\",\"key_76\",\"key_56\"]"
+    },
+    "key_44": {
+      "type": "string",
+      "value": "{\"LEFT\":1083,\"TOP\":533,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"P\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":44,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_45": {
+      "type": "string",
+      "value": "{\"LEFT\":1447,\"TOP\":917,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Q\",\"DESCRIPTION\":\"爆发\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":45,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_20": {
+      "type": "string",
+      "value": "{\"LEFT\":950,\"TOP\":667,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"↓\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":20,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_21": {
+      "type": "string",
+      "value": "{\"LEFT\":1083,\"TOP\":667,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"←\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":21,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_7": {
+      "type": "string",
+      "value": "{\"LEFT\":1493,\"TOP\":267,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"0\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":7,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_9": {
+      "type": "string",
+      "value": "{\"LEFT\":683,\"TOP\":267,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"2\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":9,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_8": {
+      "type": "string",
+      "value": "{\"LEFT\":550,\"TOP\":267,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"1\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":8,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "touchkit_radial_1": {
+      "type": "string",
+      "value": "{\"LEFT\":1755,\"TOP\":84,\"WIDTH\":300,\"HEIGHT\":300,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"RADIAL_NAME\":\"功能\",\"RADIAL_SPEC\":\"F1=冒险之证\\nF2=多人游戏\\nF3=祈愿\\nF4=纪行\\nF5=活动\"}"
+    },
+    "key_19": {
+      "type": "string",
+      "value": "{\"LEFT\":817,\"TOP\":667,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"↑\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":19,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_111": {
+      "type": "string",
+      "value": "{\"LEFT\":1994,\"TOP\":333,\"WIDTH\":136,\"HEIGHT\":136,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Esc\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":111,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_15": {
+      "type": "string",
+      "value": "{\"LEFT\":1227,\"TOP\":267,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"8\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":15,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_113": {
+      "type": "string",
+      "value": "{\"LEFT\":17,\"TOP\":400,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Ctrl\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":113,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_112": {
+      "type": "string",
+      "value": "{\"LEFT\":1493,\"TOP\":133,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Delete\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":112,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_16": {
+      "type": "string",
+      "value": "{\"LEFT\":1360,\"TOP\":267,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"9\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":16,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_13": {
+      "type": "string",
+      "value": "{\"LEFT\":1088,\"TOP\":267,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"6\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":13,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_14": {
+      "type": "string",
+      "value": "{\"LEFT\":1093,\"TOP\":267,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"7\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":14,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_11": {
+      "type": "string",
+      "value": "{\"LEFT\":950,\"TOP\":267,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"4\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":11,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_117": {
+      "type": "string",
+      "value": "{\"LEFT\":150,\"TOP\":400,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Win\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":117,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_12": {
+      "type": "string",
+      "value": "{\"LEFT\":1669,\"TOP\":247,\"WIDTH\":98,\"HEIGHT\":98,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"5\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":12,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_31": {
+      "type": "string",
+      "value": "{\"LEFT\":2120,\"TOP\":121,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"C\",\"DESCRIPTION\":\"角色属性\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":31,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_32": {
+      "type": "string",
+      "value": "{\"LEFT\":1093,\"TOP\":400,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"D\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":32,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_30": {
+      "type": "string",
+      "value": "{\"LEFT\":1977,\"TOP\":123,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"B\",\"DESCRIPTION\":\"背包\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":30,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_29": {
+      "type": "string",
+      "value": "{\"LEFT\":950,\"TOP\":400,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"A\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":29,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_22": {
+      "type": "string",
+      "value": "{\"LEFT\":1088,\"TOP\":667,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"→\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":22,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "touchkit_scroll_up": {
+      "type": "string",
+      "value": "{\"LEFT\":0,\"TOP\":103,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"上滚\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"SHOW_PHYSICAL_KEY_NAMES\":false,\"SCROLL_STEP\":4,\"CONTINUOUS_SCROLL\":true}"
+    },
+    "key_10": {
+      "type": "string",
+      "value": "{\"LEFT\":817,\"TOP\":267,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"3\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":10,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_93": {
+      "type": "string",
+      "value": "{\"LEFT\":417,\"TOP\":267,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"PgDn\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":93,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_92": {
+      "type": "string",
+      "value": "{\"LEFT\":283,\"TOP\":267,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"PgUp\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":92,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "__touchkit_canvas_height": {
+      "type": "int",
+      "value": 1080
+    },
+    "__touchkit_canvas_width": {
+      "type": "int",
+      "value": 2312
+    },
+    "m_s_3": {
+      "type": "string",
+      "value": "{\"LEFT\":1575,\"TOP\":600,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"右键\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_62": {
+      "type": "string",
+      "value": "{\"LEFT\":2014,\"TOP\":605,\"WIDTH\":149,\"HEIGHT\":149,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"SPACE\",\"DESCRIPTION\":\"跳跃\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":62,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_151": {
+      "type": "string",
+      "value": "{\"LEFT\":950,\"TOP\":400,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":false,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"7\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":151,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_61": {
+      "type": "string",
+      "value": "{\"LEFT\":683,\"TOP\":400,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"TAB\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":61,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_150": {
+      "type": "string",
+      "value": "{\"LEFT\":817,\"TOP\":400,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":false,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"6\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":150,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "__touchkit_dynamic_elements": {
+      "type": "string",
+      "value": "[{\"name\":\"ML\",\"code\":1,\"desc\":\"简单描述下，code值固定，name为按钮显示文字，ML左键、MM中键、MR右键\",\"type\":1,\"elementId\":\"m_1__instance_1446092635127208\"},{\"type\":5,\"name\":\"按键轮盘\",\"elementId\":\"touchkit_radial_1__instance_1446188116815818\"},{\"name\":\"Esc\",\"code\":111,\"type\":0,\"elementId\":\"key_111__instance_1446331434645086\"}]"
+    },
+    "key_153": {
+      "type": "string",
+      "value": "{\"LEFT\":1088,\"TOP\":400,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":false,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"9\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":153,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_152": {
+      "type": "string",
+      "value": "{\"LEFT\":1083,\"TOP\":400,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":false,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"8\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":152,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_59": {
+      "type": "string",
+      "value": "{\"LEFT\":2088,\"TOP\":845,\"WIDTH\":149,\"HEIGHT\":149,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Shift\",\"DESCRIPTION\":\"冲刺\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":59,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_57": {
+      "type": "string",
+      "value": "{\"LEFT\":137,\"TOP\":361,\"WIDTH\":119,\"HEIGHT\":119,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Alt\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"TOGGLE\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":57,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "m_1": {
+      "type": "string",
+      "value": "{\"LEFT\":1685,\"TOP\":718,\"WIDTH\":188,\"HEIGHT\":188,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"左键\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "m_3": {
+      "type": "string",
+      "value": "{\"LEFT\":1360,\"TOP\":667,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"右键\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "touchkit_combo_1": {
+      "type": "string",
+      "value": "{\"LEFT\":133,\"TOP\":933,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":false,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Alt+1\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"SHOW_PHYSICAL_KEY_NAMES\":false,\"COMBO_SPEC\":\"LeftAlt+1\"}"
+    },
+    "m_2": {
+      "type": "string",
+      "value": "{\"LEFT\":17,\"TOP\":800,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"中键\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "touchkit_combo_2": {
+      "type": "string",
+      "value": "{\"LEFT\":267,\"TOP\":933,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":false,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Alt+1\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"SHOW_PHYSICAL_KEY_NAMES\":false,\"COMBO_SPEC\":\"LeftAlt+1\"}"
+    },
+    "m_5": {
+      "type": "string",
+      "value": "{\"LEFT\":283,\"TOP\":800,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":false,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"侧键 5\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "touchkit_combo_3": {
+      "type": "string",
+      "value": "{\"LEFT\":400,\"TOP\":933,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":false,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Alt+1\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"SHOW_PHYSICAL_KEY_NAMES\":false,\"COMBO_SPEC\":\"LeftAlt+1\"}"
+    },
+    "m_4": {
+      "type": "string",
+      "value": "{\"LEFT\":150,\"TOP\":800,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":false,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"侧键 4\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "touchkit_combo_4": {
+      "type": "string",
+      "value": "{\"LEFT\":533,\"TOP\":933,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":false,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Alt+1\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"SHOW_PHYSICAL_KEY_NAMES\":false,\"COMBO_SPEC\":\"LeftAlt+1\"}"
+    },
+    "key_140": {
+      "type": "string",
+      "value": "{\"LEFT\":1093,\"TOP\":133,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"F10\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":140,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "touchkit_combo_5": {
+      "type": "string",
+      "value": "{\"LEFT\":667,\"TOP\":933,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":false,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Alt+1\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"SHOW_PHYSICAL_KEY_NAMES\":false,\"COMBO_SPEC\":\"LeftAlt+1\"}"
+    },
+    "touchkit_combo_6": {
+      "type": "string",
+      "value": "{\"LEFT\":800,\"TOP\":933,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":false,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Alt+1\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"SHOW_PHYSICAL_KEY_NAMES\":false,\"COMBO_SPEC\":\"LeftAlt+1\"}"
+    },
+    "key_142": {
+      "type": "string",
+      "value": "{\"LEFT\":1360,\"TOP\":133,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"F12\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":142,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "m_9": {
+      "type": "string",
+      "value": "{\"LEFT\":135,\"TOP\":720,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42}"
+    },
+    "touchkit_combo_7": {
+      "type": "string",
+      "value": "{\"LEFT\":933,\"TOP\":933,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":false,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Alt+1\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"SHOW_PHYSICAL_KEY_NAMES\":false,\"COMBO_SPEC\":\"LeftAlt+1\"}"
+    },
+    "key_141": {
+      "type": "string",
+      "value": "{\"LEFT\":1227,\"TOP\":133,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"F11\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":141,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "touchkit_combo_8": {
+      "type": "string",
+      "value": "{\"LEFT\":1067,\"TOP\":933,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":false,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Alt+1\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"SHOW_PHYSICAL_KEY_NAMES\":false,\"COMBO_SPEC\":\"LeftAlt+1\"}"
+    },
+    "key_59__instance_1435440877510178": {
+      "type": "string",
+      "value": "{\"LEFT\":245,\"TOP\":430,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Shift\",\"DESCRIPTION\":\"奔跑\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"TIMED_HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":59,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_144": {
+      "type": "string",
+      "value": "{\"LEFT\":17,\"TOP\":400,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":false,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"0\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":144,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_146": {
+      "type": "string",
+      "value": "{\"LEFT\":283,\"TOP\":400,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":false,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"2\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":146,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_145": {
+      "type": "string",
+      "value": "{\"LEFT\":150,\"TOP\":400,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":false,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"1\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":145,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_148": {
+      "type": "string",
+      "value": "{\"LEFT\":550,\"TOP\":400,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":false,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"4\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":148,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_147": {
+      "type": "string",
+      "value": "{\"LEFT\":417,\"TOP\":400,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":false,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"3\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":147,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_66": {
+      "type": "string",
+      "value": "{\"LEFT\":179,\"TOP\":925,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"ENTER\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":66,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_67": {
+      "type": "string",
+      "value": "{\"LEFT\":1093,\"TOP\":667,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":true,\"HIDDEN\":true,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Backspace\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":67,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_149": {
+      "type": "string",
+      "value": "{\"LEFT\":683,\"TOP\":400,\"WIDTH\":133,\"HEIGHT\":133,\"ENABLED\":false,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"5\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":149,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    }
+  }
+}
