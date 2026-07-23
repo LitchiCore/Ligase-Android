@@ -41,6 +41,7 @@ import com.limelight.ligase.library.HostSortMode
 import com.limelight.ligase.library.LigaseLibraryAdapter
 import com.limelight.ligase.library.LigaseLibraryItem
 import com.limelight.ligase.library.LigaseLibraryStatus
+import com.limelight.ligase.library.LibraryRefreshCoordinator
 import com.limelight.ligase.library.LigaseResolutionDto
 import com.limelight.ligase.library.LigaseSyncRepository
 import com.limelight.ligase.library.LigaseSyncSnapshotDto
@@ -74,6 +75,7 @@ class LigaseActivity : AppCompatActivity() {
     private val libraryItems = mutableStateListOf<LigaseLibraryItem>()
     private var libraryHost by mutableStateOf<ComputerDetails?>(null)
     private var libraryLoading by mutableStateOf(false)
+    private var libraryRefreshing by mutableStateOf(false)
     private var libraryStatus by mutableStateOf(LigaseLibraryStatus.IDLE)
     private var librarySyncSnapshot by mutableStateOf<LigaseSyncSnapshotDto?>(null)
     private var libraryHdrAvailable by mutableStateOf(false)
@@ -85,8 +87,7 @@ class LigaseActivity : AppCompatActivity() {
     private var lastLibraryRawAppList: String? = null
     private var pendingLibraryHostUuid: String? = null
     private var libraryTransportApps: List<NvApp> = emptyList()
-    private var syncRequestInFlight = false
-    private var syncRequestGeneration = 0L
+    private val libraryRefreshCoordinator = LibraryRefreshCoordinator()
     private val syncRepository = LigaseSyncRepository()
 
     private var managerBinder: ComputerManagerService.ComputerManagerBinder? = null
@@ -148,6 +149,7 @@ class LigaseActivity : AppCompatActivity() {
                 libraryHost = libraryHost,
                 libraryItems = libraryItems,
                 libraryLoading = libraryLoading,
+                libraryRefreshing = libraryRefreshing,
                 libraryStatus = libraryStatus,
                 libraryGlobalResolution = librarySyncSnapshot?.streaming?.globalResolution,
                 libraryHdrAvailable = libraryHdrAvailable,
@@ -205,11 +207,16 @@ class LigaseActivity : AppCompatActivity() {
 
     private fun selectPage(page: LigasePage) {
         if (page == currentPage) return
-        if (page != LigasePage.HOME) stopAppListUpdates()
+        if (page != LigasePage.HOME) {
+            stopAppListUpdates()
+            libraryRefreshCoordinator.cancel()
+            libraryRefreshing = false
+        }
         currentPage = page
         if (page == LigasePage.HOME) {
             startAppListUpdates()
             selectDefaultHostIfNeeded()
+            libraryHost?.let(::handleSelectedHostCapabilities)
         }
     }
 
@@ -380,12 +387,13 @@ class LigaseActivity : AppCompatActivity() {
         stopAppListUpdates()
         disposeLibraryAssets()
         libraryHost = host
+        libraryRefreshCoordinator.cancel()
+        libraryRefreshCoordinator.selectHost(host.uuid)
         pendingLibraryHostUuid = host.uuid
         libraryItems.clear()
         libraryTransportApps = emptyList()
         librarySyncSnapshot = null
-        syncRequestInFlight = false
-        syncRequestGeneration++
+        libraryRefreshing = false
         lastLibraryRawAppList = null
         libraryRunningAppId = host.runningGameId
         librarySortMode = LigasePreferences.getLibrarySortMode(this, host.uuid)
@@ -409,16 +417,16 @@ class LigaseActivity : AppCompatActivity() {
     private fun clearLibraryState() {
         stopAppListUpdates()
         libraryHost = null
+        libraryRefreshCoordinator.selectHost(null)
         pendingLibraryHostUuid = null
         libraryItems.clear()
         libraryTransportApps = emptyList()
         librarySyncSnapshot = null
         lastLibraryRawAppList = null
         libraryLoading = false
+        libraryRefreshing = false
         libraryStatus = LigaseLibraryStatus.IDLE
         libraryHdrAvailable = false
-        syncRequestInFlight = false
-        syncRequestGeneration++
         disposeLibraryAssets()
     }
 
@@ -483,8 +491,8 @@ class LigaseActivity : AppCompatActivity() {
             libraryItems.clear()
             libraryTransportApps = emptyList()
             librarySyncSnapshot = null
-            syncRequestInFlight = false
-            syncRequestGeneration++
+            libraryRefreshCoordinator.cancel()
+            libraryRefreshing = false
             libraryLoading = false
             libraryStatus = LigaseLibraryStatus.INCOMPATIBLE
             libraryHdrAvailable = false
@@ -506,46 +514,53 @@ class LigaseActivity : AppCompatActivity() {
             libraryLoading = false
             return
         }
-        if (syncRequestInFlight) return
         if (!force && librarySyncSnapshot != null) return
-        syncRequestInFlight = true
-        val requestGeneration = ++syncRequestGeneration
-        libraryStatus = LigaseLibraryStatus.LOADING
-        libraryLoading = true
+        val preservesContent = force && librarySyncSnapshot != null
+        val request = libraryRefreshCoordinator.begin(host.uuid, preservesContent) ?: return
+        if (preservesContent) {
+            libraryRefreshing = true
+        } else {
+            libraryStatus = LigaseLibraryStatus.LOADING
+            libraryLoading = true
+        }
 
         Thread {
             try {
-                val snapshot = syncRepository.fetch(createLigaseHttp(host), path)
+                val http = createLigaseHttp(host)
+                val snapshot = syncRepository.fetch(http, path)
+                val rawAppList = http.appListRaw
+                val transportApps = NvHTTP.getAppListByReader(StringReader(rawAppList))
                 runOnUiThread {
-                    if (
-                        libraryHost?.uuid != host.uuid ||
-                        requestGeneration != syncRequestGeneration
-                    ) return@runOnUiThread
-                    syncRequestInFlight = false
+                    if (!libraryRefreshCoordinator.accept(request)) return@runOnUiThread
+                    libraryRefreshing = false
                     librarySyncSnapshot = snapshot
+                    libraryTransportApps = transportApps
+                    lastLibraryRawAppList = rawAppList
                     librarySortMode = HostSortMode.fromWireValue(snapshot.library.sortMode)
                     libraryHdrAvailable =
                         snapshot.capabilities.hdrEncodingSupported && displayHdrSupported
                     libraryStatus = LigaseLibraryStatus.READY
-                    libraryLoading = true
                     LigasePreferences.setLibrarySortMode(this, host.uuid, librarySortMode)
                     rebuildLibraryItems()
-                    updateLibraryFromRaw(host.rawAppList)
                     startAppListUpdates()
+                    if (request.preservesContent) {
+                        toast(R.string.ligase_refresh_success)
+                    }
                 }
             } catch (error: Exception) {
                 LimeLog.warning("Ligase library sync failed: $error")
                 runOnUiThread {
-                    if (
-                        libraryHost?.uuid != host.uuid ||
-                        requestGeneration != syncRequestGeneration
-                    ) return@runOnUiThread
-                    syncRequestInFlight = false
-                    libraryItems.clear()
-                    librarySyncSnapshot = null
-                    libraryLoading = false
-                    libraryStatus = LigaseLibraryStatus.SYNC_ERROR
-                    libraryHdrAvailable = false
+                    if (!libraryRefreshCoordinator.accept(request)) return@runOnUiThread
+                    libraryRefreshing = false
+                    if (request.preservesContent) {
+                        toast(R.string.ligase_refresh_failed)
+                    } else {
+                        libraryItems.clear()
+                        librarySyncSnapshot = null
+                        libraryLoading = false
+                        libraryStatus = LigaseLibraryStatus.SYNC_ERROR
+                        libraryHdrAvailable = false
+                    }
                 }
             }
         }.start()
@@ -554,11 +569,10 @@ class LigaseActivity : AppCompatActivity() {
     private fun retryLibrarySync() {
         val host = libraryHost ?: return
         if (libraryStatus == LigaseLibraryStatus.INCOMPATIBLE) {
-            libraryStatus = LigaseLibraryStatus.LOADING
-            libraryLoading = true
             managerBinder?.invalidateStateForComputer(host.uuid)
             return
         }
+        managerBinder?.invalidateStateForComputer(host.uuid)
         fetchLibrarySync(force = true)
     }
 
@@ -922,6 +936,7 @@ class LigaseActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        libraryRefreshCoordinator.cancel()
         stopComputerUpdates(false)
         stopAppListUpdates()
         disposeLibraryAssets()

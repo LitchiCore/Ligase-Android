@@ -896,6 +896,11 @@
     <string name="ligase_library_empty">No games yet</string>
     <string name="ligase_library_empty_summary">Add games in Ligase Host on your computer, then refresh this library.</string>
     <string name="ligase_refresh">Refresh</string>
+    <string name="ligase_pull_to_refresh">Pull to refresh</string>
+    <string name="ligase_release_to_refresh">Release to refresh</string>
+    <string name="ligase_refreshing">Refreshing…</string>
+    <string name="ligase_refresh_success">Game library updated</string>
+    <string name="ligase_refresh_failed">Couldn’t refresh. Your current game library is still available.</string>
     <string name="ligase_library_no_results">No matching games</string>
     <string name="ligase_library_search_hint">Search games</string>
     <string name="ligase_library_sort_label">Sort by</string>

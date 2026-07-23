@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -45,6 +46,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,6 +57,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -75,6 +79,7 @@ fun LigaseLibraryPage(
     selectedHost: ComputerDetails?,
     items: List<LigaseLibraryItem>,
     loading: Boolean,
+    refreshing: Boolean,
     status: LigaseLibraryStatus,
     runningAppId: Int,
     sortMode: HostSortMode,
@@ -94,6 +99,7 @@ fun LigaseLibraryPage(
     // Compute this during composition so applist updates invalidate the result.
     val visibleItems = LigaseLibraryAdapter.visibleItems(items, query, sortMode)
     val bottomPadding = ligaseNavigationContentBottomPadding()
+    val pullToRefreshState = rememberPullToRefreshState()
 
     Scaffold(
         topBar = {
@@ -105,29 +111,69 @@ fun LigaseLibraryPage(
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
                 ),
             )
         },
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
     ) { scaffoldPadding ->
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(
-                minSize = if (layoutMode == LibraryLayoutMode.LIST) 320.dp else 148.dp,
-            ),
+        PullToRefreshBox(
+            isRefreshing = refreshing,
+            onRefresh = onRetrySync,
+            state = pullToRefreshState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(scaffoldPadding),
-            contentPadding = PaddingValues(
-                start = 16.dp,
-                top = 8.dp,
-                end = 16.dp,
-                bottom = bottomPadding,
-            ),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            indicator = {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth()
+                        .height(
+                            96.dp *
+                                pullToRefreshState.distanceFraction.coerceIn(0f, 1.4f),
+                        )
+                        .background(Color.White),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = stringResource(
+                            when {
+                                refreshing -> R.string.ligase_refreshing
+                                pullToRefreshState.distanceFraction >= 1f ->
+                                    R.string.ligase_release_to_refresh
+                                else -> R.string.ligase_pull_to_refresh
+                            },
+                        ),
+                        color = Color.Black,
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+            },
         ) {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(
+                    minSize = if (layoutMode == LibraryLayoutMode.LIST) 320.dp else 148.dp,
+                ),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .offset {
+                        IntOffset(
+                            x = 0,
+                            y = (96.dp * pullToRefreshState.distanceFraction.coerceIn(0f, 1.4f))
+                                .roundToPx(),
+                        )
+                    },
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    top = 8.dp,
+                    end = 16.dp,
+                    bottom = bottomPadding,
+                ),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 HostStrip(
                     hosts = hosts,
@@ -237,6 +283,7 @@ fun LigaseLibraryPage(
                 }
                     }
                 }
+            }
             }
         }
     }

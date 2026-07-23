@@ -882,6 +882,11 @@
     <string name="ligase_library_empty">还没有游戏</string>
     <string name="ligase_library_empty_summary">请在电脑上的 Ligase Host 添加游戏，然后刷新游戏库。</string>
     <string name="ligase_refresh">刷新</string>
+    <string name="ligase_pull_to_refresh">下拉刷新</string>
+    <string name="ligase_release_to_refresh">松开刷新</string>
+    <string name="ligase_refreshing">正在刷新…</string>
+    <string name="ligase_refresh_success">游戏库已更新</string>
+    <string name="ligase_refresh_failed">刷新失败，当前游戏库仍可继续使用。</string>
     <string name="ligase_library_no_results">没有找到匹配项目</string>
     <string name="ligase_library_search_hint">搜索游戏</string>
     <string name="ligase_library_sort_label">排序方式</string>
