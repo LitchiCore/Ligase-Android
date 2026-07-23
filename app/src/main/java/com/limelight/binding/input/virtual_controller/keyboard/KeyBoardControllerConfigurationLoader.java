@@ -76,46 +76,31 @@ public class KeyBoardControllerConfigurationLoader {
         KeyboardDigitalPadButton button = new KeyboardDigitalPadButton(controller, context, elementId);
         button.addDigitalPadListener(new KeyboardDigitalPadButton.DigitalPadListener() {
             @Override
-            public void onDirectionChange(int direction) {
-                if ((direction & KeyboardDigitalPadButton.DIGITAL_PAD_DIRECTION_LEFT) != 0) {
-                    KeyEvent event = new KeyEvent(KeyEvent.ACTION_DOWN, keyCodeLeft);
-                    event.setSource(3);
-                    controller.sendKeyEvent(event);
-                } else {
-                    KeyEvent event = new KeyEvent(KeyEvent.ACTION_UP, keyCodeLeft);
-                    event.setSource(3);
-                    controller.sendKeyEvent(event);
-                }
-                if ((direction & KeyboardDigitalPadButton.DIGITAL_PAD_DIRECTION_RIGHT) != 0) {
-                    KeyEvent event = new KeyEvent(KeyEvent.ACTION_DOWN, keyCodeRight);
-                    event.setSource(3);
-                    controller.sendKeyEvent(event);
-                } else {
-                    KeyEvent event = new KeyEvent(KeyEvent.ACTION_UP, keyCodeRight);
-                    event.setSource(3);
-                    controller.sendKeyEvent(event);
-                }
-                if ((direction & KeyboardDigitalPadButton.DIGITAL_PAD_DIRECTION_UP) != 0) {
-                    KeyEvent event = new KeyEvent(KeyEvent.ACTION_DOWN, keyCodeUp);
-                    event.setSource(3);
-                    controller.sendKeyEvent(event);
-                } else {
-                    KeyEvent event = new KeyEvent(KeyEvent.ACTION_UP, keyCodeUp);
-                    event.setSource(3);
-                    controller.sendKeyEvent(event);
-                }
-                if ((direction & KeyboardDigitalPadButton.DIGITAL_PAD_DIRECTION_DOWN) != 0) {
-                    KeyEvent event = new KeyEvent(KeyEvent.ACTION_DOWN, keyCodeDown);
-                    event.setSource(3);
-                    controller.sendKeyEvent(event);
-                } else {
-                    KeyEvent event = new KeyEvent(KeyEvent.ACTION_UP, keyCodeDown);
-                    event.setSource(3);
-                    controller.sendKeyEvent(event);
-                }
+            public void onDirectionChange(int direction, int changedDirections) {
+                sendChangedDirection(controller, direction, changedDirections,
+                        KeyboardDigitalPadButton.DIGITAL_PAD_DIRECTION_LEFT, keyCodeLeft);
+                sendChangedDirection(controller, direction, changedDirections,
+                        KeyboardDigitalPadButton.DIGITAL_PAD_DIRECTION_RIGHT, keyCodeRight);
+                sendChangedDirection(controller, direction, changedDirections,
+                        KeyboardDigitalPadButton.DIGITAL_PAD_DIRECTION_UP, keyCodeUp);
+                sendChangedDirection(controller, direction, changedDirections,
+                        KeyboardDigitalPadButton.DIGITAL_PAD_DIRECTION_DOWN, keyCodeDown);
             }
         });
         return button;
+    }
+
+    private static void sendChangedDirection(KeyBoardController controller, int direction,
+                                             int changedDirections, int directionFlag,
+                                             int keyCode) {
+        if ((changedDirections & directionFlag) == 0) {
+            return;
+        }
+        int action = (direction & directionFlag) != 0
+                ? KeyEvent.ACTION_DOWN : KeyEvent.ACTION_UP;
+        KeyEvent event = new KeyEvent(action, keyCode);
+        event.setSource(3);
+        controller.sendKeyEvent(event);
     }
 
 
