@@ -3,9 +3,11 @@ package com.limelight.nvstream.http;
 import androidx.annotation.NonNull;
 
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import com.limelight.ligase.endpoint.LigaseEndpoint;
 
 public class ComputerDetails {
     public enum State {
@@ -67,6 +69,7 @@ public class ComputerDetails {
     public AddressTuple remoteAddress;
     public AddressTuple manualAddress;
     public AddressTuple ipv6Address;
+    public List<LigaseEndpoint> endpoints = new ArrayList<>();
     public String macAddress;
     public X509Certificate serverCert;
 
@@ -149,6 +152,9 @@ public class ComputerDetails {
         }
         if (details.ipv6Address != null) {
             this.ipv6Address = details.ipv6Address;
+        }
+        if (details.endpoints != null && !details.endpoints.isEmpty()) {
+            this.endpoints = new ArrayList<>(details.endpoints);
         }
         if (details.macAddress != null && !details.macAddress.equals("00:00:00:00:00:00")) {
             this.macAddress = details.macAddress;

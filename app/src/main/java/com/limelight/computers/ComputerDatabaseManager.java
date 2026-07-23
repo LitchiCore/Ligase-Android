@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Locale;
 
 import com.limelight.LimeLog;
+import com.limelight.ligase.endpoint.LigaseEndpointRepository;
 import com.limelight.nvstream.http.ComputerDetails;
 import com.limelight.nvstream.http.NvHTTP;
 
@@ -42,6 +43,8 @@ public class ComputerDatabaseManager {
     private static final String SERVER_CERT_COLUMN_NAME = "ServerCert";
 
     private SQLiteDatabase computerDb;
+    private final LigaseEndpointRepository endpointRepository =
+            new LigaseEndpointRepository();
 
     public ComputerDatabaseManager(Context c) {
         try {
@@ -113,11 +116,7 @@ public class ComputerDatabaseManager {
         values.put(COMPUTER_NAME_COLUMN_NAME, details.name);
 
         try {
-            JSONObject addresses = new JSONObject();
-            addresses.put(AddressFields.LOCAL, tupleToJson(details.localAddress));
-            addresses.put(AddressFields.REMOTE, tupleToJson(details.remoteAddress));
-            addresses.put(AddressFields.MANUAL, tupleToJson(details.manualAddress));
-            addresses.put(AddressFields.IPv6, tupleToJson(details.ipv6Address));
+            JSONObject addresses = endpointRepository.serialize(details);
             values.put(ADDRESSES_COLUMN_NAME, addresses.toString());
         } catch (JSONException e) {
             throw new RuntimeException(e);
@@ -145,10 +144,7 @@ public class ComputerDatabaseManager {
         details.name = c.getString(1);
         try {
             JSONObject addresses = new JSONObject(c.getString(2));
-            details.localAddress = tupleFromJson(addresses, AddressFields.LOCAL);
-            details.remoteAddress = tupleFromJson(addresses, AddressFields.REMOTE);
-            details.manualAddress = tupleFromJson(addresses, AddressFields.MANUAL);
-            details.ipv6Address = tupleFromJson(addresses, AddressFields.IPv6);
+            endpointRepository.deserialize(details, addresses);
         } catch (JSONException e) {
             throw new RuntimeException(e);
          }

@@ -6,12 +6,10 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.content.ServiceConnection
-import android.net.Uri
 import android.os.Bundle
 import android.os.Build
 import android.os.IBinder
 import android.os.SystemClock
-import android.view.inputmethod.InputMethodManager
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.RadioButton
@@ -47,6 +45,8 @@ import com.limelight.ligase.library.LigaseResolutionDto
 import com.limelight.ligase.library.LigaseSyncRepository
 import com.limelight.ligase.library.LigaseSyncSnapshotDto
 import com.limelight.ligase.library.LibraryLayoutMode
+import com.limelight.ligase.endpoint.LigaseAddHostDialog
+import com.limelight.ligase.endpoint.LigaseEndpoint
 import com.limelight.nvstream.http.ComputerDetails
 import com.limelight.nvstream.http.HostHttpResponseException
 import com.limelight.nvstream.http.NvHTTP
@@ -869,53 +869,10 @@ class LigaseActivity : AppCompatActivity() {
     }
 
     private fun showAddHostDialog() {
-        val inputLayout = TextInputLayout(this).apply {
-            hint = getString(R.string.title_add_pc)
-            setPadding(48, 8, 48, 0)
-        }
-        val input = TextInputEditText(inputLayout.context).apply {
-            inputType = android.text.InputType.TYPE_CLASS_TEXT
-            setSingleLine(true)
-        }
-        inputLayout.addView(input)
-        val dialog = MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.title_add_pc)
-            .setMessage(R.string.msg_add_pc)
-            .setView(inputLayout)
-            .setNegativeButton(R.string.cancel, null)
-            .setPositiveButton(R.string.proceed, null)
-            .create()
-        dialog.show()
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-            val address = input.text?.toString()?.trim().orEmpty()
-            val parsed = parseAddress(address)
-            if (parsed == null) {
-                inputLayout.error = getString(R.string.addpc_unknown_host)
-                return@setOnClickListener
-            }
-            dialog.dismiss()
-            addHost(parsed.first, parsed.second)
-        }
-        input.requestFocus()
-        input.post {
-            (getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager)
-                .showSoftInput(input, InputMethodManager.SHOW_IMPLICIT)
-        }
+        LigaseAddHostDialog.show(this, ::addHost)
     }
 
-    private fun parseAddress(raw: String): Pair<String, Int>? {
-        if (raw.isBlank()) return null
-        for (candidate in listOf("art://$raw", "art://[$raw]")) {
-            val uri = Uri.parse(candidate)
-            val host = uri.host
-            if (!host.isNullOrBlank()) {
-                return host to if (uri.port == -1) NvHTTP.DEFAULT_HTTP_PORT else uri.port
-            }
-        }
-        return null
-    }
-
-    private fun addHost(host: String, port: Int) {
+    private fun addHost(endpoint: LigaseEndpoint) {
         val binder = managerBinder
         if (binder == null) {
             toast(R.string.error_manager_not_running)
@@ -924,7 +881,8 @@ class LigaseActivity : AppCompatActivity() {
         toast(R.string.msg_add_pc)
         Thread {
             val details = ComputerDetails().apply {
-                manualAddress = ComputerDetails.AddressTuple(host, port)
+                endpoints = listOf(endpoint)
+                manualAddress = endpoint.toLegacyAddressTuple()
             }
             val success = try {
                 binder.addComputerBlocking(details)

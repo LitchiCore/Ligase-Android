@@ -933,4 +933,9 @@
     <string name="ligase_resolution_invalid">请输入有效的正数宽度和高度。</string>
     <string name="ligase_sync_saved">已保存到 Ligase Host</string>
     <string name="ligase_library_sync_missing">启动映射缺失</string>
+    <string name="ligase_computer_address">电脑地址</string>
+    <string name="ligase_computer_address_hint">支持主机名、IPv4 或 IPv6 地址</string>
+    <string name="ligase_computer_port">端口</string>
+    <string name="ligase_add_computer_message">请输入 Ligase Host 显示的电脑地址和端口。</string>
+    <string name="ligase_endpoint_invalid">请输入有效的电脑地址，以及 1 到 65535 之间的端口。</string>
 </resources>

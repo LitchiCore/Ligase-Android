@@ -71,6 +71,52 @@ Ligase 不兼容旧 Apollo 产品配置或 UI，但在替换串流传输之前�
 - 现有 RTSP、视频、音频、加密和输入链；
 - 已选择的手柄、键鼠或无外接设备输入模式会传入串流。
 
+## Endpoint v2 与 IPv6/双栈边界
+
+Android 与 Host 以 Host 的 `endpoint-contract-v2.md` 为共同权威。电脑连接位置使用
+独立 `LigaseEndpoint` 值对象，不再把 `host:port` 字符串当身份：
+
+- 字段为 `scheme, host, port, zone?, source?`；scheme 机器值是
+  `http | https | rtsp`，source 是
+  `manual | mdns | local | remote | loopback`。
+- host 规范化后不含方括号、端口或 zone。支持 IDNA hostname、IPv4、global/ULA/
+  loopback IPv6 与带 zone 的 link-local IPv6；IPv6 multicast 不在 v2 范围。
+- link-local IPv6 必须显式提供接口名或 1..4294967295 的 scope id；其他 IPv6
+  禁止携带 zone。持久化的 zone 不含 `%`，URI formatter 输出
+  `[host%25encodedZone]:port`。
+- Host 身份仍是规范化 `hostUniqueId + pinned certificate`。地址只是可变化的候选，
+  source 不参与身份或候选去重。
+
+`ComputerDatabaseManager` 的 `Addresses` 列写入：
+
+```json
+{
+  "version": 2,
+  "endpoints": [
+    {
+      "scheme": "http",
+      "host": "ligase-host.local",
+      "port": 48989,
+      "source": "manual"
+    }
+  ]
+}
+```
+
+读取继续兼容原 `local/remote/manual/ipv6` 四槽 JSON；迁移不改变电脑 UUID、证书、
+IPv4 文本或端口。当前发现与 GameStream 传输仍通过首个同来源候选投影到旧
+`AddressTuple`，这是明确的过渡 ABI，不是第二套身份源。
+
+双栈选择策略已独立为纯计划层：IPv6/IPv4 候选交错，启动间隔 250ms，单候选探测
+最多 3s、整体最多 5s；只有 `serverinfo` 健康且 uniqueid 匹配才算成功，配对后
+HTTPS 还必须通过证书固定。当前阶段尚未替换发现执行链，也未宣称 scoped
+link-local 可用于 native RTSP：OkHttp 4.12 不接受含 scope 的 host，因此后续必须
+使用 scoped `Inet6Address` transport adapter，并对 MoonBridge/RTSP 做独立实网验收。
+
+普通“添加电脑”界面将地址和端口分栏，默认端口 48989。用户可输入 hostname、
+IPv4、IPv6 或 `link-local%接口`；协议、路径、query、fragment 和 userinfo 会被拒绝。
+方括号及旧 `host:port` 仅由迁移兼容 parser 接受，随后立即转为结构化字段。
+
 ## P1：旋转与串流会话控制
 
 - 手机横屏不能沿用底部导航。导航位置由当前 Compose `LocalConfiguration`

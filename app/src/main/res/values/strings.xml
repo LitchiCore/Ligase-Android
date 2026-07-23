@@ -947,4 +947,9 @@
     <string name="ligase_resolution_invalid">Enter a valid positive width and height.</string>
     <string name="ligase_sync_saved">Saved to Ligase Host</string>
     <string name="ligase_library_sync_missing">Launch mapping missing</string>
+    <string name="ligase_computer_address">Computer address</string>
+    <string name="ligase_computer_address_hint">Hostname, IPv4, or IPv6 address</string>
+    <string name="ligase_computer_port">Port</string>
+    <string name="ligase_add_computer_message">Enter the computer address and port shown by Ligase Host.</string>
+    <string name="ligase_endpoint_invalid">Enter a valid computer address and a port from 1 to 65535.</string>
 </resources>

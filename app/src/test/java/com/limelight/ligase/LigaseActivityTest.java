@@ -7,7 +7,10 @@ import static org.junit.Assert.assertTrue;
 
 import android.app.Dialog;
 import android.content.Context;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -23,6 +26,8 @@ import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowDialog;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import kotlin.Unit;
@@ -123,5 +128,34 @@ public class LigaseActivityTest {
         proceed.performClick();
 
         assertTrue(dialog.isShowing());
+    }
+
+    @Test
+    public void addHostDialogSeparatesAddressAndLigaseDefaultPort() throws Exception {
+        LigasePreferences.setInputDeviceMode(context, InputDeviceMode.TOUCH);
+        LigaseActivity activity = Robolectric.buildActivity(LigaseActivity.class).setup().get();
+        Method showAddHost = LigaseActivity.class.getDeclaredMethod("showAddHostDialog");
+        showAddHost.setAccessible(true);
+
+        showAddHost.invoke(activity);
+        Dialog dialog = ShadowDialog.getLatestDialog();
+        List<EditText> inputs = new ArrayList<>();
+        collectEditTexts(dialog.getWindow().getDecorView(), inputs);
+
+        assertEquals(2, inputs.size());
+        assertEquals("", inputs.get(0).getText().toString());
+        assertEquals("48989", inputs.get(1).getText().toString());
+    }
+
+    private static void collectEditTexts(View view, List<EditText> output) {
+        if (view instanceof EditText) {
+            output.add((EditText) view);
+        }
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int index = 0; index < group.getChildCount(); index++) {
+                collectEditTexts(group.getChildAt(index), output);
+            }
+        }
     }
 }
