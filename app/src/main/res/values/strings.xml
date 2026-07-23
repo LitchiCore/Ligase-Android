@@ -383,7 +383,7 @@
 
     <string name="game_menu_toggle_mouse_on">Enable Controller Mouse Emulation</string>
     <string name="game_menu_toggle_mouse_off">Disable Controller Mouse Emulation</string>
-    <string name="game_menu_disconnect">Disconnect</string>
+    <string name="game_menu_disconnect">Return to library (keep game running)</string>
     <string name="game_menu_cancel">Cancel</string>
     <string name="game_menu_task_manager">Open Task Manager</string>
     <string name="game_menu_send_keys">Send special keys</string>
@@ -745,7 +745,10 @@
     <string name="game_menu_advanced">Advanced Menu</string>
     <string name="game_dialog_title_quit_confirm">Really want to quit?</string>
     <string name="game_dialog_message_quit_confirm">Please make sure you have no unsaved progress. Quitting the session will terminate your current running application.</string>
-    <string name="game_menu_quit_session">Quit Session</string>
+    <string name="game_menu_quit_session">End streaming and close game</string>
+    <string name="ligase_stream_session_controls">Streaming controls</string>
+    <string name="ligase_end_session_success">Streaming session ended</string>
+    <string name="ligase_end_session_failed">Couldn’t end the session. Check the computer and try again from the library.</string>
     <string name="game_menu_server_cmd">Server Commands</string>
     <string name="game_menu_fetch_clipboard">Fetch Clipboard</string>
     <string name="game_menu_upload_clipboard">Upload Clipboard</string>

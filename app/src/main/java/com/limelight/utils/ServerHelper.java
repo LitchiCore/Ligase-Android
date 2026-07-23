@@ -128,6 +128,7 @@ public class ServerHelper {
         gameIntent.putExtra(Game.EXTRA_LIGASE_INPUT_MODE,
                 LigasePreferences.getInputDeviceMode(parent).getStoredValue());
         if (hasLigaseSettings) {
+            gameIntent.putExtra(Game.EXTRA_LIGASE_SESSION_CONTROLS, true);
             gameIntent.putExtra(Game.EXTRA_LIGASE_WIDTH, ligaseWidth);
             gameIntent.putExtra(Game.EXTRA_LIGASE_HEIGHT, ligaseHeight);
             gameIntent.putExtra(Game.EXTRA_LIGASE_HOST_HDR_SUPPORTED, ligaseHostHdrSupported);

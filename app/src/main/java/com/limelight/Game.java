@@ -28,6 +28,7 @@ import com.limelight.binding.video.CrashListener;
 import com.limelight.binding.video.MediaCodecDecoderRenderer;
 import com.limelight.binding.video.MediaCodecHelper;
 import com.limelight.binding.video.PerfOverlayListener;
+import com.limelight.ligase.stream.StreamSessionExitCoordinator;
 import com.limelight.nvstream.NvConnection;
 import com.limelight.nvstream.NvConnectionListener;
 import com.limelight.nvstream.StreamConfiguration;
@@ -222,6 +223,7 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
     private float lastAbsTouchDownX, lastAbsTouchDownY;
 
     private boolean quitOnStop = false;
+    private StreamSessionExitCoordinator streamSessionExitCoordinator;
     private boolean isHidingOverlays;
     private boolean floatingButtonShown;
     private boolean overlayToggleZoomButtonShown;
@@ -274,6 +276,7 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
     public static final String EXTRA_LIGASE_WIDTH = "LigaseWidth";
     public static final String EXTRA_LIGASE_HEIGHT = "LigaseHeight";
     public static final String EXTRA_LIGASE_HOST_HDR_SUPPORTED = "LigaseHostHdrSupported";
+    public static final String EXTRA_LIGASE_SESSION_CONTROLS = "LigaseSessionControls";
 
     public static final String CLIPBOARD_IDENTIFIER = "ArtemisStreaming";
 
@@ -359,6 +362,19 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
 
         // Read the stream preferences
         prefConfig = PreferenceConfiguration.readPreferences(this);
+        streamSessionExitCoordinator = new StreamSessionExitCoordinator(
+                new StreamSessionExitCoordinator.Callbacks() {
+                    @Override
+                    public void disconnect() {
+                        finish();
+                    }
+
+                    @Override
+                    public void endSession() {
+                        quitOnStop = true;
+                        finish();
+                    }
+                });
         int ligaseWidth = getIntent().getIntExtra(EXTRA_LIGASE_WIDTH, 0);
         int ligaseHeight = getIntent().getIntExtra(EXTRA_LIGASE_HEIGHT, 0);
         if (ligaseWidth > 0 && ligaseHeight > 0) {
@@ -914,7 +930,15 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
         gameMenuCallbacks = new GameMenu(this);
 
         floatingMenuButton = findViewById(R.id.floatingMenuButton);
-        updateFloatingButtonVisibility(prefConfig.enableBackMenu && prefConfig.enableFloatingButton);
+        boolean ligaseSessionControls =
+                getIntent().getBooleanExtra(EXTRA_LIGASE_SESSION_CONTROLS, false);
+        updateFloatingButtonVisibility(
+                ligaseSessionControls ||
+                        (prefConfig.enableBackMenu && prefConfig.enableFloatingButton));
+        if (ligaseSessionControls) {
+            floatingMenuButton.setContentDescription(
+                    getString(R.string.ligase_stream_session_controls));
+        }
         initFloatingButton();
 
         overlayToggleButton = findViewById(R.id.overlayToggleZoomButton);
@@ -3592,10 +3616,18 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
                     if (httpConn != null && quitOnStop) {
                         try {
                             sleep(1000);
-                            httpConn.quitApp();
-                            Game.this.runOnUiThread(() -> Toast.makeText(Game.this, Game.this.getResources().getString(R.string.applist_quit_success) + " " + appName, Toast.LENGTH_LONG).show());
+                            boolean quitSucceeded = httpConn.quitApp();
+                            int message = quitSucceeded ?
+                                    R.string.ligase_end_session_success :
+                                    R.string.ligase_end_session_failed;
+                            Game.this.runOnUiThread(() ->
+                                    Toast.makeText(Game.this, message, Toast.LENGTH_LONG).show());
                         } catch (Exception e) {
-                            Game.this.runOnUiThread(() -> Toast.makeText(Game.this, e.getMessage(), Toast.LENGTH_LONG).show());
+                            Game.this.runOnUiThread(() ->
+                                    Toast.makeText(
+                                            Game.this,
+                                            R.string.ligase_end_session_failed,
+                                            Toast.LENGTH_LONG).show());
                         }
                     }
                 }
@@ -4372,7 +4404,7 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
         if (prefConfig.smartClipboardSync) {
             getClipboard(-1);
         }
-        finish();
+        streamSessionExitCoordinator.disconnect();
     }
 
     public void quit() {
@@ -4387,9 +4419,8 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
         builder.setMessage(R.string.game_dialog_message_quit_confirm);
 
         builder.setPositiveButton(getString(R.string.yes), (dialog, which) -> {
-            quitOnStop = true;
             dialog.dismiss();
-            finish();
+            streamSessionExitCoordinator.endSession();
         });
 
         builder.setNegativeButton(getString(R.string.no), (dialog, which) -> dialog.dismiss());

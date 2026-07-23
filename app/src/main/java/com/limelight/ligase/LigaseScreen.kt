@@ -38,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -125,7 +126,18 @@ fun LigaseRoot(
                     onConfirm = onInputConfirmed,
                 )
             } else {
+                val configuration = LocalConfiguration.current
+                val navigationType = when (
+                    ligaseNavigationPlacement(
+                        configuration.screenWidthDp,
+                        configuration.orientation,
+                    )
+                ) {
+                    LigaseNavigationPlacement.BOTTOM -> NavigationSuiteType.NavigationBar
+                    LigaseNavigationPlacement.SIDE -> NavigationSuiteType.NavigationRail
+                }
                 NavigationSuiteScaffold(
+                    layoutType = navigationType,
                     navigationSuiteItems = {
                         LigasePage.entries.forEach { destination ->
                             item(
