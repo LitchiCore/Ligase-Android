@@ -892,7 +892,12 @@ class LigaseActivity : AppCompatActivity() {
                 false
             }
             runOnUiThread {
-                toast(if (success) R.string.addpc_success else R.string.addpc_fail)
+                if (success) {
+                    toast(R.string.addpc_success)
+                    onHostClicked(details)
+                } else {
+                    toast(R.string.addpc_fail)
+                }
             }
         }.start()
     }
