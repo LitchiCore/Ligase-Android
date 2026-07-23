@@ -5,6 +5,9 @@ import android.app.Activity
 import android.content.res.Configuration
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.view.WindowCompat
+import androidx.preference.PreferenceManager
+import com.limelight.ligase.library.HostSortMode
+import com.limelight.ligase.library.LibraryLayoutMode
 
 enum class InputDeviceMode(val storedValue: String) {
     GAMEPAD("gamepad"),
@@ -28,10 +31,24 @@ enum class LigaseThemeMode(val storedValue: String, val nightMode: Int) {
     }
 }
 
+enum class LigaseLanguageMode(val storedValue: String) {
+    SYSTEM("default"),
+    SIMPLIFIED_CHINESE("zh-CN"),
+    ENGLISH("en");
+
+    companion object {
+        fun fromStoredValue(value: String?): LigaseLanguageMode =
+            entries.firstOrNull { it.storedValue == value } ?: SYSTEM
+    }
+}
+
 object LigasePreferences {
     private const val FILE_NAME = "ligase_product_preferences"
     private const val KEY_INPUT_DEVICE = "stream_input_device"
     private const val KEY_THEME = "theme"
+    private const val KEY_LIBRARY_SORT_PREFIX = "library_sort:"
+    private const val KEY_LIBRARY_LAYOUT = "library_layout"
+    private const val KEY_LANGUAGE = "list_languages"
 
     private fun preferences(context: Context) =
         context.getSharedPreferences(FILE_NAME, Context.MODE_PRIVATE)
@@ -61,6 +78,53 @@ object LigasePreferences {
     fun setThemeMode(context: Context, mode: LigaseThemeMode) {
         preferences(context).edit().putString(KEY_THEME, mode.storedValue).apply()
         AppCompatDelegate.setDefaultNightMode(mode.nightMode)
+    }
+
+    @JvmStatic
+    fun getLibrarySortMode(context: Context, hostUniqueId: String): HostSortMode =
+        HostSortMode.fromWireValue(
+            preferences(context).getString(KEY_LIBRARY_SORT_PREFIX + hostUniqueId, null),
+        )
+
+    @JvmStatic
+    fun setLibrarySortMode(
+        context: Context,
+        hostUniqueId: String,
+        sortMode: HostSortMode,
+    ) {
+        preferences(context)
+            .edit()
+            .putString(KEY_LIBRARY_SORT_PREFIX + hostUniqueId, sortMode.wireValue)
+            .apply()
+    }
+
+    @JvmStatic
+    fun getLibraryLayoutMode(context: Context): LibraryLayoutMode =
+        LibraryLayoutMode.fromStoredValue(
+            preferences(context).getString(KEY_LIBRARY_LAYOUT, null),
+        )
+
+    @JvmStatic
+    fun setLibraryLayoutMode(context: Context, layoutMode: LibraryLayoutMode) {
+        preferences(context)
+            .edit()
+            .putString(KEY_LIBRARY_LAYOUT, layoutMode.storedValue)
+            .apply()
+    }
+
+    @JvmStatic
+    fun getLanguageMode(context: Context): LigaseLanguageMode =
+        LigaseLanguageMode.fromStoredValue(
+            PreferenceManager.getDefaultSharedPreferences(context)
+                .getString(KEY_LANGUAGE, LigaseLanguageMode.SYSTEM.storedValue),
+        )
+
+    @JvmStatic
+    fun setLanguageMode(context: Context, mode: LigaseLanguageMode) {
+        PreferenceManager.getDefaultSharedPreferences(context)
+            .edit()
+            .putString(KEY_LANGUAGE, mode.storedValue)
+            .apply()
     }
 
     @JvmStatic

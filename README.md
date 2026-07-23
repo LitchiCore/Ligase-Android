@@ -2,6 +2,9 @@
 
 Previously named Moonlight Noir
 
+Ligase 客户端重构的产品结构、Host 接口边界与验收状态见
+[Ligase 客户端设计文档](docs/ligase/CLIENT_DESIGN.zh-CN.md)。
+
 An open source client for [Apollo](https://github.com/ClassicOldSong/Apollo)/[Sunshine](https://github.com/LizardByte/Sunshine).
 
 Artemis Android will allow you to stream your collection of games from your Windows PC to your Android device,

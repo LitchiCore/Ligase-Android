@@ -14,8 +14,15 @@ import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.Shadows;
+import org.robolectric.annotation.Config;
 
 @RunWith(RobolectricTestRunner.class)
+@Config(
+        sdk = {33},
+        shadows = {
+                com.limelight.shadows.ShadowMoonBridge.class,
+                com.limelight.shadows.ShadowGameManager.class
+        })
 public class LigaseActivityTest {
     private Context context;
 

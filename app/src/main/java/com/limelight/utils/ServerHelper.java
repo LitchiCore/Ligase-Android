@@ -17,6 +17,7 @@ import com.limelight.R;
 import com.limelight.ShortcutTrampoline;
 import com.limelight.binding.PlatformBinding;
 import com.limelight.computers.ComputerManagerService;
+import com.limelight.ligase.LigasePreferences;
 import com.limelight.nvstream.http.ComputerDetails;
 import com.limelight.nvstream.http.HostHttpResponseException;
 import com.limelight.nvstream.http.NvApp;
@@ -114,6 +115,8 @@ public class ServerHelper {
         gameIntent.putExtra(Game.EXTRA_PC_NAME, computer.name);
         gameIntent.putExtra(Game.EXTRA_VDISPLAY, withVDisplay);
         gameIntent.putExtra(Game.EXTRA_SERVER_COMMANDS, (ArrayList<String>) computer.serverCommands);
+        gameIntent.putExtra(Game.EXTRA_LIGASE_INPUT_MODE,
+                LigasePreferences.getInputDeviceMode(parent).getStoredValue());
 
         try {
             if (computer.serverCert != null) {

@@ -270,6 +270,7 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
     public static final String EXTRA_VDISPLAY = "VirtualDisplay";
     public static final String EXTRA_SERVER_COMMANDS = "ServerCommands";
     public static final String EXTRA_DISPLAY_ID = "DisplayID";
+    public static final String EXTRA_LIGASE_INPUT_MODE = "LigaseInputMode";
 
     public static final String CLIPBOARD_IDENTIFIER = "ArtemisStreaming";
 
@@ -355,6 +356,14 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
 
         // Read the stream preferences
         prefConfig = PreferenceConfiguration.readPreferences(this);
+        String ligaseInputMode = getIntent().getStringExtra(EXTRA_LIGASE_INPUT_MODE);
+        if ("touch".equals(ligaseInputMode)) {
+            prefConfig.onscreenController = true;
+        }
+        else if ("gamepad".equals(ligaseInputMode) ||
+                "keyboard_mouse".equals(ligaseInputMode)) {
+            prefConfig.onscreenController = false;
+        }
         tombstonePrefs = Game.this.getSharedPreferences("DecoderTombstone", 0);
 
         if (prefConfig.fullScreen) {

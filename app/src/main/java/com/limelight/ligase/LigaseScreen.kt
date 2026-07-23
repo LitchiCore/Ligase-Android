@@ -56,6 +56,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.limelight.R
+import com.limelight.grid.assets.CachedAppAssetLoader
+import com.limelight.ligase.library.HostSortMode
+import com.limelight.ligase.library.LigaseLibraryItem
+import com.limelight.ligase.library.LigaseLibraryPage
+import com.limelight.ligase.library.LibraryLayoutMode
 import com.limelight.nvstream.http.ComputerDetails
 import com.limelight.nvstream.http.PairingManager
 
@@ -74,15 +79,27 @@ fun LigaseRoot(
     onboarding: Boolean,
     currentPage: LigasePage,
     selectedInput: InputDeviceMode?,
+    languageMode: LigaseLanguageMode,
     hosts: List<ComputerDetails>,
+    libraryHost: ComputerDetails?,
+    libraryItems: List<LigaseLibraryItem>,
+    libraryLoading: Boolean,
+    libraryRunningAppId: Int,
+    librarySortMode: HostSortMode,
+    libraryLayoutMode: LibraryLayoutMode,
+    libraryAssetLoader: CachedAppAssetLoader?,
     onPageSelected: (LigasePage) -> Unit,
     onInputSelected: (InputDeviceMode) -> Unit,
     onInputConfirmed: () -> Unit,
     onThemeSelected: (LigaseThemeMode) -> Unit,
+    onLanguageSelected: (LigaseLanguageMode) -> Unit,
     onHostClick: (ComputerDetails) -> Unit,
-    onHostLongClick: (ComputerDetails) -> Unit,
+    onRemoveHost: (ComputerDetails) -> Unit,
     onAddHost: () -> Unit,
     onAdvancedSettings: () -> Unit,
+    onLibrarySortModeChanged: (HostSortMode) -> Unit,
+    onLibraryLayoutModeChanged: (LibraryLayoutMode) -> Unit,
+    onLibraryLaunch: (LigaseLibraryItem) -> Unit,
 ) {
     LigaseComposeTheme(themeMode) {
         Box(
@@ -123,11 +140,21 @@ fun LigaseRoot(
                         label = "Ligase page",
                     ) { page ->
                         when (page) {
-                            LigasePage.HOME -> HomePage(
+                            LigasePage.HOME -> LigaseLibraryPage(
                                 hosts = hosts,
-                                onHostClick = onHostClick,
-                                onHostLongClick = onHostLongClick,
+                                selectedHost = libraryHost,
+                                items = libraryItems,
+                                loading = libraryLoading,
+                                runningAppId = libraryRunningAppId,
+                                sortMode = librarySortMode,
+                                layoutMode = libraryLayoutMode,
+                                assetLoader = libraryAssetLoader,
+                                onSortModeChanged = onLibrarySortModeChanged,
+                                onLayoutModeChanged = onLibraryLayoutModeChanged,
+                                onHostSelected = onHostClick,
                                 onAddHost = onAddHost,
+                                onRemoveHost = onRemoveHost,
+                                onLaunch = onLibraryLaunch,
                             )
                             LigasePage.INPUT -> InputPage(
                                 selectedInput = selectedInput,
@@ -138,8 +165,10 @@ fun LigaseRoot(
                             LigasePage.SETTINGS -> SettingsPage(
                                 selectedInput = selectedInput ?: InputDeviceMode.TOUCH,
                                 themeMode = themeMode,
+                                languageMode = languageMode,
                                 onOpenInput = { onPageSelected(LigasePage.INPUT) },
                                 onThemeSelected = onThemeSelected,
+                                onLanguageSelected = onLanguageSelected,
                                 onAdvancedSettings = onAdvancedSettings,
                             )
                         }
@@ -488,8 +517,10 @@ private fun InputChoice(
 private fun SettingsPage(
     selectedInput: InputDeviceMode,
     themeMode: LigaseThemeMode,
+    languageMode: LigaseLanguageMode,
     onOpenInput: () -> Unit,
     onThemeSelected: (LigaseThemeMode) -> Unit,
+    onLanguageSelected: (LigaseLanguageMode) -> Unit,
     onAdvancedSettings: () -> Unit,
 ) {
     LigasePageScaffold(stringResource(R.string.ligase_settings_title)) { pageModifier ->
@@ -561,6 +592,33 @@ private fun SettingsPage(
             }
             item {
                 Spacer(Modifier.height(8.dp))
+                SectionTitle(R.string.ligase_settings_language_title)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    LanguageChoice(
+                        mode = LigaseLanguageMode.SYSTEM,
+                        selected = languageMode == LigaseLanguageMode.SYSTEM,
+                        label = R.string.ligase_language_system,
+                        onClick = onLanguageSelected,
+                    )
+                    LanguageChoice(
+                        mode = LigaseLanguageMode.SIMPLIFIED_CHINESE,
+                        selected = languageMode == LigaseLanguageMode.SIMPLIFIED_CHINESE,
+                        label = R.string.ligase_language_chinese,
+                        onClick = onLanguageSelected,
+                    )
+                    LanguageChoice(
+                        mode = LigaseLanguageMode.ENGLISH,
+                        selected = languageMode == LigaseLanguageMode.ENGLISH,
+                        label = R.string.ligase_language_english,
+                        onClick = onLanguageSelected,
+                    )
+                }
+            }
+            item {
+                Spacer(Modifier.height(8.dp))
                 HorizontalDivider()
                 Spacer(Modifier.height(18.dp))
                 SectionTitle(R.string.ligase_advanced_title)
@@ -589,6 +647,28 @@ private fun RowScope.ThemeChoice(
     selected: Boolean,
     @StringRes label: Int,
     onClick: (LigaseThemeMode) -> Unit,
+) {
+    FilterChip(
+        selected = selected,
+        onClick = { onClick(mode) },
+        label = {
+            Text(
+                text = stringResource(label),
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+                fontSize = 14.sp,
+            )
+        },
+        modifier = Modifier.weight(1f),
+    )
+}
+
+@Composable
+private fun RowScope.LanguageChoice(
+    mode: LigaseLanguageMode,
+    selected: Boolean,
+    @StringRes label: Int,
+    onClick: (LigaseLanguageMode) -> Unit,
 ) {
     FilterChip(
         selected = selected,

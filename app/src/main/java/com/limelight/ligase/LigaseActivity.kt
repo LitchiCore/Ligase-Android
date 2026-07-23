@@ -4,6 +4,7 @@ import android.app.Service
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.content.ServiceConnection
 import android.net.Uri
 import android.os.Bundle
@@ -24,22 +25,32 @@ import androidx.preference.PreferenceManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
-import com.limelight.AppView
 import com.limelight.R
 import com.limelight.binding.PlatformBinding
 import com.limelight.computers.ComputerManagerListener
 import com.limelight.computers.ComputerManagerService
+import com.limelight.grid.assets.CachedAppAssetLoader
+import com.limelight.grid.assets.DiskAssetLoader
+import com.limelight.grid.assets.MemoryAssetLoader
+import com.limelight.grid.assets.NetworkAssetLoader
+import com.limelight.ligase.library.HostSortMode
+import com.limelight.ligase.library.LigaseLibraryAdapter
+import com.limelight.ligase.library.LigaseLibraryItem
+import com.limelight.ligase.library.LibraryLayoutMode
 import com.limelight.nvstream.http.ComputerDetails
 import com.limelight.nvstream.http.NvHTTP
 import com.limelight.nvstream.http.PairingManager
 import com.limelight.nvstream.http.PairingManager.PairState
 import com.limelight.nvstream.wol.WakeOnLanSender
+import com.limelight.preferences.PreferenceConfiguration
 import com.limelight.preferences.StreamSettings
+import com.limelight.utils.CacheHelper
 import com.limelight.utils.ServerHelper
 import com.limelight.utils.UiHelper
 import org.xmlpull.v1.XmlPullParserException
 import java.io.FileNotFoundException
 import java.io.IOException
+import java.io.StringReader
 import java.net.UnknownHostException
 
 class LigaseActivity : AppCompatActivity() {
@@ -47,9 +58,20 @@ class LigaseActivity : AppCompatActivity() {
     private var onboarding by mutableStateOf(false)
     private var selectedInput by mutableStateOf<InputDeviceMode?>(null)
     private var themeMode by mutableStateOf(LigaseThemeMode.SYSTEM)
+    private var languageMode by mutableStateOf(LigaseLanguageMode.SYSTEM)
     private val hosts = mutableStateListOf<ComputerDetails>()
+    private val libraryItems = mutableStateListOf<LigaseLibraryItem>()
+    private var libraryHost by mutableStateOf<ComputerDetails?>(null)
+    private var libraryLoading by mutableStateOf(false)
+    private var libraryRunningAppId by mutableStateOf(0)
+    private var librarySortMode by mutableStateOf(HostSortMode.NAME_ASCENDING)
+    private var libraryLayoutMode by mutableStateOf(LibraryLayoutMode.LIST)
+    private var libraryAssetLoader by mutableStateOf<CachedAppAssetLoader?>(null)
+    private var lastLibraryRawAppList: String? = null
+    private var pendingLibraryHostUuid: String? = null
 
     private var managerBinder: ComputerManagerService.ComputerManagerBinder? = null
+    private var appListPoller: ComputerManagerService.ApplistPoller? = null
     private var serviceBound = false
     private var polling = false
     private var foreground = false
@@ -61,7 +83,13 @@ class LigaseActivity : AppCompatActivity() {
             Thread {
                 binder.waitForReady()
                 managerBinder = binder
-                runOnUiThread { startComputerUpdates() }
+                val restoredHost = pendingLibraryHostUuid?.let(binder::getComputer)
+                runOnUiThread {
+                    startComputerUpdates()
+                    if (currentPage == LigasePage.HOME && restoredHost != null) {
+                        openLibrary(restoredHost)
+                    }
+                }
                 PlatformBinding.getCryptoProvider(this@LigaseActivity).clientCertificate
             }.start()
         }
@@ -69,20 +97,25 @@ class LigaseActivity : AppCompatActivity() {
         override fun onServiceDisconnected(name: ComponentName?) {
             managerBinder = null
             polling = false
+            appListPoller = null
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        UiHelper.setLocale(this)
         enableEdgeToEdge()
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false)
 
         onboarding = !LigasePreferences.hasInputDeviceMode(this)
         selectedInput = if (onboarding) null else LigasePreferences.getInputDeviceMode(this)
         themeMode = LigasePreferences.getThemeMode(this)
+        languageMode = LigasePreferences.getLanguageMode(this)
+        libraryLayoutMode = LigasePreferences.getLibraryLayoutMode(this)
         currentPage = savedInstanceState?.getString(STATE_PAGE)
             ?.let { saved -> LigasePage.entries.firstOrNull { it.name == saved } }
             ?: if (onboarding) LigasePage.INPUT else LigasePage.HOME
+        pendingLibraryHostUuid = savedInstanceState?.getString(STATE_LIBRARY_HOST_UUID)
 
         setContent {
             LigaseRoot(
@@ -90,17 +123,29 @@ class LigaseActivity : AppCompatActivity() {
                 onboarding = onboarding,
                 currentPage = currentPage,
                 selectedInput = selectedInput,
+                languageMode = languageMode,
                 hosts = hosts,
-                onPageSelected = { currentPage = it },
+                libraryHost = libraryHost,
+                libraryItems = libraryItems,
+                libraryLoading = libraryLoading,
+                libraryRunningAppId = libraryRunningAppId,
+                librarySortMode = librarySortMode,
+                libraryLayoutMode = libraryLayoutMode,
+                libraryAssetLoader = libraryAssetLoader,
+                onPageSelected = ::selectPage,
                 onInputSelected = { selectedInput = it },
                 onInputConfirmed = ::confirmInput,
                 onThemeSelected = ::selectTheme,
+                onLanguageSelected = ::selectLanguage,
                 onHostClick = ::onHostClicked,
-                onHostLongClick = ::showHostActions,
+                onRemoveHost = ::confirmRemoveHost,
                 onAddHost = ::showAddHostDialog,
                 onAdvancedSettings = {
                     startActivity(Intent(this, StreamSettings::class.java))
                 },
+                onLibrarySortModeChanged = ::changeLibrarySortMode,
+                onLibraryLayoutModeChanged = ::changeLibraryLayoutMode,
+                onLibraryLaunch = ::launchLibraryItem,
             )
         }
 
@@ -125,11 +170,30 @@ class LigaseActivity : AppCompatActivity() {
         LigasePreferences.setThemeMode(this, mode)
     }
 
+    private fun selectLanguage(mode: LigaseLanguageMode) {
+        if (mode == languageMode) return
+        LigasePreferences.setLanguageMode(this, mode)
+        UiHelper.setLocale(this)
+        recreate()
+    }
+
+    private fun selectPage(page: LigasePage) {
+        if (page == currentPage) return
+        if (page != LigasePage.HOME) stopAppListUpdates()
+        currentPage = page
+        if (page == LigasePage.HOME) {
+            startAppListUpdates()
+            selectDefaultHostIfNeeded()
+        }
+    }
+
     private fun setupBackBehavior() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (!onboarding && currentPage != LigasePage.HOME) {
                     currentPage = LigasePage.HOME
+                    startAppListUpdates()
+                    selectDefaultHostIfNeeded()
                     return
                 }
                 val now = SystemClock.elapsedRealtime()
@@ -154,6 +218,18 @@ class LigaseActivity : AppCompatActivity() {
                     hosts += details
                     hosts.sortBy { it.name.lowercase() }
                 }
+                if (libraryHost?.uuid == details.uuid) {
+                    libraryHost = details
+                    libraryRunningAppId = details.runningGameId
+                    updateLibraryFromRaw(details.rawAppList)
+                } else if (
+                    libraryHost == null &&
+                    currentPage == LigasePage.HOME &&
+                    details.state == ComputerDetails.State.ONLINE &&
+                    details.pairState == PairState.PAIRED
+                ) {
+                    openLibrary(details)
+                }
             }
         })
         polling = true
@@ -172,20 +248,8 @@ class LigaseActivity : AppCompatActivity() {
             host.state == ComputerDetails.State.UNKNOWN -> Unit
             host.state == ComputerDetails.State.OFFLINE -> wakeHost(host)
             host.pairState != PairState.PAIRED -> pairHost(host)
-            else -> openAppList(host, newlyPaired = false)
+            else -> openLibrary(host)
         }
-    }
-
-    private fun showHostActions(host: ComputerDetails) {
-        val action = if (host.state == ComputerDetails.State.OFFLINE) {
-            R.string.pcview_menu_send_wol
-        } else {
-            R.string.pcview_menu_app_list
-        }
-        MaterialAlertDialogBuilder(this)
-            .setTitle(host.name)
-            .setItems(arrayOf(getString(action))) { _, _ -> onHostClicked(host) }
-            .show()
     }
 
     private fun pairHost(host: ComputerDetails) {
@@ -254,7 +318,7 @@ class LigaseActivity : AppCompatActivity() {
 
             runOnUiThread {
                 progressDialog.dismiss()
-                if (success) openAppList(host, newlyPaired = true)
+                if (success) openLibrary(host)
                 else {
                     Toast.makeText(
                         this,
@@ -283,14 +347,160 @@ class LigaseActivity : AppCompatActivity() {
         }.start()
     }
 
-    private fun openAppList(host: ComputerDetails, newlyPaired: Boolean) {
-        startActivity(
-            Intent(this, AppView::class.java)
-                .putExtra(AppView.NAME_EXTRA, host.name)
-                .putExtra(AppView.UUID_EXTRA, host.uuid)
-                .putExtra(AppView.NEW_PAIR_EXTRA, newlyPaired)
-                .putExtra(AppView.SHOW_HIDDEN_APPS_EXTRA, false),
-        )
+    private fun openLibrary(host: ComputerDetails) {
+        stopAppListUpdates()
+        disposeLibraryAssets()
+        libraryHost = host
+        pendingLibraryHostUuid = host.uuid
+        libraryItems.clear()
+        lastLibraryRawAppList = null
+        libraryRunningAppId = host.runningGameId
+        librarySortMode = LigasePreferences.getLibrarySortMode(this, host.uuid)
+        libraryAssetLoader = managerBinder?.let { binder ->
+            CachedAppAssetLoader(
+                host,
+                1.0,
+                NetworkAssetLoader(this, binder.uniqueId),
+                MemoryAssetLoader(),
+                DiskAssetLoader(this),
+                BitmapFactory.decodeResource(resources, R.drawable.no_app_image),
+            )
+        }
+        libraryLoading = true
+        startComputerUpdates()
+        updateLibraryFromRaw(host.rawAppList)
+        loadCachedLibrary(host)
+        startAppListUpdates()
+    }
+
+    private fun clearLibraryState() {
+        stopAppListUpdates()
+        libraryHost = null
+        pendingLibraryHostUuid = null
+        libraryItems.clear()
+        lastLibraryRawAppList = null
+        libraryLoading = false
+        disposeLibraryAssets()
+    }
+
+    private fun startAppListUpdates() {
+        val binder = managerBinder ?: return
+        val host = libraryHost ?: return
+        if (!foreground || currentPage != LigasePage.HOME || appListPoller != null) return
+        appListPoller = binder.createAppListPoller(host).also { it.start() }
+    }
+
+    private fun selectDefaultHostIfNeeded() {
+        if (libraryHost != null) return
+        hosts.firstOrNull {
+            it.state == ComputerDetails.State.ONLINE && it.pairState == PairState.PAIRED
+        }?.let(::openLibrary)
+    }
+
+    private fun confirmRemoveHost(host: ComputerDetails) {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(host.name)
+            .setMessage(R.string.delete_pc_msg)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.pcview_menu_delete_pc) { _, _ ->
+                removeHost(host)
+            }
+            .show()
+    }
+
+    private fun removeHost(host: ComputerDetails) {
+        val wasSelected = libraryHost?.uuid == host.uuid
+        if (wasSelected) clearLibraryState()
+        managerBinder?.removeComputer(host)
+        DiskAssetLoader(this).deleteAssetsForComputer(host.uuid)
+        hosts.removeAll { it.uuid == host.uuid }
+        if (wasSelected) selectDefaultHostIfNeeded()
+    }
+
+    private fun stopAppListUpdates() {
+        appListPoller?.stop()
+        appListPoller = null
+    }
+
+    private fun disposeLibraryAssets() {
+        libraryAssetLoader?.cancelForegroundLoads()
+        libraryAssetLoader?.cancelBackgroundLoads()
+        libraryAssetLoader?.freeCacheMemory()
+        libraryAssetLoader = null
+    }
+
+    private fun loadCachedLibrary(host: ComputerDetails) {
+        if (host.rawAppList != null) return
+        Thread {
+            val raw = try {
+                CacheHelper.readInputStreamToString(
+                    CacheHelper.openCacheFileForInput(cacheDir, "applist", host.uuid),
+                )
+            } catch (_: IOException) {
+                null
+            }
+            runOnUiThread {
+                if (libraryHost?.uuid == host.uuid) {
+                    if (raw != null) updateLibraryFromRaw(raw)
+                    else if (libraryItems.isEmpty()) libraryLoading = true
+                }
+            }
+        }.start()
+    }
+
+    private fun updateLibraryFromRaw(rawAppList: String?) {
+        val host = libraryHost ?: return
+        if (rawAppList == null || rawAppList == lastLibraryRawAppList) return
+        try {
+            val apps = NvHTTP.getAppListByReader(StringReader(rawAppList))
+            val mapped = LigaseLibraryAdapter.fromGameStream(host.uuid, apps)
+            libraryItems.clear()
+            libraryItems.addAll(mapped)
+            lastLibraryRawAppList = rawAppList
+            libraryLoading = false
+        } catch (_: XmlPullParserException) {
+            libraryLoading = false
+        } catch (_: IOException) {
+            libraryLoading = false
+        }
+    }
+
+    private fun changeLibrarySortMode(sortMode: HostSortMode) {
+        val host = libraryHost ?: return
+        librarySortMode = sortMode
+        LigasePreferences.setLibrarySortMode(this, host.uuid, sortMode)
+    }
+
+    private fun changeLibraryLayoutMode(layoutMode: LibraryLayoutMode) {
+        libraryLayoutMode = layoutMode
+        LigasePreferences.setLibraryLayoutMode(this, layoutMode)
+    }
+
+    private fun launchLibraryItem(item: LigaseLibraryItem) {
+        val host = libraryHost ?: return
+        val app = item.launchApp ?: return
+        val binder = managerBinder
+        if (binder == null) {
+            toast(R.string.error_manager_not_running)
+            return
+        }
+
+        val preference = PreferenceConfiguration.readPreferences(this)
+        val withVirtualDisplay = if (item.isSystem) false else preference.useVirtualDisplay
+        val launch = Runnable {
+            ServerHelper.doStart(this, app, host, binder, withVirtualDisplay)
+        }
+
+        if (host.runningGameId != 0 && host.runningGameId != app.appId) {
+            UiHelper.displayQuitConfirmationDialog(this, launch, null)
+        } else if (
+            withVirtualDisplay &&
+            !(host.vDisplaySupported && host.vDisplayDriverReady)
+        ) {
+            UiHelper.displayVdisplayConfirmationDialog(this, host, launch, null)
+        } else {
+            launch.run()
+        }
     }
 
     private fun showAddHostDialog() {
@@ -374,17 +584,21 @@ class LigaseActivity : AppCompatActivity() {
         super.onResume()
         foreground = true
         startComputerUpdates()
+        startAppListUpdates()
         UiHelper.showDecoderCrashDialog(this)
     }
 
     override fun onPause() {
         foreground = false
+        stopAppListUpdates()
         stopComputerUpdates(false)
         super.onPause()
     }
 
     override fun onDestroy() {
         stopComputerUpdates(false)
+        stopAppListUpdates()
+        disposeLibraryAssets()
         if (serviceBound) {
             unbindService(serviceConnection)
             serviceBound = false
@@ -395,11 +609,13 @@ class LigaseActivity : AppCompatActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putString(STATE_PAGE, currentPage.name)
+        outState.putString(STATE_LIBRARY_HOST_UUID, libraryHost?.uuid ?: pendingLibraryHostUuid)
         super.onSaveInstanceState(outState)
     }
 
     companion object {
         private const val STATE_PAGE = "ligase_page"
+        private const val STATE_LIBRARY_HOST_UUID = "ligase_library_host_uuid"
         private const val EXIT_INTERVAL_MS = 2_000L
     }
 }
