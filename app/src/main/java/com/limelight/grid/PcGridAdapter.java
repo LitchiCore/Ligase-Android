@@ -51,6 +51,7 @@ public class PcGridAdapter extends GenericGridAdapter<PcView.ComputerObject> {
 
     @Override
     public void populateView(View parentView, ImageView imgView, RelativeLayout gridMask, ProgressBar prgView, TextView txtView, ImageView overlayView, PcView.ComputerObject obj) {
+        TextView statusView = parentView.findViewById(R.id.grid_status);
         imgView.setImageResource(R.drawable.ic_computer);
         if (obj.details.state == ComputerDetails.State.ONLINE) {
             imgView.setAlpha(1.0f);
@@ -78,6 +79,7 @@ public class PcGridAdapter extends GenericGridAdapter<PcView.ComputerObject> {
             overlayView.setImageResource(R.drawable.ic_pc_offline);
             overlayView.setAlpha(0.4f);
             overlayView.setVisibility(View.VISIBLE);
+            statusView.setText(R.string.ligase_host_offline);
         }
         // We must check if the status is exactly online and unpaired
         // to avoid colliding with the loading spinner when status is unknown
@@ -86,9 +88,16 @@ public class PcGridAdapter extends GenericGridAdapter<PcView.ComputerObject> {
             overlayView.setImageResource(R.drawable.ic_lock);
             overlayView.setAlpha(1.0f);
             overlayView.setVisibility(View.VISIBLE);
+            statusView.setText(R.string.ligase_host_pair_required);
         }
         else {
             overlayView.setVisibility(View.GONE);
+            if (obj.details.state == ComputerDetails.State.ONLINE) {
+                statusView.setText(R.string.ligase_host_online);
+            }
+            else {
+                statusView.setText(R.string.ligase_host_checking);
+            }
         }
     }
 }

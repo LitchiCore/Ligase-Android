@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ligase_primary">#BAC3FF</color>
+    <color name="ligase_on_primary">#00258A</color>
+    <color name="ligase_primary_container">#173EBC</color>
+    <color name="ligase_on_primary_container">#DFE5FF</color>
+    <color name="ligase_surface">#111319</color>
+    <color name="ligase_surface_container">#1B1D24</color>
+    <color name="ligase_surface_container_high">#262830</color>
+    <color name="ligase_on_surface">#E4E2EA</color>
+    <color name="ligase_on_surface_variant">#C6C5D0</color>
+    <color name="ligase_outline">#90909C</color>
+    <color name="ligase_outline_variant">#45464F</color>
+</resources>

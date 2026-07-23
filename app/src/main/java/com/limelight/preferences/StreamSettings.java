@@ -50,7 +50,7 @@ import com.limelight.DebugInfoActivity;
 import com.limelight.BuildConfig;
 import com.limelight.GameMenu;
 import com.limelight.LimeLog;
-import com.limelight.PcView;
+import com.limelight.ligase.LigaseActivity;
 import com.limelight.R;
 import com.limelight.TouchKitLayoutEditorActivity;
 import com.limelight.TouchKitLayoutNames;
@@ -155,7 +155,7 @@ public class StreamSettings extends AppCompatActivity {
         if (!newPrefs.language.equals(previousPrefs.language)) {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
                 // Restart the PC view to apply UI changes
-                Intent intent = new Intent(this, PcView.class);
+                Intent intent = new Intent(this, LigaseActivity.class);
                 intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(intent, null);
             } else {

@@ -110,4 +110,16 @@ public class ProfilesNavigationTest {
         ProfilesActivity activity = Robolectric.buildActivity(ProfilesActivity.class).setup().get();
         assertNotNull(activity);
     }
+
+    @Test
+    public void pcView_requiresTwoBackPressesToExit() {
+        prepareEnvironment();
+        PcView pcView = Robolectric.buildActivity(PcView.class).setup().get();
+
+        pcView.getOnBackPressedDispatcher().onBackPressed();
+        assertFalse(pcView.isFinishing());
+
+        pcView.getOnBackPressedDispatcher().onBackPressed();
+        assertTrue(pcView.isFinishing());
+    }
 }

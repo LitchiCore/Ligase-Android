@@ -25,6 +25,34 @@
         <item name="android:windowBackground">#1A1A1A</item>
     </style>
 
+    <style name="LigaseTheme" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/ligase_primary</item>
+        <item name="colorOnPrimary">@color/ligase_on_primary</item>
+        <item name="colorPrimaryContainer">@color/ligase_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/ligase_on_primary_container</item>
+        <item name="colorSurface">@color/ligase_surface</item>
+        <item name="colorSurfaceContainer">@color/ligase_surface_container</item>
+        <item name="colorSurfaceContainerHigh">@color/ligase_surface_container_high</item>
+        <item name="colorOnSurface">@color/ligase_on_surface</item>
+        <item name="colorOnSurfaceVariant">@color/ligase_on_surface_variant</item>
+        <item name="colorOutline">@color/ligase_outline</item>
+        <item name="colorOutlineVariant">@color/ligase_outline_variant</item>
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">@color/ligase_surface</item>
+        <item name="android:navigationBarColor">@color/ligase_surface</item>
+        <item name="android:windowBackground">@color/ligase_surface</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+
+    <style name="LigaseBottomNavigationIndicator" parent="">
+        <item name="android:width">64dp</item>
+        <item name="android:height">36dp</item>
+        <item name="android:color">?attr/colorPrimaryContainer</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.Material3.Corner.Full</item>
+    </style>
+
     <style name="StreamBaseTheme" parent="AppBaseTheme">
         <!-- Transparent streaming background to avoid extra overdraw -->
         <item name="android:windowBackground">@android:color/transparent</item>

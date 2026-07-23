@@ -22,6 +22,7 @@ import com.limelight.nvstream.http.NvApp;
 import com.limelight.nvstream.http.NvHTTP;
 import com.limelight.nvstream.http.PairingManager;
 import com.limelight.nvstream.wol.WakeOnLanSender;
+import com.limelight.ligase.LigaseActivity;
 import com.limelight.preferences.PreferenceConfiguration;
 import com.limelight.utils.CacheHelper;
 import com.limelight.utils.Dialog;
@@ -183,7 +184,7 @@ public class ShortcutTrampoline extends AppCompatActivity {
 
                                                 // Add the PC view at the back (and clear the task)
                                                 Intent i;
-                                                i = new Intent(ShortcutTrampoline.this, PcView.class);
+                                                i = new Intent(ShortcutTrampoline.this, LigaseActivity.class);
                                                 i.setAction(Intent.ACTION_MAIN);
                                                 i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
                                                 intentStack.add(i);

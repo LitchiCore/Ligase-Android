@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/navigationHome"
+        android:icon="@drawable/ic_computer"
+        android:title="@string/ligase_nav_home" />
+    <item
+        android:id="@+id/navigationInput"
+        android:icon="@drawable/ic_ligase_gamepad"
+        android:title="@string/ligase_nav_input" />
+    <item
+        android:id="@+id/navigationSettings"
+        android:icon="@drawable/ic_settings"
+        android:title="@string/ligase_nav_settings" />
+</menu>
