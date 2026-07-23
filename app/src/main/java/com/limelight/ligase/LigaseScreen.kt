@@ -100,6 +100,7 @@ fun LigaseRoot(
     onLibrarySortModeChanged: (HostSortMode) -> Unit,
     onLibraryLayoutModeChanged: (LibraryLayoutMode) -> Unit,
     onLibraryLaunch: (LigaseLibraryItem) -> Unit,
+    onLibraryConfigure: (LigaseLibraryItem) -> Unit,
 ) {
     LigaseComposeTheme(themeMode) {
         Box(
@@ -155,6 +156,7 @@ fun LigaseRoot(
                                 onAddHost = onAddHost,
                                 onRemoveHost = onRemoveHost,
                                 onLaunch = onLibraryLaunch,
+                                onConfigure = onLibraryConfigure,
                             )
                             LigasePage.INPUT -> InputPage(
                                 selectedInput = selectedInput,

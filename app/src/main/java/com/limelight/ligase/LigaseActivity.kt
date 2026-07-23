@@ -146,6 +146,7 @@ class LigaseActivity : AppCompatActivity() {
                 onLibrarySortModeChanged = ::changeLibrarySortMode,
                 onLibraryLayoutModeChanged = ::changeLibraryLayoutMode,
                 onLibraryLaunch = ::launchLibraryItem,
+                onLibraryConfigure = ::showLibraryItemSettings,
             )
         }
 
@@ -501,6 +502,14 @@ class LigaseActivity : AppCompatActivity() {
         } else {
             launch.run()
         }
+    }
+
+    private fun showLibraryItemSettings(item: LigaseLibraryItem) {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(item.name)
+            .setMessage(R.string.ligase_library_settings_placeholder)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
     }
 
     private fun showAddHostDialog() {

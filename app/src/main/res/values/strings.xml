@@ -921,4 +921,6 @@
     <string name="ligase_manage_computers">Manage computers</string>
     <string name="ligase_remove_computer_named">Remove %1$s</string>
     <string name="ligase_library_select_host_hint">Choose a computer to view its games</string>
+    <string name="ligase_library_configure_named">Settings for %1$s</string>
+    <string name="ligase_library_settings_placeholder">Per-game streaming settings will appear here in a later update.</string>
 </resources>

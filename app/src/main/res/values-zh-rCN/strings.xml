@@ -907,4 +907,6 @@
     <string name="ligase_manage_computers">管理电脑</string>
     <string name="ligase_remove_computer_named">移除 %1$s</string>
     <string name="ligase_library_select_host_hint">选择电脑后查看游戏库</string>
+    <string name="ligase_library_configure_named">设置 %1$s</string>
+    <string name="ligase_library_settings_placeholder">后续版本将在这里提供单游戏串流设置。</string>
 </resources>

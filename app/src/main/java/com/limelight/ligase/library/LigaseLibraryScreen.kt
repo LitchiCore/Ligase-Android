@@ -84,6 +84,7 @@ fun LigaseLibraryPage(
     onAddHost: () -> Unit,
     onRemoveHost: (ComputerDetails) -> Unit,
     onLaunch: (LigaseLibraryItem) -> Unit,
+    onConfigure: (LigaseLibraryItem) -> Unit,
 ) {
     var query by remember(selectedHost?.uuid) { mutableStateOf("") }
     // SnapshotStateList keeps the same object identity when its contents change.
@@ -186,6 +187,7 @@ fun LigaseLibraryPage(
                                 running = item.appId != null && item.appId == runningAppId,
                                 assetLoader = assetLoader,
                                 onClick = { onLaunch(item) },
+                                onConfigure = { onConfigure(item) },
                             )
                         } else {
                             LibraryPosterCard(
@@ -193,6 +195,7 @@ fun LigaseLibraryPage(
                                 running = item.appId != null && item.appId == runningAppId,
                                 assetLoader = assetLoader,
                                 onClick = { onLaunch(item) },
+                                onConfigure = { onConfigure(item) },
                             )
                         }
                     }
@@ -567,6 +570,7 @@ private fun LibraryRowCard(
     running: Boolean,
     assetLoader: CachedAppAssetLoader?,
     onClick: () -> Unit,
+    onConfigure: () -> Unit,
 ) {
     Card(
         modifier = Modifier
@@ -580,6 +584,7 @@ private fun LibraryRowCard(
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
+        Box(modifier = Modifier.fillMaxSize()) {
         Row(
             modifier = Modifier.fillMaxSize(),
             verticalAlignment = Alignment.CenterVertically,
@@ -610,7 +615,7 @@ private fun LibraryRowCard(
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = 16.dp),
+                    .padding(start = 16.dp, end = 54.dp),
                 verticalArrangement = Arrangement.Center,
             ) {
                 Text(
@@ -638,14 +643,20 @@ private fun LibraryRowCard(
                     }
                 }
             }
-            Icon(
-                painter = painterResource(R.drawable.ic_play),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .padding(end = 17.dp)
-                    .size(24.dp),
-            )
+        }
+            IconButton(
+                onClick = onConfigure,
+                modifier = Modifier.align(Alignment.BottomEnd),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_settings),
+                    contentDescription = stringResource(
+                        R.string.ligase_library_configure_named,
+                        item.name,
+                    ),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
     }
 }
@@ -656,6 +667,7 @@ private fun LibraryPosterCard(
     running: Boolean,
     assetLoader: CachedAppAssetLoader?,
     onClick: () -> Unit,
+    onConfigure: () -> Unit,
 ) {
     Card(
         modifier = Modifier
@@ -702,7 +714,7 @@ private fun LibraryPosterCard(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .fillMaxWidth()
-                    .padding(14.dp),
+                    .padding(start = 14.dp, top = 14.dp, end = 54.dp, bottom = 14.dp),
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     item.kind?.let { PosterChip(kindLabel(it)) }
@@ -719,6 +731,24 @@ private fun LibraryPosterCard(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
+            }
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(6.dp),
+                shape = CircleShape,
+                color = Color.Black.copy(alpha = 0.46f),
+            ) {
+                IconButton(onClick = onConfigure) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_settings),
+                        contentDescription = stringResource(
+                            R.string.ligase_library_configure_named,
+                            item.name,
+                        ),
+                        tint = Color.White,
+                    )
+                }
             }
         }
     }
