@@ -44,6 +44,14 @@ enum class LibraryLayoutMode(val storedValue: String) {
     }
 }
 
+enum class LigaseLibraryStatus {
+    IDLE,
+    LOADING,
+    READY,
+    INCOMPATIBLE,
+    SYNC_ERROR,
+}
+
 /**
  * Future Host synchronization DTO. It intentionally contains no Windows path,
  * working directory, or command line fields.
@@ -70,6 +78,81 @@ data class HostLibraryItemDto(
 data class HostSortPreferenceWriteDto(
     val baseRevision: Long,
     val sortMode: String,
+)
+
+data class LigaseSyncSnapshotDto(
+    val schemaVersion: Int,
+    val capabilities: LigaseCapabilitiesDto,
+    val library: LigaseLibrarySyncDto,
+    val streaming: LigaseStreamingSyncDto,
+)
+
+data class LigaseCapabilitiesDto(
+    val hdrEncodingSupported: Boolean,
+)
+
+data class LigaseLibrarySyncDto(
+    val revision: Long,
+    val updatedAt: String,
+    val sortMode: String,
+    val items: List<HostLibraryItemDto>,
+) {
+    fun asAdapterSnapshot(schemaVersion: Int): HostLibrarySnapshotDto =
+        HostLibrarySnapshotDto(
+            schemaVersion = schemaVersion,
+            revision = revision,
+            updatedAt = updatedAt,
+            sortMode = sortMode,
+            items = items,
+        )
+}
+
+data class LigaseResolutionDto(
+    val width: Int,
+    val height: Int,
+) {
+    val label: String
+        get() = "${width} × ${height}"
+
+    fun isValid(): Boolean = width in 320..16384 && height in 240..16384
+}
+
+data class LigaseStreamingSyncDto(
+    val schemaVersion: Int,
+    val revision: Long,
+    val updatedAt: String,
+    val globalResolution: LigaseResolutionDto,
+    val apps: Map<String, LigaseAppStreamingDto>,
+) {
+    fun resolutionFor(appUuid: String): LigaseResolutionDto =
+        apps.entries.firstOrNull { it.key.equals(appUuid, ignoreCase = true) }
+            ?.value
+            ?.resolution
+            ?: globalResolution
+
+    fun overrideFor(appUuid: String): LigaseResolutionDto? =
+        apps.entries.firstOrNull { it.key.equals(appUuid, ignoreCase = true) }
+            ?.value
+            ?.resolution
+}
+
+data class LigaseAppStreamingDto(
+    val resolution: LigaseResolutionDto?,
+)
+
+data class LigaseGlobalResolutionWriteDto(
+    val baseRevision: Long,
+    val globalResolution: LigaseResolutionDto,
+)
+
+data class LigaseAppResolutionWriteDto(
+    val baseRevision: Long,
+    val app: LigaseAppResolutionValueDto,
+)
+
+data class LigaseAppResolutionValueDto(
+    val id: String,
+    val resolution: LigaseResolutionDto?,
 )
 
 sealed interface LibraryItemKey {
@@ -156,11 +239,6 @@ object LigaseLibraryAdapter {
             val kind = HostLibraryKind.fromWireValue(dto.kind) ?: return@mapNotNull null
             val launchApp = launchApps[uuid]
 
-            // A virtual desktop only exists when Apollo reports that its driver is usable.
-            if (kind == HostLibraryKind.VIRTUAL_DESKTOP && launchApp == null) {
-                return@mapNotNull null
-            }
-
             LigaseLibraryItem(
                 key = LibraryItemKey.HostUuid(uuid),
                 name = when (kind) {
@@ -179,6 +257,15 @@ object LigaseLibraryAdapter {
             )
         }
     }
+
+    fun fromSyncSnapshot(
+        snapshot: LigaseSyncSnapshotDto,
+        gameStreamApps: List<NvApp>,
+    ): List<LigaseLibraryItem> =
+        fromHostSnapshot(
+            snapshot = snapshot.library.asAdapterSnapshot(snapshot.schemaVersion),
+            gameStreamApps = gameStreamApps,
+        )
 
     fun visibleItems(
         items: List<LigaseLibraryItem>,

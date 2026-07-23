@@ -5,6 +5,9 @@
 
 ## 产品结构
 
+- 核心目标是让不了解串流协议的用户也能按“添加电脑 → 配对 → 选择游戏 →
+  开始串流”的主路径完成操作。产品 UI 不展示 UUID、appid、端口、revision
+  或协议错误码。
 - 顶级壳层只有 `LigaseActivity`，产品 UI 使用 Jetpack Compose。
 - 首页就是游戏库，不再先显示旧式电脑卡片页，也不以 `PcView` / `AppView`
   作为产品入口。
@@ -13,22 +16,43 @@
   - 添加电脑；
   - 按 Host UUID 区分并移除旧电脑，删除前二次确认。
 - 手机使用底部导航，横屏和平板由 Material 3 adaptive navigation 自动切换为左侧导航。
+- 手机底栏模式下，游戏库、输入和设置的可滚动内容统一预留底栏安全区；平板左栏
+  模式不添加该底部留白。
 - 游戏库支持搜索、稳定排序值以及用户可选的列表/竖向海报布局。
-- 每个游戏卡片右下角提供独立设置入口；该入口不触发启动，后续承载单应用
-  分辨率等串流设置。
+- 每个游戏卡片右下角提供独立设置入口；该入口与卡片启动点击隔离，用于选择
+  “使用全局设置”或“自定义分辨率”。
 - 设置页提供串流输入、明亮/黑暗主题和语言（跟随系统、简体中文、English）。
+- 高级串流设置采用渐进披露：全局分辨率位于设置页，单游戏覆盖位于卡片设置；
+  均不进入首次启动主路径。
 
-## GameStream 现有能力
+## 强制 Ligase Sync v1 产品边界
 
-当前直接复用稳定的 Moonlight/GameStream 底层：
+- `serverinfo.LigaseSyncVersion == 1` 且存在 `LigaseSyncPath` 才能进入产品游戏库。
+  缺失能力时展示“需要升级 Ligase Host”和“重试”，禁止用旧 applist 回退构建库。
+- `GET /ligase/v1/sync` 是游戏集合、类型、名称、UUID、排序、时间、全局分辨率、
+  单游戏分辨率和 Host HDR 编码能力的唯一产品权威。
+- 同步请求使用 `serverinfo.HttpsPort`、已配对客户端身份、证书固定与现有 NvHTTP
+  TLS 行为；不能从 HTTP 端口推导 HTTPS 端口。
+- Android 只写排序和串流分辨率。应用的新增与删除只由 Host 管理。
+- 写入遇到 revision 冲突时重新拉取完整快照，提示用户重新操作，不自动重放旧写入。
+- UI 不直接呈现 Sync v1、404、409、revision 等实现细节；失败状态提供升级 Host、
+  检查 Host/网络或重试等下一步。
+
+## 保留的 GameStream 传输 ABI
+
+Ligase 不兼容旧 Apollo 产品配置或 UI，但在替换串流传输之前继续复用：
 
 - 电脑发现、在线状态与配对；
-- applist 的应用名称、Apollo `appUUID`、数字 `appId` 和 HDR 能力；
+- `serverinfo` 的 Host 身份、配对、在线/运行状态、HTTPS 端口及远程发现/WOL 字段；
+- 成功取得 Sync v1 后，applist 仅提供应用 UUID 到数字 `appId` 的启动映射；
 - `appUUID + appId` 启动、恢复和运行状态；
-- GameStream box art；
+- `appasset(appid)` 封面；
+- 现有 RTSP、视频、音频、加密和输入链；
 - 已选择的手柄、键鼠或无外接设备输入模式会传入串流。
 
-客户端不会拼接 Windows 路径、工作目录或命令行。
+启动前严格按 UUID 合并 Sync item 与 applist。缺少映射的项目仍显示在游戏库，
+但标记“启动映射缺失”并禁用启动；禁止按名称匹配。客户端不会接收或拼接 Windows
+路径、工作目录或命令行。
 
 ## 稳定系统入口
 
@@ -37,15 +61,12 @@
 - `virtualDesktop` / 虚拟桌面：
   `8902CB19-674A-403D-A587-41B092E900BA`
 
-在 Host 同步 DTO 接入前，adapter 只用以上精确 UUID 补充系统类型，禁止按名称识别。
-虚拟桌面仅在实际 GameStream applist 中出现时显示为可启动。
+系统类型由 Sync v1 的 `kind` 决定，UUID 是稳定身份。虚拟桌面若存在于 Sync
+快照但没有对应 applist 项，仍显示但不可启动。
 
-普通项目暂时只有 GameStream 展示与启动能力；`steam` / `executable` 来源、
-`steamAppId`、添加时间、更新时间和最近游玩时间等待 Host 同步 API。
+## 排序、分辨率与 HDR
 
-## Host 同步边界
-
-客户端已经预留只含跨平台字段的 domain/DTO adapter。排序机器值固定为：
+排序机器值固定为：
 
 - `nameAscending`
 - `nameDescending`
@@ -53,9 +74,20 @@
 - `addedOldest`
 - `lastPlayedNewest`
 
-当前排序偏好保存在本地并按 Host UUID 隔离。未来 Host API 上线后，以 Host 的
-`revision` 和 `sortMode` 为权威；客户端只提交 `baseRevision + sortMode`，
-不自行新增或删除主机游戏，也不虚构未上线的 REST 地址。
+Host 的 `revision` 和 `sortMode` 为权威；本地偏好只作为同步完成前的适配状态。
+客户端提交 `baseRevision + sortMode`。
+
+有效分辨率优先使用单游戏覆盖，否则继承全局分辨率。该结果会在 Ligase 启动入口
+覆盖旧本地分辨率偏好并传入现有 `Game`，Host 在 `/launch` 再次执行同一规则。
+恢复继承时显式提交 `resolution: null`。
+
+HDR 分层处理：
+
+- `sync.capabilities.hdrEncodingSupported` 表示 Host 当前可编码 HDR/10-bit；
+- Android 独立检测当前显示设备和解码能力；
+- 用户只看到最终“HDR 可用/不可用”；真正请求 HDR 必须同时满足 Host 和 Android；
+- applist 的旧 `IsHdrSupported` 仅保留在底层兼容对象中，不能作为游戏内容 HDR
+  能力或产品库元数据。
 
 ## 构建与验收
 
@@ -74,3 +106,7 @@ ARM64 APK：
 
 设备验收至少覆盖 V2353A 手机与 AGS2-AL00 平板，只操作可识别的应用内控件。
 手机检查底部导航和内容不遮挡；平板横屏检查左侧导航与自适应游戏网格。
+
+若在线 Host 尚未部署 Sync v1，只能验收“不兼容、升级、重试”状态，不能声称
+游戏库同步、排序/分辨率写回、冲突恢复或 HDR 已端到端通过。部署新核心后还需
+逐项完成真实双端联合验收。

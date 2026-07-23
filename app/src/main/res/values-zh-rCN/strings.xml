@@ -909,4 +909,23 @@
     <string name="ligase_library_select_host_hint">选择电脑后查看游戏库</string>
     <string name="ligase_library_configure_named">设置 %1$s</string>
     <string name="ligase_library_settings_placeholder">后续版本将在这里提供单游戏串流设置。</string>
+    <string name="ligase_host_incompatible_title">需要升级 Ligase Host</string>
+    <string name="ligase_host_incompatible_summary">请在这台电脑上升级 Ligase Host，然后点“重试”。</string>
+    <string name="ligase_sync_error_title">无法同步游戏库</string>
+    <string name="ligase_sync_error_summary">请确认 Ligase Host 正在运行且电脑网络可达，然后重试。</string>
+    <string name="ligase_retry">重试</string>
+    <string name="ligase_sync_revision_conflict">设置已在其他设备上变更，现已加载最新状态，请重新操作。</string>
+    <string name="ligase_sync_write_failed">无法将设置保存到 Ligase Host。</string>
+    <string name="ligase_streaming_settings_title">串流</string>
+    <string name="ligase_global_resolution">全局分辨率</string>
+    <string name="ligase_sync_unavailable_short">连接电脑后可设置</string>
+    <string name="ligase_hdr_available">HDR 可用</string>
+    <string name="ligase_hdr_unavailable">当前电脑或显示设备不支持 HDR</string>
+    <string name="ligase_resolution_use_global">使用全局设置</string>
+    <string name="ligase_resolution_custom">自定义分辨率</string>
+    <string name="ligase_resolution_width">宽度</string>
+    <string name="ligase_resolution_height">高度</string>
+    <string name="ligase_resolution_invalid">请输入有效的正数宽度和高度。</string>
+    <string name="ligase_sync_saved">已保存到 Ligase Host</string>
+    <string name="ligase_library_sync_missing">启动映射缺失</string>
 </resources>

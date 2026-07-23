@@ -923,4 +923,23 @@
     <string name="ligase_library_select_host_hint">Choose a computer to view its games</string>
     <string name="ligase_library_configure_named">Settings for %1$s</string>
     <string name="ligase_library_settings_placeholder">Per-game streaming settings will appear here in a later update.</string>
+    <string name="ligase_host_incompatible_title">Ligase Host needs an upgrade</string>
+    <string name="ligase_host_incompatible_summary">Upgrade Ligase Host on this computer, then tap Retry.</string>
+    <string name="ligase_sync_error_title">Couldn’t sync the game library</string>
+    <string name="ligase_sync_error_summary">Make sure Ligase Host is running and this computer is reachable, then try again.</string>
+    <string name="ligase_retry">Retry</string>
+    <string name="ligase_sync_revision_conflict">Settings changed on another device. The latest settings were loaded; please try again.</string>
+    <string name="ligase_sync_write_failed">Couldn’t save the setting to Ligase Host.</string>
+    <string name="ligase_streaming_settings_title">Streaming</string>
+    <string name="ligase_global_resolution">Global resolution</string>
+    <string name="ligase_sync_unavailable_short">Available after connecting to a computer</string>
+    <string name="ligase_hdr_available">HDR is available</string>
+    <string name="ligase_hdr_unavailable">HDR is unavailable on this computer or display</string>
+    <string name="ligase_resolution_use_global">Use global setting</string>
+    <string name="ligase_resolution_custom">Custom resolution</string>
+    <string name="ligase_resolution_width">Width</string>
+    <string name="ligase_resolution_height">Height</string>
+    <string name="ligase_resolution_invalid">Enter a valid positive width and height.</string>
+    <string name="ligase_sync_saved">Saved to Ligase Host</string>
+    <string name="ligase_library_sync_missing">Launch mapping missing</string>
 </resources>

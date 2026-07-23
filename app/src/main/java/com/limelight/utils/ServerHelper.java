@@ -94,6 +94,16 @@ public class ServerHelper {
     public static Intent createStartIntent(Activity parent, NvApp app, ComputerDetails computer,
                                            ComputerManagerService.ComputerManagerBinder managerBinder,
                                            boolean withVDisplay) {
+        return createStartIntent(parent, app, computer, managerBinder, withVDisplay, 0, 0, false, false);
+    }
+
+    public static Intent createStartIntent(Activity parent, NvApp app, ComputerDetails computer,
+                                           ComputerManagerService.ComputerManagerBinder managerBinder,
+                                           boolean withVDisplay,
+                                           int ligaseWidth,
+                                           int ligaseHeight,
+                                           boolean ligaseHostHdrSupported,
+                                           boolean hasLigaseSettings) {
         Intent gameIntent = null;
         PreferenceConfiguration prefConfig = PreferenceConfiguration.readPreferences(parent);
         // Try to add secondary DisplayContext if supported and connected
@@ -117,6 +127,11 @@ public class ServerHelper {
         gameIntent.putExtra(Game.EXTRA_SERVER_COMMANDS, (ArrayList<String>) computer.serverCommands);
         gameIntent.putExtra(Game.EXTRA_LIGASE_INPUT_MODE,
                 LigasePreferences.getInputDeviceMode(parent).getStoredValue());
+        if (hasLigaseSettings) {
+            gameIntent.putExtra(Game.EXTRA_LIGASE_WIDTH, ligaseWidth);
+            gameIntent.putExtra(Game.EXTRA_LIGASE_HEIGHT, ligaseHeight);
+            gameIntent.putExtra(Game.EXTRA_LIGASE_HOST_HDR_SUPPORTED, ligaseHostHdrSupported);
+        }
 
         try {
             if (computer.serverCert != null) {
@@ -148,12 +163,36 @@ public class ServerHelper {
             ComputerManagerService.ComputerManagerBinder managerBinder,
             boolean withVDisplay
     ) {
+        doStart(parent, app, computer, managerBinder, withVDisplay, 0, 0, false, false);
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    public static void doStart(
+            Activity parent,
+            NvApp app,
+            ComputerDetails computer,
+            ComputerManagerService.ComputerManagerBinder managerBinder,
+            boolean withVDisplay,
+            int ligaseWidth,
+            int ligaseHeight,
+            boolean ligaseHostHdrSupported,
+            boolean hasLigaseSettings
+    ) {
         if (computer.state == ComputerDetails.State.OFFLINE || computer.activeAddress == null) {
             Toast.makeText(parent, parent.getString(R.string.pair_pc_offline), Toast.LENGTH_SHORT).show();
             return;
         }
 
-        Intent intent = createStartIntent(parent, app, computer, managerBinder, withVDisplay);
+        Intent intent = createStartIntent(
+                parent,
+                app,
+                computer,
+                managerBinder,
+                withVDisplay,
+                ligaseWidth,
+                ligaseHeight,
+                ligaseHostHdrSupported,
+                hasLigaseSettings);
         parent.startActivity(intent);
     }
 

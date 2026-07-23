@@ -439,6 +439,10 @@ public class NvHTTP {
         details.pairState = getPairState(serverInfo);
         details.runningGameId = getCurrentGame(serverInfo);
         details.runningGameUUID = getCurrentGameUUID(serverInfo);
+        details.ligaseSyncVersion = getLigaseSyncVersion(serverInfo);
+        details.ligaseSyncPath = getXmlString(serverInfo, "LigaseSyncPath", false);
+        details.ligaseHdrEncodingSupported =
+                getXmlBoolean(serverInfo, "LigaseHdrEncodingSupported", false);
 
         // The MJOLNIR codename was used by GFE but never by any third-party server
         details.nvidiaServer = getXmlString(serverInfo, "state", true).contains("MJOLNIR");
@@ -451,6 +455,48 @@ public class NvHTTP {
 
     public String getCurrentGameUUID(String serverInfo) throws IOException, XmlPullParserException {
         return getXmlString(serverInfo, "currentgameuuid", false);
+    }
+
+    public static int getLigaseSyncVersion(String serverInfo) {
+        try {
+            String value = getXmlString(serverInfo, "LigaseSyncVersion", false);
+            return value == null ? 0 : Integer.parseInt(value);
+        } catch (IOException | XmlPullParserException | NumberFormatException ignored) {
+            return 0;
+        }
+    }
+
+    static boolean getXmlBoolean(String xml, String tag, boolean defaultValue) {
+        try {
+            String value = getXmlString(xml, tag, false);
+            return value == null ? defaultValue :
+                    value.equals("1") || value.equalsIgnoreCase("true");
+        } catch (IOException | XmlPullParserException ignored) {
+            return defaultValue;
+        }
+    }
+
+    public String getLigaseJson(String path) throws IOException {
+        return openHttpConnectionToString(
+                httpClientLongConnectTimeout,
+                getHttpsUrl(true),
+                normalizeLigasePath(path));
+    }
+
+    public String postLigaseJson(String path, String json) throws IOException {
+        return openHttpConnectionToString(
+                httpClientLongConnectTimeout,
+                getHttpsUrl(true),
+                normalizeLigasePath(path),
+                null,
+                RequestBody.create(json, MediaType.parse("application/json")));
+    }
+
+    private String normalizeLigasePath(String path) {
+        if (path == null) {
+            throw new IllegalArgumentException("Ligase path is required");
+        }
+        return path.startsWith("/") ? path.substring(1) : path;
     }
 
     public ComputerDetails getComputerDetails(boolean likelyOnline) throws IOException, XmlPullParserException {

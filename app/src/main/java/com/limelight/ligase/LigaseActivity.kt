@@ -8,9 +8,14 @@ import android.graphics.BitmapFactory
 import android.content.ServiceConnection
 import android.net.Uri
 import android.os.Bundle
+import android.os.Build
 import android.os.IBinder
 import android.os.SystemClock
 import android.view.inputmethod.InputMethodManager
+import android.view.View
+import android.widget.LinearLayout
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
@@ -36,15 +41,19 @@ import com.limelight.grid.assets.NetworkAssetLoader
 import com.limelight.ligase.library.HostSortMode
 import com.limelight.ligase.library.LigaseLibraryAdapter
 import com.limelight.ligase.library.LigaseLibraryItem
+import com.limelight.ligase.library.LigaseLibraryStatus
+import com.limelight.ligase.library.LigaseResolutionDto
+import com.limelight.ligase.library.LigaseSyncRepository
+import com.limelight.ligase.library.LigaseSyncSnapshotDto
 import com.limelight.ligase.library.LibraryLayoutMode
 import com.limelight.nvstream.http.ComputerDetails
 import com.limelight.nvstream.http.NvHTTP
+import com.limelight.nvstream.http.NvApp
 import com.limelight.nvstream.http.PairingManager
 import com.limelight.nvstream.http.PairingManager.PairState
 import com.limelight.nvstream.wol.WakeOnLanSender
 import com.limelight.preferences.PreferenceConfiguration
 import com.limelight.preferences.StreamSettings
-import com.limelight.utils.CacheHelper
 import com.limelight.utils.ServerHelper
 import com.limelight.utils.UiHelper
 import org.xmlpull.v1.XmlPullParserException
@@ -63,12 +72,20 @@ class LigaseActivity : AppCompatActivity() {
     private val libraryItems = mutableStateListOf<LigaseLibraryItem>()
     private var libraryHost by mutableStateOf<ComputerDetails?>(null)
     private var libraryLoading by mutableStateOf(false)
+    private var libraryStatus by mutableStateOf(LigaseLibraryStatus.IDLE)
+    private var librarySyncSnapshot by mutableStateOf<LigaseSyncSnapshotDto?>(null)
+    private var libraryHdrAvailable by mutableStateOf(false)
+    private var displayHdrSupported by mutableStateOf(false)
     private var libraryRunningAppId by mutableStateOf(0)
     private var librarySortMode by mutableStateOf(HostSortMode.NAME_ASCENDING)
     private var libraryLayoutMode by mutableStateOf(LibraryLayoutMode.LIST)
     private var libraryAssetLoader by mutableStateOf<CachedAppAssetLoader?>(null)
     private var lastLibraryRawAppList: String? = null
     private var pendingLibraryHostUuid: String? = null
+    private var libraryTransportApps: List<NvApp> = emptyList()
+    private var syncRequestInFlight = false
+    private var syncRequestGeneration = 0L
+    private val syncRepository = LigaseSyncRepository()
 
     private var managerBinder: ComputerManagerService.ComputerManagerBinder? = null
     private var appListPoller: ComputerManagerService.ApplistPoller? = null
@@ -105,6 +122,7 @@ class LigaseActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         UiHelper.setLocale(this)
         enableEdgeToEdge()
+        displayHdrSupported = detectDisplayHdrSupport()
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false)
 
         onboarding = !LigasePreferences.hasInputDeviceMode(this)
@@ -128,6 +146,9 @@ class LigaseActivity : AppCompatActivity() {
                 libraryHost = libraryHost,
                 libraryItems = libraryItems,
                 libraryLoading = libraryLoading,
+                libraryStatus = libraryStatus,
+                libraryGlobalResolution = librarySyncSnapshot?.streaming?.globalResolution,
+                libraryHdrAvailable = libraryHdrAvailable,
                 libraryRunningAppId = libraryRunningAppId,
                 librarySortMode = librarySortMode,
                 libraryLayoutMode = libraryLayoutMode,
@@ -147,6 +168,8 @@ class LigaseActivity : AppCompatActivity() {
                 onLibraryLayoutModeChanged = ::changeLibraryLayoutMode,
                 onLibraryLaunch = ::launchLibraryItem,
                 onLibraryConfigure = ::showLibraryItemSettings,
+                onLibraryRetrySync = ::retryLibrarySync,
+                onGlobalResolutionClick = ::showGlobalResolutionSettings,
             )
         }
 
@@ -222,7 +245,10 @@ class LigaseActivity : AppCompatActivity() {
                 if (libraryHost?.uuid == details.uuid) {
                     libraryHost = details
                     libraryRunningAppId = details.runningGameId
-                    updateLibraryFromRaw(details.rawAppList)
+                    handleSelectedHostCapabilities(details)
+                    if (librarySyncSnapshot != null) {
+                        updateLibraryFromRaw(details.rawAppList)
+                    }
                 } else if (
                     libraryHost == null &&
                     currentPage == LigasePage.HOME &&
@@ -354,6 +380,10 @@ class LigaseActivity : AppCompatActivity() {
         libraryHost = host
         pendingLibraryHostUuid = host.uuid
         libraryItems.clear()
+        libraryTransportApps = emptyList()
+        librarySyncSnapshot = null
+        syncRequestInFlight = false
+        syncRequestGeneration++
         lastLibraryRawAppList = null
         libraryRunningAppId = host.runningGameId
         librarySortMode = LigasePreferences.getLibrarySortMode(this, host.uuid)
@@ -368,10 +398,10 @@ class LigaseActivity : AppCompatActivity() {
             )
         }
         libraryLoading = true
+        libraryStatus = LigaseLibraryStatus.LOADING
+        libraryHdrAvailable = false
         startComputerUpdates()
-        updateLibraryFromRaw(host.rawAppList)
-        loadCachedLibrary(host)
-        startAppListUpdates()
+        handleSelectedHostCapabilities(host)
     }
 
     private fun clearLibraryState() {
@@ -379,15 +409,26 @@ class LigaseActivity : AppCompatActivity() {
         libraryHost = null
         pendingLibraryHostUuid = null
         libraryItems.clear()
+        libraryTransportApps = emptyList()
+        librarySyncSnapshot = null
         lastLibraryRawAppList = null
         libraryLoading = false
+        libraryStatus = LigaseLibraryStatus.IDLE
+        libraryHdrAvailable = false
+        syncRequestInFlight = false
+        syncRequestGeneration++
         disposeLibraryAssets()
     }
 
     private fun startAppListUpdates() {
         val binder = managerBinder ?: return
         val host = libraryHost ?: return
-        if (!foreground || currentPage != LigasePage.HOME || appListPoller != null) return
+        if (
+            !foreground ||
+            currentPage != LigasePage.HOME ||
+            librarySyncSnapshot == null ||
+            appListPoller != null
+        ) return
         appListPoller = binder.createAppListPoller(host).also { it.start() }
     }
 
@@ -430,46 +471,168 @@ class LigaseActivity : AppCompatActivity() {
         libraryAssetLoader = null
     }
 
-    private fun loadCachedLibrary(host: ComputerDetails) {
-        if (host.rawAppList != null) return
+    private fun handleSelectedHostCapabilities(host: ComputerDetails) {
+        if (host.state != ComputerDetails.State.ONLINE) return
+        if (
+            host.ligaseSyncVersion != LigaseSyncRepository.SUPPORTED_SYNC_VERSION ||
+            host.ligaseSyncPath.isNullOrBlank()
+        ) {
+            stopAppListUpdates()
+            libraryItems.clear()
+            libraryTransportApps = emptyList()
+            librarySyncSnapshot = null
+            syncRequestInFlight = false
+            syncRequestGeneration++
+            libraryLoading = false
+            libraryStatus = LigaseLibraryStatus.INCOMPATIBLE
+            libraryHdrAvailable = false
+            return
+        }
+        if (librarySyncSnapshot == null) {
+            fetchLibrarySync(force = false)
+        }
+    }
+
+    private fun fetchLibrarySync(force: Boolean) {
+        val host = libraryHost ?: return
+        val path = host.ligaseSyncPath
+        if (
+            host.ligaseSyncVersion != LigaseSyncRepository.SUPPORTED_SYNC_VERSION ||
+            path.isNullOrBlank()
+        ) {
+            libraryStatus = LigaseLibraryStatus.INCOMPATIBLE
+            libraryLoading = false
+            return
+        }
+        if (syncRequestInFlight) return
+        if (!force && librarySyncSnapshot != null) return
+        syncRequestInFlight = true
+        val requestGeneration = ++syncRequestGeneration
+        libraryStatus = LigaseLibraryStatus.LOADING
+        libraryLoading = true
+
         Thread {
-            val raw = try {
-                CacheHelper.readInputStreamToString(
-                    CacheHelper.openCacheFileForInput(cacheDir, "applist", host.uuid),
-                )
-            } catch (_: IOException) {
-                null
-            }
-            runOnUiThread {
-                if (libraryHost?.uuid == host.uuid) {
-                    if (raw != null) updateLibraryFromRaw(raw)
-                    else if (libraryItems.isEmpty()) libraryLoading = true
+            try {
+                val snapshot = syncRepository.fetch(createLigaseHttp(host), path)
+                runOnUiThread {
+                    if (
+                        libraryHost?.uuid != host.uuid ||
+                        requestGeneration != syncRequestGeneration
+                    ) return@runOnUiThread
+                    syncRequestInFlight = false
+                    librarySyncSnapshot = snapshot
+                    librarySortMode = HostSortMode.fromWireValue(snapshot.library.sortMode)
+                    libraryHdrAvailable =
+                        snapshot.capabilities.hdrEncodingSupported && displayHdrSupported
+                    libraryStatus = LigaseLibraryStatus.READY
+                    libraryLoading = true
+                    LigasePreferences.setLibrarySortMode(this, host.uuid, librarySortMode)
+                    rebuildLibraryItems()
+                    updateLibraryFromRaw(host.rawAppList)
+                    startAppListUpdates()
+                }
+            } catch (_: Exception) {
+                runOnUiThread {
+                    if (
+                        libraryHost?.uuid != host.uuid ||
+                        requestGeneration != syncRequestGeneration
+                    ) return@runOnUiThread
+                    syncRequestInFlight = false
+                    libraryItems.clear()
+                    librarySyncSnapshot = null
+                    libraryLoading = false
+                    libraryStatus = LigaseLibraryStatus.SYNC_ERROR
+                    libraryHdrAvailable = false
                 }
             }
         }.start()
     }
 
-    private fun updateLibraryFromRaw(rawAppList: String?) {
+    private fun retryLibrarySync() {
         val host = libraryHost ?: return
+        if (libraryStatus == LigaseLibraryStatus.INCOMPATIBLE) {
+            libraryStatus = LigaseLibraryStatus.LOADING
+            libraryLoading = true
+            managerBinder?.invalidateStateForComputer(host.uuid)
+            return
+        }
+        fetchLibrarySync(force = true)
+    }
+
+    private fun rebuildLibraryItems() {
+        val snapshot = librarySyncSnapshot ?: return
+        val mapped = LigaseLibraryAdapter.fromSyncSnapshot(snapshot, libraryTransportApps)
+        libraryItems.clear()
+        libraryItems.addAll(mapped)
+        libraryLoading = false
+        libraryStatus = LigaseLibraryStatus.READY
+    }
+
+    private fun createLigaseHttp(host: ComputerDetails): NvHTTP {
+        val binder = managerBinder ?: throw IOException("Computer manager is unavailable")
+        return NvHTTP(
+            ServerHelper.getCurrentAddressFromComputer(host),
+            host.httpsPort,
+            binder.uniqueId,
+            host.serverCert,
+            PlatformBinding.getCryptoProvider(this),
+        )
+    }
+
+    private fun handleSyncWriteFailure(host: ComputerDetails, error: Throwable) {
+        if (libraryHost?.uuid != host.uuid) return
+        if (LigaseSyncRepository.isRevisionConflict(error)) {
+            toast(R.string.ligase_sync_revision_conflict)
+            fetchLibrarySync(force = true)
+        } else {
+            toast(R.string.ligase_sync_write_failed)
+        }
+    }
+
+    private fun detectDisplayHdrSupport(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return false
+        val capabilities = windowManager.defaultDisplay.hdrCapabilities ?: return false
+        return capabilities.supportedHdrTypes.any {
+            it == android.view.Display.HdrCapabilities.HDR_TYPE_HDR10
+        }
+    }
+
+    private fun updateLibraryFromRaw(rawAppList: String?) {
         if (rawAppList == null || rawAppList == lastLibraryRawAppList) return
         try {
-            val apps = NvHTTP.getAppListByReader(StringReader(rawAppList))
-            val mapped = LigaseLibraryAdapter.fromGameStream(host.uuid, apps)
-            libraryItems.clear()
-            libraryItems.addAll(mapped)
+            libraryTransportApps = NvHTTP.getAppListByReader(StringReader(rawAppList))
             lastLibraryRawAppList = rawAppList
-            libraryLoading = false
+            rebuildLibraryItems()
         } catch (_: XmlPullParserException) {
             libraryLoading = false
+            libraryStatus = LigaseLibraryStatus.SYNC_ERROR
         } catch (_: IOException) {
             libraryLoading = false
+            libraryStatus = LigaseLibraryStatus.SYNC_ERROR
         }
     }
 
     private fun changeLibrarySortMode(sortMode: HostSortMode) {
         val host = libraryHost ?: return
-        librarySortMode = sortMode
-        LigasePreferences.setLibrarySortMode(this, host.uuid, sortMode)
+        val snapshot = librarySyncSnapshot ?: return
+        Thread {
+            try {
+                val updated = syncRepository.updateSort(
+                    createLigaseHttp(host),
+                    snapshot.library.revision,
+                    sortMode,
+                )
+                runOnUiThread {
+                    if (libraryHost?.uuid != host.uuid) return@runOnUiThread
+                    librarySyncSnapshot = snapshot.copy(library = updated)
+                    librarySortMode = HostSortMode.fromWireValue(updated.sortMode)
+                    LigasePreferences.setLibrarySortMode(this, host.uuid, librarySortMode)
+                    rebuildLibraryItems()
+                }
+            } catch (error: Exception) {
+                runOnUiThread { handleSyncWriteFailure(host, error) }
+            }
+        }.start()
     }
 
     private fun changeLibraryLayoutMode(layoutMode: LibraryLayoutMode) {
@@ -479,7 +642,9 @@ class LigaseActivity : AppCompatActivity() {
 
     private fun launchLibraryItem(item: LigaseLibraryItem) {
         val host = libraryHost ?: return
+        val snapshot = librarySyncSnapshot ?: return
         val app = item.launchApp ?: return
+        val appUuid = item.hostAppUuid ?: return
         val binder = managerBinder
         if (binder == null) {
             toast(R.string.error_manager_not_running)
@@ -488,8 +653,19 @@ class LigaseActivity : AppCompatActivity() {
 
         val preference = PreferenceConfiguration.readPreferences(this)
         val withVirtualDisplay = if (item.isSystem) false else preference.useVirtualDisplay
+        val resolution = snapshot.streaming.resolutionFor(appUuid)
         val launch = Runnable {
-            ServerHelper.doStart(this, app, host, binder, withVirtualDisplay)
+            ServerHelper.doStart(
+                this,
+                app,
+                host,
+                binder,
+                withVirtualDisplay,
+                resolution.width,
+                resolution.height,
+                snapshot.capabilities.hdrEncodingSupported,
+                true,
+            )
         }
 
         if (host.runningGameId != 0 && host.runningGameId != app.appId) {
@@ -505,11 +681,175 @@ class LigaseActivity : AppCompatActivity() {
     }
 
     private fun showLibraryItemSettings(item: LigaseLibraryItem) {
-        MaterialAlertDialogBuilder(this)
-            .setTitle(item.name)
-            .setMessage(R.string.ligase_library_settings_placeholder)
-            .setPositiveButton(android.R.string.ok, null)
-            .show()
+        val host = libraryHost ?: return
+        val snapshot = librarySyncSnapshot ?: return
+        val appUuid = item.hostAppUuid ?: return
+        val override = snapshot.streaming.overrideFor(appUuid)
+        showResolutionEditor(
+            title = item.name,
+            initial = override ?: snapshot.streaming.globalResolution,
+            allowUseGlobal = true,
+            useGlobal = override == null,
+        ) { resolution ->
+            updateAppResolution(host, snapshot, appUuid, resolution)
+        }
+    }
+
+    private fun showGlobalResolutionSettings() {
+        val host = libraryHost ?: return
+        val snapshot = librarySyncSnapshot ?: return
+        showResolutionEditor(
+            title = getString(R.string.ligase_global_resolution),
+            initial = snapshot.streaming.globalResolution,
+            allowUseGlobal = false,
+            useGlobal = false,
+        ) { resolution ->
+            if (resolution != null) {
+                updateGlobalResolution(host, snapshot, resolution)
+            }
+        }
+    }
+
+    private fun showResolutionEditor(
+        title: String,
+        initial: LigaseResolutionDto,
+        allowUseGlobal: Boolean,
+        useGlobal: Boolean,
+        onSave: (LigaseResolutionDto?) -> Unit,
+    ) {
+        val density = resources.displayMetrics.density
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val horizontal = (24 * density).toInt()
+            setPadding(horizontal, 0, horizontal, 0)
+        }
+        val choiceGroup = RadioGroup(this).apply {
+            orientation = RadioGroup.VERTICAL
+            visibility = if (allowUseGlobal) View.VISIBLE else View.GONE
+        }
+        val globalChoice = RadioButton(this).apply {
+            id = View.generateViewId()
+            text = getString(R.string.ligase_resolution_use_global)
+        }
+        val customChoice = RadioButton(this).apply {
+            id = View.generateViewId()
+            text = getString(R.string.ligase_resolution_custom)
+        }
+        choiceGroup.addView(globalChoice)
+        choiceGroup.addView(customChoice)
+        container.addView(choiceGroup)
+
+        fun numberInput(label: Int, value: Int): Pair<TextInputLayout, TextInputEditText> {
+            val layout = TextInputLayout(this).apply {
+                hint = getString(label)
+            }
+            val input = TextInputEditText(layout.context).apply {
+                inputType = android.text.InputType.TYPE_CLASS_NUMBER
+                setSingleLine(true)
+                setText(value.toString())
+            }
+            layout.addView(input)
+            container.addView(layout)
+            return layout to input
+        }
+
+        val (widthLayout, widthInput) =
+            numberInput(R.string.ligase_resolution_width, initial.width)
+        val (heightLayout, heightInput) =
+            numberInput(R.string.ligase_resolution_height, initial.height)
+
+        fun updateInputState() {
+            val enabled = !allowUseGlobal || customChoice.isChecked
+            widthLayout.isEnabled = enabled
+            heightLayout.isEnabled = enabled
+        }
+        if (allowUseGlobal) {
+            choiceGroup.check(if (useGlobal) globalChoice.id else customChoice.id)
+            choiceGroup.setOnCheckedChangeListener { _, _ -> updateInputState() }
+        }
+        updateInputState()
+
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setTitle(title)
+            .setView(container)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.save, null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                if (allowUseGlobal && globalChoice.isChecked) {
+                    dialog.dismiss()
+                    onSave(null)
+                    return@setOnClickListener
+                }
+                val width = widthInput.text?.toString()?.toIntOrNull()
+                val height = heightInput.text?.toString()?.toIntOrNull()
+                val resolution = if (width != null && height != null) {
+                    LigaseResolutionDto(width, height)
+                } else {
+                    null
+                }
+                if (resolution == null || !resolution.isValid()) {
+                    val error = getString(R.string.ligase_resolution_invalid)
+                    widthLayout.error = error
+                    heightLayout.error = error
+                    return@setOnClickListener
+                }
+                dialog.dismiss()
+                onSave(resolution)
+            }
+        }
+        dialog.show()
+    }
+
+    private fun updateGlobalResolution(
+        host: ComputerDetails,
+        snapshot: LigaseSyncSnapshotDto,
+        resolution: LigaseResolutionDto,
+    ) {
+        Thread {
+            try {
+                val updated = syncRepository.updateGlobalResolution(
+                    createLigaseHttp(host),
+                    snapshot.streaming.revision,
+                    resolution,
+                )
+                runOnUiThread {
+                    if (libraryHost?.uuid != host.uuid) return@runOnUiThread
+                    librarySyncSnapshot =
+                        librarySyncSnapshot?.copy(streaming = updated)
+                    toast(R.string.ligase_sync_saved)
+                }
+            } catch (error: Exception) {
+                runOnUiThread { handleSyncWriteFailure(host, error) }
+            }
+        }.start()
+    }
+
+    private fun updateAppResolution(
+        host: ComputerDetails,
+        snapshot: LigaseSyncSnapshotDto,
+        appUuid: String,
+        resolution: LigaseResolutionDto?,
+    ) {
+        Thread {
+            try {
+                val updated = syncRepository.updateAppResolution(
+                    createLigaseHttp(host),
+                    snapshot.streaming.revision,
+                    appUuid,
+                    resolution,
+                )
+                runOnUiThread {
+                    if (libraryHost?.uuid != host.uuid) return@runOnUiThread
+                    librarySyncSnapshot =
+                        librarySyncSnapshot?.copy(streaming = updated)
+                    toast(R.string.ligase_sync_saved)
+                }
+            } catch (error: Exception) {
+                runOnUiThread { handleSyncWriteFailure(host, error) }
+            }
+        }.start()
     }
 
     private fun showAddHostDialog() {

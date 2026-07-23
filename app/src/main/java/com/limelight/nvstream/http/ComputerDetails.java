@@ -80,6 +80,9 @@ public class ComputerDetails {
     public int runningGameId;
     public String runningGameUUID;
     public String rawAppList;
+    public int ligaseSyncVersion;
+    public String ligaseSyncPath;
+    public boolean ligaseHdrEncodingSupported;
     public boolean nvidiaServer;
 
     // VDisplay info
@@ -160,6 +163,9 @@ public class ComputerDetails {
         this.runningGameUUID = details.runningGameUUID;
         this.nvidiaServer = details.nvidiaServer;
         this.rawAppList = details.rawAppList;
+        this.ligaseSyncVersion = details.ligaseSyncVersion;
+        this.ligaseSyncPath = details.ligaseSyncPath;
+        this.ligaseHdrEncodingSupported = details.ligaseHdrEncodingSupported;
 
         this.vDisplayDriverReady = details.vDisplayDriverReady;
         this.vDisplaySupported = details.vDisplaySupported;

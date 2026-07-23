@@ -271,6 +271,9 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
     public static final String EXTRA_SERVER_COMMANDS = "ServerCommands";
     public static final String EXTRA_DISPLAY_ID = "DisplayID";
     public static final String EXTRA_LIGASE_INPUT_MODE = "LigaseInputMode";
+    public static final String EXTRA_LIGASE_WIDTH = "LigaseWidth";
+    public static final String EXTRA_LIGASE_HEIGHT = "LigaseHeight";
+    public static final String EXTRA_LIGASE_HOST_HDR_SUPPORTED = "LigaseHostHdrSupported";
 
     public static final String CLIPBOARD_IDENTIFIER = "ArtemisStreaming";
 
@@ -356,6 +359,12 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
 
         // Read the stream preferences
         prefConfig = PreferenceConfiguration.readPreferences(this);
+        int ligaseWidth = getIntent().getIntExtra(EXTRA_LIGASE_WIDTH, 0);
+        int ligaseHeight = getIntent().getIntExtra(EXTRA_LIGASE_HEIGHT, 0);
+        if (ligaseWidth > 0 && ligaseHeight > 0) {
+            prefConfig.width = ligaseWidth;
+            prefConfig.height = ligaseHeight;
+        }
         String ligaseInputMode = getIntent().getStringExtra(EXTRA_LIGASE_INPUT_MODE);
         if ("touch".equals(ligaseInputMode)) {
             prefConfig.onscreenController = true;
@@ -615,7 +624,10 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
 
         // Check if the user has enabled HDR
         boolean willStreamHdr = false;
-        if (prefConfig.enableHdr) {
+        boolean ligaseHostHdrSupported =
+                !getIntent().hasExtra(EXTRA_LIGASE_HOST_HDR_SUPPORTED) ||
+                getIntent().getBooleanExtra(EXTRA_LIGASE_HOST_HDR_SUPPORTED, false);
+        if (prefConfig.enableHdr && ligaseHostHdrSupported) {
             if (onExternelDisplay) {
                 // Enforce HDR on unsupported hardware can still enable 10bit streaming for better quality
                 willStreamHdr = true;

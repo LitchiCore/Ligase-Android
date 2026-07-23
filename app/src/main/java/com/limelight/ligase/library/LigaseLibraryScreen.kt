@@ -64,6 +64,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import com.limelight.R
 import com.limelight.grid.assets.CachedAppAssetLoader
+import com.limelight.ligase.ligaseNavigationContentBottomPadding
 import com.limelight.nvstream.http.ComputerDetails
 import com.limelight.nvstream.http.PairingManager
 
@@ -74,6 +75,7 @@ fun LigaseLibraryPage(
     selectedHost: ComputerDetails?,
     items: List<LigaseLibraryItem>,
     loading: Boolean,
+    status: LigaseLibraryStatus,
     runningAppId: Int,
     sortMode: HostSortMode,
     layoutMode: LibraryLayoutMode,
@@ -85,11 +87,13 @@ fun LigaseLibraryPage(
     onRemoveHost: (ComputerDetails) -> Unit,
     onLaunch: (LigaseLibraryItem) -> Unit,
     onConfigure: (LigaseLibraryItem) -> Unit,
+    onRetrySync: () -> Unit,
 ) {
     var query by remember(selectedHost?.uuid) { mutableStateOf("") }
     // SnapshotStateList keeps the same object identity when its contents change.
     // Compute this during composition so applist updates invalidate the result.
     val visibleItems = LigaseLibraryAdapter.visibleItems(items, query, sortMode)
+    val bottomPadding = ligaseNavigationContentBottomPadding()
 
     Scaffold(
         topBar = {
@@ -119,7 +123,7 @@ fun LigaseLibraryPage(
                 start = 16.dp,
                 top = 8.dp,
                 end = 16.dp,
-                bottom = 24.dp,
+                bottom = bottomPadding,
             ),
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -139,6 +143,32 @@ fun LigaseLibraryPage(
                     NoHostSelected(onAddHost)
                 }
             } else {
+                when (status) {
+                    LigaseLibraryStatus.INCOMPATIBLE -> {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            LibrarySyncMessage(
+                                title = stringResource(R.string.ligase_host_incompatible_title),
+                                summary = stringResource(R.string.ligase_host_incompatible_summary),
+                                retry = onRetrySync,
+                            )
+                        }
+                    }
+                    LigaseLibraryStatus.SYNC_ERROR -> {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            LibrarySyncMessage(
+                                title = stringResource(R.string.ligase_sync_error_title),
+                                summary = stringResource(R.string.ligase_sync_error_summary),
+                                retry = onRetrySync,
+                            )
+                        }
+                    }
+                    LigaseLibraryStatus.IDLE,
+                    LigaseLibraryStatus.LOADING -> {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            LibraryMessage(loading = true, query = query)
+                        }
+                    }
+                    LigaseLibraryStatus.READY -> {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     OutlinedTextField(
                         value = query,
@@ -201,6 +231,46 @@ fun LigaseLibraryPage(
                     }
                 }
                 }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LibrarySyncMessage(
+    title: String,
+    summary: String,
+    retry: (() -> Unit)?,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 64.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_ligase_monitor),
+            contentDescription = null,
+            modifier = Modifier.size(52.dp),
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        Spacer(Modifier.height(18.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = summary,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (retry != null) {
+            Spacer(Modifier.height(20.dp))
+            androidx.compose.material3.Button(onClick = retry) {
+                Text(stringResource(R.string.ligase_retry))
             }
         }
     }
@@ -636,7 +706,7 @@ private fun LibraryRowCard(
                     }
                     if (!item.isLaunchable) {
                         Text(
-                            text = stringResource(R.string.ligase_library_unavailable),
+                            text = stringResource(R.string.ligase_library_sync_missing),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.labelMedium,
                         )
@@ -720,6 +790,9 @@ private fun LibraryPosterCard(
                     item.kind?.let { PosterChip(kindLabel(it)) }
                     if (running) {
                         PosterChip(stringResource(R.string.ligase_library_running))
+                    }
+                    if (!item.isLaunchable) {
+                        PosterChip(stringResource(R.string.ligase_library_sync_missing))
                     }
                 }
                 Spacer(Modifier.height(8.dp))

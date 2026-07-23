@@ -47,6 +47,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -54,12 +55,15 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import com.limelight.R
 import com.limelight.grid.assets.CachedAppAssetLoader
 import com.limelight.ligase.library.HostSortMode
 import com.limelight.ligase.library.LigaseLibraryItem
 import com.limelight.ligase.library.LigaseLibraryPage
+import com.limelight.ligase.library.LigaseLibraryStatus
+import com.limelight.ligase.library.LigaseResolutionDto
 import com.limelight.ligase.library.LibraryLayoutMode
 import com.limelight.nvstream.http.ComputerDetails
 import com.limelight.nvstream.http.PairingManager
@@ -74,6 +78,10 @@ enum class LigasePage(
 }
 
 @Composable
+internal fun ligaseNavigationContentBottomPadding(): Dp =
+    if (LocalConfiguration.current.screenWidthDp < 600) 104.dp else 28.dp
+
+@Composable
 fun LigaseRoot(
     themeMode: LigaseThemeMode,
     onboarding: Boolean,
@@ -84,6 +92,9 @@ fun LigaseRoot(
     libraryHost: ComputerDetails?,
     libraryItems: List<LigaseLibraryItem>,
     libraryLoading: Boolean,
+    libraryStatus: LigaseLibraryStatus,
+    libraryGlobalResolution: LigaseResolutionDto?,
+    libraryHdrAvailable: Boolean,
     libraryRunningAppId: Int,
     librarySortMode: HostSortMode,
     libraryLayoutMode: LibraryLayoutMode,
@@ -101,6 +112,8 @@ fun LigaseRoot(
     onLibraryLayoutModeChanged: (LibraryLayoutMode) -> Unit,
     onLibraryLaunch: (LigaseLibraryItem) -> Unit,
     onLibraryConfigure: (LigaseLibraryItem) -> Unit,
+    onLibraryRetrySync: () -> Unit,
+    onGlobalResolutionClick: () -> Unit,
 ) {
     LigaseComposeTheme(themeMode) {
         Box(
@@ -146,6 +159,7 @@ fun LigaseRoot(
                                 selectedHost = libraryHost,
                                 items = libraryItems,
                                 loading = libraryLoading,
+                                status = libraryStatus,
                                 runningAppId = libraryRunningAppId,
                                 sortMode = librarySortMode,
                                 layoutMode = libraryLayoutMode,
@@ -157,6 +171,7 @@ fun LigaseRoot(
                                 onRemoveHost = onRemoveHost,
                                 onLaunch = onLibraryLaunch,
                                 onConfigure = onLibraryConfigure,
+                                onRetrySync = onLibraryRetrySync,
                             )
                             LigasePage.INPUT -> InputPage(
                                 selectedInput = selectedInput,
@@ -168,9 +183,12 @@ fun LigaseRoot(
                                 selectedInput = selectedInput ?: InputDeviceMode.TOUCH,
                                 themeMode = themeMode,
                                 languageMode = languageMode,
+                                globalResolution = libraryGlobalResolution,
+                                hdrAvailable = libraryHdrAvailable,
                                 onOpenInput = { onPageSelected(LigasePage.INPUT) },
                                 onThemeSelected = onThemeSelected,
                                 onLanguageSelected = onLanguageSelected,
+                                onGlobalResolutionClick = onGlobalResolutionClick,
                                 onAdvancedSettings = onAdvancedSettings,
                             )
                         }
@@ -288,13 +306,14 @@ private fun HomePage(
                 }
             }
         } else {
+            val bottomPadding = ligaseNavigationContentBottomPadding()
             LazyColumn(
                 modifier = pageModifier.fillMaxSize(),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(
                     start = 20.dp,
                     top = 12.dp,
                     end = 20.dp,
-                    bottom = 28.dp,
+                    bottom = bottomPadding,
                 ),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -391,13 +410,15 @@ private fun InputPage(
         if (onboarding) stringResource(R.string.ligase_brand)
         else stringResource(R.string.ligase_nav_input),
     ) { pageModifier ->
+        val bottomPadding =
+            if (onboarding) 28.dp else ligaseNavigationContentBottomPadding()
         LazyColumn(
             modifier = pageModifier.fillMaxSize(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(
                 start = 20.dp,
                 top = 12.dp,
                 end = 20.dp,
-                bottom = 28.dp,
+                bottom = bottomPadding,
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -520,15 +541,24 @@ private fun SettingsPage(
     selectedInput: InputDeviceMode,
     themeMode: LigaseThemeMode,
     languageMode: LigaseLanguageMode,
+    globalResolution: LigaseResolutionDto?,
+    hdrAvailable: Boolean,
     onOpenInput: () -> Unit,
     onThemeSelected: (LigaseThemeMode) -> Unit,
     onLanguageSelected: (LigaseLanguageMode) -> Unit,
+    onGlobalResolutionClick: () -> Unit,
     onAdvancedSettings: () -> Unit,
 ) {
     LigasePageScaffold(stringResource(R.string.ligase_settings_title)) { pageModifier ->
+        val bottomPadding = ligaseNavigationContentBottomPadding()
         LazyColumn(
             modifier = pageModifier.fillMaxSize(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                start = 20.dp,
+                top = 20.dp,
+                end = 20.dp,
+                bottom = bottomPadding,
+            ),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             item {
@@ -560,6 +590,58 @@ private fun SettingsPage(
                             Text(
                                 text = stringResource(R.string.ligase_settings_input_summary),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+            item {
+                Spacer(Modifier.height(8.dp))
+                SectionTitle(R.string.ligase_streaming_settings_title)
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            enabled = globalResolution != null,
+                            onClick = onGlobalResolutionClick,
+                        ),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    ),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_ligase_monitor),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(start = 16.dp),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.ligase_global_resolution),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Text(
+                                text = globalResolution?.label
+                                    ?: stringResource(R.string.ligase_sync_unavailable_short),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                text = stringResource(
+                                    if (hdrAvailable) R.string.ligase_hdr_available
+                                    else R.string.ligase_hdr_unavailable,
+                                ),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.labelMedium,
                             )
                         }
                     }

@@ -100,7 +100,7 @@ class LigaseLibraryAdapterTest {
     }
 
     @Test
-    fun `future snapshot does not force unavailable virtual desktop into library`() {
+    fun `sync snapshot retains unavailable item but disables launch`() {
         val snapshot = HostLibrarySnapshotDto(
             schemaVersion = 1,
             revision = 1,
@@ -120,7 +120,47 @@ class LigaseLibraryAdapterTest {
             ),
         )
 
-        assertTrue(LigaseLibraryAdapter.fromHostSnapshot(snapshot, emptyList()).isEmpty())
+        val item = LigaseLibraryAdapter.fromHostSnapshot(snapshot, emptyList()).single()
+        assertEquals(HostLibraryKind.VIRTUAL_DESKTOP, item.kind)
+        assertFalse(item.isLaunchable)
+        assertNull(item.launchApp)
+        assertNull(item.appId)
+    }
+
+    @Test
+    fun `streaming resolution uses case insensitive app override then global`() {
+        val streaming = LigaseStreamingSyncDto(
+            schemaVersion = 1,
+            revision = 8,
+            updatedAt = "2026-07-23T04:30:00Z",
+            globalResolution = LigaseResolutionDto(1920, 1080),
+            apps = mapOf(
+                "A0000000-0000-0000-0000-000000000001" to LigaseAppStreamingDto(
+                    LigaseResolutionDto(2560, 1440),
+                ),
+            ),
+        )
+
+        assertEquals(
+            LigaseResolutionDto(2560, 1440),
+            streaming.resolutionFor("a0000000-0000-0000-0000-000000000001"),
+        )
+        assertEquals(
+            LigaseResolutionDto(1920, 1080),
+            streaming.resolutionFor("B0000000-0000-0000-0000-000000000002"),
+        )
+    }
+
+    @Test
+    fun `clearing app override serializes explicit null`() {
+        val json = LigaseSyncRepository().encodeAppResolutionWrite(
+            baseRevision = 9,
+            appUuid = "A0000000-0000-0000-0000-000000000001",
+            resolution = null,
+        )
+
+        assertTrue(json.contains("\"baseRevision\":9"))
+        assertTrue(json.contains("\"resolution\":null"))
     }
 
     @Test
