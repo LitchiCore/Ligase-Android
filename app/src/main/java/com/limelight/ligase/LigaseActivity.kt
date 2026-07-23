@@ -48,6 +48,12 @@ import com.limelight.ligase.library.LigaseSyncSnapshotDto
 import com.limelight.ligase.library.LibraryLayoutMode
 import com.limelight.ligase.endpoint.LigaseAddHostDialog
 import com.limelight.ligase.endpoint.LigaseEndpoint
+import com.limelight.ligase.input.LigaseInputCategory
+import com.limelight.ligase.input.LigaseInputDevice
+import com.limelight.ligase.input.LigaseInputDeviceRepository
+import com.limelight.ligase.input.LigaseInputLaunchPolicy
+import com.limelight.ligase.input.LigaseTouchLayout
+import com.limelight.ligase.input.LigaseTouchLayoutRepository
 import com.limelight.nvstream.http.ComputerDetails
 import com.limelight.nvstream.http.HostHttpResponseException
 import com.limelight.nvstream.http.NvHTTP
@@ -69,6 +75,12 @@ class LigaseActivity : AppCompatActivity() {
     private var currentPage by mutableStateOf(LigasePage.HOME)
     private var onboarding by mutableStateOf(false)
     private var selectedInput by mutableStateOf<InputDeviceMode?>(null)
+    private val inputDevices = mutableStateListOf<LigaseInputDevice>()
+    private val touchLayouts = mutableStateListOf<LigaseTouchLayout>()
+    private var selectedGamepadKey by mutableStateOf<String?>(null)
+    private var selectedKeyboardKey by mutableStateOf<String?>(null)
+    private var selectedMouseKey by mutableStateOf<String?>(null)
+    private var selectedTouchLayoutId by mutableStateOf<String?>(null)
     private var themeMode by mutableStateOf(LigaseThemeMode.SYSTEM)
     private var languageMode by mutableStateOf(LigaseLanguageMode.SYSTEM)
     private val hosts = mutableStateListOf<ComputerDetails>()
@@ -89,6 +101,8 @@ class LigaseActivity : AppCompatActivity() {
     private var libraryTransportApps: List<NvApp> = emptyList()
     private val libraryRefreshCoordinator = LibraryRefreshCoordinator()
     private val syncRepository = LigaseSyncRepository()
+    private lateinit var inputDeviceRepository: LigaseInputDeviceRepository
+    private lateinit var touchLayoutRepository: LigaseTouchLayoutRepository
 
     private var managerBinder: ComputerManagerService.ComputerManagerBinder? = null
     private var appListPoller: ComputerManagerService.ApplistPoller? = null
@@ -130,6 +144,24 @@ class LigaseActivity : AppCompatActivity() {
 
         onboarding = !LigasePreferences.hasInputDeviceMode(this)
         selectedInput = if (onboarding) null else LigasePreferences.getInputDeviceMode(this)
+        selectedGamepadKey = LigasePreferences.getSelectedInputDevice(
+            this,
+            LigaseInputCategory.GAMEPAD,
+        )
+        selectedKeyboardKey = LigasePreferences.getSelectedInputDevice(
+            this,
+            LigaseInputCategory.KEYBOARD,
+        )
+        selectedMouseKey = LigasePreferences.getSelectedInputDevice(
+            this,
+            LigaseInputCategory.MOUSE,
+        )
+        inputDeviceRepository = LigaseInputDeviceRepository(this) { devices ->
+            inputDevices.clear()
+            inputDevices.addAll(devices)
+        }
+        touchLayoutRepository = LigaseTouchLayoutRepository(this)
+        reloadTouchLayouts()
         themeMode = LigasePreferences.getThemeMode(this)
         languageMode = LigasePreferences.getLanguageMode(this)
         libraryLayoutMode = LigasePreferences.getLibraryLayoutMode(this)
@@ -144,6 +176,12 @@ class LigaseActivity : AppCompatActivity() {
                 onboarding = onboarding,
                 currentPage = currentPage,
                 selectedInput = selectedInput,
+                inputDevices = inputDevices,
+                selectedGamepadKey = selectedGamepadKey,
+                selectedKeyboardKey = selectedKeyboardKey,
+                selectedMouseKey = selectedMouseKey,
+                touchLayouts = touchLayouts,
+                selectedTouchLayoutId = selectedTouchLayoutId,
                 languageMode = languageMode,
                 hosts = hosts,
                 libraryHost = libraryHost,
@@ -158,8 +196,10 @@ class LigaseActivity : AppCompatActivity() {
                 libraryLayoutMode = libraryLayoutMode,
                 libraryAssetLoader = libraryAssetLoader,
                 onPageSelected = ::selectPage,
-                onInputSelected = { selectedInput = it },
+                onInputSelected = ::selectInput,
                 onInputConfirmed = ::confirmInput,
+                onInputDeviceSelected = ::selectInputDevice,
+                onTouchLayoutSelected = ::selectTouchLayout,
                 onThemeSelected = ::selectTheme,
                 onLanguageSelected = ::selectLanguage,
                 onHostClick = ::onHostClicked,
@@ -190,6 +230,37 @@ class LigaseActivity : AppCompatActivity() {
         LigasePreferences.setInputDeviceMode(this, mode)
         onboarding = false
         currentPage = LigasePage.HOME
+    }
+
+    private fun selectInput(mode: InputDeviceMode) {
+        selectedInput = mode
+        if (!onboarding) {
+            LigasePreferences.setInputDeviceMode(this, mode)
+        }
+    }
+
+    private fun selectInputDevice(category: LigaseInputCategory, stableKey: String) {
+        LigasePreferences.setSelectedInputDevice(this, category, stableKey)
+        when (category) {
+            LigaseInputCategory.GAMEPAD -> selectedGamepadKey = stableKey
+            LigaseInputCategory.KEYBOARD -> selectedKeyboardKey = stableKey
+            LigaseInputCategory.MOUSE -> selectedMouseKey = stableKey
+        }
+    }
+
+    private fun reloadTouchLayouts() {
+        val available = touchLayoutRepository.layouts()
+        touchLayouts.clear()
+        touchLayouts.addAll(available)
+        selectedTouchLayoutId = touchLayoutRepository.initializeSelection(available)
+    }
+
+    private fun selectTouchLayout(layoutId: String) {
+        if (touchLayoutRepository.select(layoutId, touchLayouts)) {
+            selectedTouchLayoutId = layoutId
+        } else {
+            toast(R.string.ligase_touch_layout_missing_short)
+        }
     }
 
     private fun selectTheme(mode: LigaseThemeMode) {
@@ -665,6 +736,47 @@ class LigaseActivity : AppCompatActivity() {
         val snapshot = librarySyncSnapshot ?: return
         val app = item.launchApp ?: return
         val appUuid = item.hostAppUuid ?: return
+        val inputMode = selectedInput ?: LigasePreferences.getInputDeviceMode(this)
+        val externalInputReady = when (inputMode) {
+            InputDeviceMode.GAMEPAD -> selectedGamepadKey != null &&
+                inputDevices.any {
+                    it.category == LigaseInputCategory.GAMEPAD &&
+                        it.stableKey == selectedGamepadKey
+                }
+            InputDeviceMode.KEYBOARD_MOUSE -> inputDevices.any {
+                (
+                    it.category == LigaseInputCategory.KEYBOARD &&
+                        it.stableKey == selectedKeyboardKey
+                    ) ||
+                    (
+                        it.category == LigaseInputCategory.MOUSE &&
+                            it.stableKey == selectedMouseKey
+                        )
+            }
+            InputDeviceMode.TOUCH -> true
+        }
+        if (!externalInputReady) {
+            toast(
+                if (inputMode == InputDeviceMode.GAMEPAD) {
+                    R.string.ligase_connect_selected_controller
+                } else {
+                    R.string.ligase_connect_selected_keyboard_mouse
+                },
+            )
+            currentPage = LigasePage.INPUT
+            return
+        }
+        if (
+            LigaseInputLaunchPolicy.resolve(
+                mode = inputMode,
+                selectedTouchLayoutId = selectedTouchLayoutId,
+                availableTouchLayoutIds = touchLayouts.mapTo(mutableSetOf()) { it.id },
+            ) == null
+        ) {
+            toast(R.string.ligase_touch_layout_reselect_before_stream)
+            currentPage = LigasePage.INPUT
+            return
+        }
         val binder = managerBinder
         if (binder == null) {
             toast(R.string.error_manager_not_running)
@@ -923,6 +1035,8 @@ class LigaseActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         foreground = true
+        reloadTouchLayouts()
+        inputDeviceRepository.start()
         startComputerUpdates()
         startAppListUpdates()
         UiHelper.showDecoderCrashDialog(this)
@@ -930,12 +1044,16 @@ class LigaseActivity : AppCompatActivity() {
 
     override fun onPause() {
         foreground = false
+        inputDeviceRepository.stop()
         stopAppListUpdates()
         stopComputerUpdates(false)
         super.onPause()
     }
 
     override fun onDestroy() {
+        if (::inputDeviceRepository.isInitialized) {
+            inputDeviceRepository.stop()
+        }
         libraryRefreshCoordinator.cancel()
         stopComputerUpdates(false)
         stopAppListUpdates()

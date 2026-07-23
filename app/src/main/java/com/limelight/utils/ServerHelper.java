@@ -127,6 +127,10 @@ public class ServerHelper {
         gameIntent.putExtra(Game.EXTRA_SERVER_COMMANDS, (ArrayList<String>) computer.serverCommands);
         gameIntent.putExtra(Game.EXTRA_LIGASE_INPUT_MODE,
                 LigasePreferences.getInputDeviceMode(parent).getStoredValue());
+        String ligaseTouchLayoutId = LigasePreferences.getGlobalTouchLayoutId(parent);
+        if (ligaseTouchLayoutId != null) {
+            gameIntent.putExtra(Game.EXTRA_LIGASE_TOUCH_LAYOUT_ID, ligaseTouchLayoutId);
+        }
         if (hasLigaseSettings) {
             gameIntent.putExtra(Game.EXTRA_LIGASE_SESSION_CONTROLS, true);
             gameIntent.putExtra(Game.EXTRA_LIGASE_WIDTH, ligaseWidth);

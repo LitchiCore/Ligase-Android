@@ -67,6 +67,10 @@ import com.limelight.ligase.library.LigaseLibraryPage
 import com.limelight.ligase.library.LigaseLibraryStatus
 import com.limelight.ligase.library.LigaseResolutionDto
 import com.limelight.ligase.library.LibraryLayoutMode
+import com.limelight.ligase.input.LigaseInputCategory
+import com.limelight.ligase.input.LigaseInputDevice
+import com.limelight.ligase.input.LigaseInputPage
+import com.limelight.ligase.input.LigaseTouchLayout
 import com.limelight.nvstream.http.ComputerDetails
 
 enum class LigasePage(
@@ -88,6 +92,12 @@ fun LigaseRoot(
     onboarding: Boolean,
     currentPage: LigasePage,
     selectedInput: InputDeviceMode?,
+    inputDevices: List<LigaseInputDevice>,
+    selectedGamepadKey: String?,
+    selectedKeyboardKey: String?,
+    selectedMouseKey: String?,
+    touchLayouts: List<LigaseTouchLayout>,
+    selectedTouchLayoutId: String?,
     languageMode: LigaseLanguageMode,
     hosts: List<ComputerDetails>,
     libraryHost: ComputerDetails?,
@@ -104,6 +114,8 @@ fun LigaseRoot(
     onPageSelected: (LigasePage) -> Unit,
     onInputSelected: (InputDeviceMode) -> Unit,
     onInputConfirmed: () -> Unit,
+    onInputDeviceSelected: (LigaseInputCategory, String) -> Unit,
+    onTouchLayoutSelected: (String) -> Unit,
     onThemeSelected: (LigaseThemeMode) -> Unit,
     onLanguageSelected: (LigaseLanguageMode) -> Unit,
     onHostClick: (ComputerDetails) -> Unit,
@@ -124,11 +136,19 @@ fun LigaseRoot(
                 .windowInsetsPadding(WindowInsets.safeContent),
         ) {
             if (onboarding) {
-                InputPage(
+                LigaseInputPage(
                     selectedInput = selectedInput,
                     onboarding = true,
+                    devices = inputDevices,
+                    selectedGamepadKey = selectedGamepadKey,
+                    selectedKeyboardKey = selectedKeyboardKey,
+                    selectedMouseKey = selectedMouseKey,
+                    touchLayouts = touchLayouts,
+                    selectedTouchLayoutId = selectedTouchLayoutId,
                     onInputSelected = onInputSelected,
-                    onConfirm = onInputConfirmed,
+                    onInputConfirmed = onInputConfirmed,
+                    onDeviceSelected = onInputDeviceSelected,
+                    onTouchLayoutSelected = onTouchLayoutSelected,
                 )
             } else {
                 val configuration = LocalConfiguration.current
@@ -209,11 +229,19 @@ fun LigaseRoot(
                                 onConfigure = onLibraryConfigure,
                                 onRetrySync = onLibraryRetrySync,
                             )
-                            LigasePage.INPUT -> InputPage(
+                            LigasePage.INPUT -> LigaseInputPage(
                                 selectedInput = selectedInput,
                                 onboarding = false,
+                                devices = inputDevices,
+                                selectedGamepadKey = selectedGamepadKey,
+                                selectedKeyboardKey = selectedKeyboardKey,
+                                selectedMouseKey = selectedMouseKey,
+                                touchLayouts = touchLayouts,
+                                selectedTouchLayoutId = selectedTouchLayoutId,
                                 onInputSelected = onInputSelected,
-                                onConfirm = onInputConfirmed,
+                                onInputConfirmed = onInputConfirmed,
+                                onDeviceSelected = onInputDeviceSelected,
+                                onTouchLayoutSelected = onTouchLayoutSelected,
                             )
                             LigasePage.SETTINGS -> SettingsPage(
                                 selectedInput = selectedInput ?: InputDeviceMode.TOUCH,
@@ -237,7 +265,7 @@ fun LigaseRoot(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun LigasePageScaffold(
+internal fun LigasePageScaffold(
     title: String,
     content: @Composable (Modifier) -> Unit,
 ) {
@@ -251,7 +279,7 @@ private fun LigasePageScaffold(
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
                 ),
             )
         },
@@ -259,147 +287,6 @@ private fun LigasePageScaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
     ) { padding ->
         content(Modifier.padding(padding))
-    }
-}
-
-@Composable
-private fun InputPage(
-    selectedInput: InputDeviceMode?,
-    onboarding: Boolean,
-    onInputSelected: (InputDeviceMode) -> Unit,
-    onConfirm: () -> Unit,
-) {
-    LigasePageScaffold(
-        if (onboarding) stringResource(R.string.ligase_brand)
-        else stringResource(R.string.ligase_nav_input),
-    ) { pageModifier ->
-        val bottomPadding =
-            if (onboarding) 28.dp else ligaseNavigationContentBottomPadding()
-        LazyColumn(
-            modifier = pageModifier.fillMaxSize(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                start = 20.dp,
-                top = 12.dp,
-                end = 20.dp,
-                bottom = bottomPadding,
-            ),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            item {
-                Text(
-                    text = stringResource(R.string.ligase_input_setup_title),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = stringResource(R.string.ligase_input_setup_subtitle),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(16.dp))
-            }
-            item {
-                InputChoice(
-                    mode = InputDeviceMode.GAMEPAD,
-                    selected = selectedInput == InputDeviceMode.GAMEPAD,
-                    icon = R.drawable.ic_ligase_gamepad,
-                    title = R.string.ligase_input_gamepad,
-                    summary = R.string.ligase_input_gamepad_summary,
-                    onClick = onInputSelected,
-                )
-            }
-            item {
-                InputChoice(
-                    mode = InputDeviceMode.KEYBOARD_MOUSE,
-                    selected = selectedInput == InputDeviceMode.KEYBOARD_MOUSE,
-                    icon = R.drawable.ic_ligase_keyboard_mouse,
-                    title = R.string.ligase_input_keyboard_mouse,
-                    summary = R.string.ligase_input_keyboard_mouse_summary,
-                    onClick = onInputSelected,
-                )
-            }
-            item {
-                InputChoice(
-                    mode = InputDeviceMode.TOUCH,
-                    selected = selectedInput == InputDeviceMode.TOUCH,
-                    icon = R.drawable.ic_ligase_touch,
-                    title = R.string.ligase_input_touch,
-                    summary = R.string.ligase_input_touch_summary,
-                    onClick = onInputSelected,
-                )
-            }
-            item {
-                Spacer(Modifier.height(8.dp))
-                Button(
-                    onClick = onConfirm,
-                    enabled = selectedInput != null,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        disabledContainerColor = LigaseSemanticTheme.colors.surfaceVariant,
-                        disabledContentColor = LigaseSemanticTheme.colors.disabled,
-                    ),
-                ) {
-                    Text(stringResource(R.string.ligase_continue))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun InputChoice(
-    mode: InputDeviceMode,
-    selected: Boolean,
-    @DrawableRes icon: Int,
-    @StringRes title: Int,
-    @StringRes summary: Int,
-    onClick: (InputDeviceMode) -> Unit,
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick(mode) },
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer
-            else MaterialTheme.colorScheme.surfaceContainer,
-        ),
-    ) {
-        Row(
-            modifier = Modifier.padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                painter = painterResource(icon),
-                contentDescription = null,
-                modifier = Modifier.size(34.dp),
-                tint = MaterialTheme.colorScheme.primary,
-            )
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 16.dp),
-            ) {
-                Text(
-                    text = stringResource(title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = stringResource(summary),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            RadioButton(
-                selected = selected,
-                onClick = { onClick(mode) },
-            )
-        }
     }
 }
 
@@ -676,7 +563,7 @@ private fun SectionTitle(@StringRes text: Int) {
 }
 
 @StringRes
-private fun inputTitle(mode: InputDeviceMode): Int = when (mode) {
+internal fun inputTitle(mode: InputDeviceMode): Int = when (mode) {
     InputDeviceMode.GAMEPAD -> R.string.ligase_input_gamepad
     InputDeviceMode.KEYBOARD_MOUSE -> R.string.ligase_input_keyboard_mouse
     InputDeviceMode.TOUCH -> R.string.ligase_input_touch

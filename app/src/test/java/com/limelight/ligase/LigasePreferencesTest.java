@@ -11,6 +11,7 @@ import androidx.preference.PreferenceManager;
 
 import com.limelight.ligase.library.HostSortMode;
 import com.limelight.ligase.library.LibraryLayoutMode;
+import com.limelight.ligase.input.LigaseInputCategory;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -43,6 +44,26 @@ public class LigasePreferencesTest {
         assertTrue(LigasePreferences.hasInputDeviceMode(context));
         assertEquals(InputDeviceMode.KEYBOARD_MOUSE,
                 LigasePreferences.getInputDeviceMode(context));
+    }
+
+    @Test
+    public void stableDeviceAndGlobalLayoutSelectionsPersist() {
+        String stableDevice = "gamepad|1118|654|usb-1234";
+
+        LigasePreferences.setSelectedInputDevice(
+                context,
+                LigaseInputCategory.GAMEPAD,
+                stableDevice);
+        LigasePreferences.setGlobalTouchLayoutId(context, "OSC_Keyboard_2");
+
+        assertEquals(stableDevice, LigasePreferences.getSelectedInputDevice(
+                context,
+                LigaseInputCategory.GAMEPAD));
+        assertEquals("OSC_Keyboard_2",
+                LigasePreferences.getGlobalTouchLayoutId(context));
+        assertEquals(null, LigasePreferences.getSelectedInputDevice(
+                context,
+                LigaseInputCategory.KEYBOARD));
     }
 
     @Test

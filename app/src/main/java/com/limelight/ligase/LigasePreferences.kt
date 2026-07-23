@@ -49,6 +49,10 @@ object LigasePreferences {
     private const val KEY_LIBRARY_SORT_PREFIX = "library_sort:"
     private const val KEY_LIBRARY_LAYOUT = "library_layout"
     private const val KEY_LANGUAGE = "list_languages"
+    private const val KEY_GLOBAL_TOUCH_LAYOUT = "global_touch_layout"
+    private const val KEY_GAMEPAD_DEVICE = "input_device:gamepad"
+    private const val KEY_KEYBOARD_DEVICE = "input_device:keyboard"
+    private const val KEY_MOUSE_DEVICE = "input_device:mouse"
 
     private fun preferences(context: Context) =
         context.getSharedPreferences(FILE_NAME, Context.MODE_PRIVATE)
@@ -66,6 +70,33 @@ object LigasePreferences {
     @JvmStatic
     fun setInputDeviceMode(context: Context, mode: InputDeviceMode) {
         preferences(context).edit().putString(KEY_INPUT_DEVICE, mode.storedValue).apply()
+    }
+
+    @JvmStatic
+    fun getGlobalTouchLayoutId(context: Context): String? =
+        preferences(context).getString(KEY_GLOBAL_TOUCH_LAYOUT, null)
+
+    @JvmStatic
+    fun setGlobalTouchLayoutId(context: Context, layoutId: String) {
+        preferences(context).edit().putString(KEY_GLOBAL_TOUCH_LAYOUT, layoutId).apply()
+    }
+
+    @JvmStatic
+    fun getSelectedInputDevice(
+        context: Context,
+        category: com.limelight.ligase.input.LigaseInputCategory,
+    ): String? = preferences(context).getString(devicePreferenceKey(category), null)
+
+    @JvmStatic
+    fun setSelectedInputDevice(
+        context: Context,
+        category: com.limelight.ligase.input.LigaseInputCategory,
+        stableKey: String,
+    ) {
+        preferences(context)
+            .edit()
+            .putString(devicePreferenceKey(category), stableKey)
+            .apply()
     }
 
     @JvmStatic
@@ -141,5 +172,13 @@ object LigasePreferences {
             .isAppearanceLightStatusBars = !isDark
         WindowCompat.getInsetsController(activity.window, activity.window.decorView)
             .isAppearanceLightNavigationBars = !isDark
+    }
+
+    private fun devicePreferenceKey(
+        category: com.limelight.ligase.input.LigaseInputCategory,
+    ): String = when (category) {
+        com.limelight.ligase.input.LigaseInputCategory.GAMEPAD -> KEY_GAMEPAD_DEVICE
+        com.limelight.ligase.input.LigaseInputCategory.KEYBOARD -> KEY_KEYBOARD_DEVICE
+        com.limelight.ligase.input.LigaseInputCategory.MOUSE -> KEY_MOUSE_DEVICE
     }
 }

@@ -34,6 +34,32 @@
 - 高级串流设置采用渐进披露：全局分辨率位于设置页，单游戏覆盖位于卡片设置；
   均不进入首次启动主路径。
 
+## 输入页与全局触控布局
+
+- 普通输入页固定为“顶部当前选择卡 + 下方条件内容”。顶部卡显示输入模式、已选设备
+  或布局、连接状态和“更改”；旋转、切页和重进应用后从本地偏好恢复。
+- 普通 UI 只有三种模式：
+  - 手柄：按 `InputDevice` 的 gamepad/joystick capability 列出外接设备；
+  - 键盘鼠标：按 capability 将键盘和鼠标分别列出，允许只连接其中一类；
+  - 无外接设备（触屏）：列出本机已有 TouchKit 布局并选择一个全局布局。
+- 键盘还必须具备 `KEYBOARD_TYPE_ALPHABETIC`；仅暴露非字母媒体按键的手环、遥控器
+  等设备不列为实体键盘。外设选择保存
+  `descriptor + vendorId + productId + category` 生成的稳定键，不保存易变
+  `deviceId`，也不按设备名称识别类型。能通过 `UsbManager` 确认时显示 USB/OTG；
+  其他设备显示“外接设备”，不猜测为蓝牙。普通 HID 不请求直连 USB 权限。
+- 设备断开后保留稳定选择并显示“已断开”，不会静默切到触屏或另一设备；重新连接同一
+  稳定键后恢复“已连接”。开始串流时若所选外设均不可用，会返回输入页要求连接。
+- 全局触控布局只保存稳定 TouchKit layout ID。已保存 ID 被删除时保持缺失状态并要求
+  重选，不按显示名、`sourceLayoutId`、游戏名、numeric appid 或 `unknown_pc` 替换。
+- 当前尚未接入 `layout-contract-v1` 的游戏级 identity/variant，因此所有 Ligase 触屏
+  启动使用显式全局 layout ID。未来 2C 接入后，精确游戏 variant 优先，全局布局仅作
+  未绑定回退；本阶段不迁移或删除旧 TouchKit game store。
+- Ligase 启动 Intent 显式携带输入模式和全局 layout ID。`Game` 的产品启动策略为：
+  触屏开启虚拟控制和 TouchKit overlay；手柄、键盘鼠标均关闭触控覆盖。Ligase 产品
+  启动绕开旧的 numeric appid/unknown_pc 布局回退，旧非 Ligase 入口暂时保持原行为。
+- 布局大厅将在 catalog 可用后作为独立页面实现；当前输入页不显示空壳大厅入口，
+  也不提前实现搜索、下载、编辑或游戏级应用。
+
 ## 跨端视觉颜色契约
 
 - Android 颜色语义以 Ligase Host `visual-color-tokens-v1.md` 为跨端权威；当前冻结
