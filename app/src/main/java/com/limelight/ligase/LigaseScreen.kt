@@ -24,20 +24,25 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteDefaults
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -46,7 +51,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -136,6 +140,27 @@ fun LigaseRoot(
                     LigaseNavigationPlacement.BOTTOM -> NavigationSuiteType.NavigationBar
                     LigaseNavigationPlacement.SIDE -> NavigationSuiteType.NavigationRail
                 }
+                val semanticColors = LigaseSemanticTheme.colors
+                val navigationItemColors = NavigationSuiteDefaults.itemColors(
+                    navigationBarItemColors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = semanticColors.textPrimary,
+                        selectedTextColor = semanticColors.textPrimary,
+                        indicatorColor = semanticColors.selected,
+                        unselectedIconColor = semanticColors.textSecondary,
+                        unselectedTextColor = semanticColors.textSecondary,
+                        disabledIconColor = semanticColors.disabled,
+                        disabledTextColor = semanticColors.disabled,
+                    ),
+                    navigationRailItemColors = NavigationRailItemDefaults.colors(
+                        selectedIconColor = semanticColors.textPrimary,
+                        selectedTextColor = semanticColors.textPrimary,
+                        indicatorColor = semanticColors.selected,
+                        unselectedIconColor = semanticColors.textSecondary,
+                        unselectedTextColor = semanticColors.textSecondary,
+                        disabledIconColor = semanticColors.disabled,
+                        disabledTextColor = semanticColors.disabled,
+                    ),
+                )
                 NavigationSuiteScaffold(
                     layoutType = navigationType,
                     navigationSuiteItems = {
@@ -143,6 +168,7 @@ fun LigaseRoot(
                             item(
                                 selected = currentPage == destination,
                                 onClick = { onPageSelected(destination) },
+                                colors = navigationItemColors,
                                 icon = {
                                     Icon(
                                         painter = painterResource(destination.icon),
@@ -154,7 +180,7 @@ fun LigaseRoot(
                             )
                         }
                     },
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = MaterialTheme.colorScheme.background,
                 ) {
                     AnimatedContent(
                         targetState = currentPage,
@@ -207,39 +233,6 @@ fun LigaseRoot(
     }
 }
 
-@Composable
-private fun LigaseComposeTheme(themeMode: LigaseThemeMode, content: @Composable () -> Unit) {
-    val dark = when (themeMode) {
-        LigaseThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
-        LigaseThemeMode.LIGHT -> false
-        LigaseThemeMode.DARK -> true
-    }
-    val scheme = if (dark) {
-        androidx.compose.material3.darkColorScheme(
-            primary = Color(0xFFB7C4FF),
-            onPrimary = Color(0xFF16275F),
-            primaryContainer = Color(0xFF303F78),
-            surface = Color(0xFF111318),
-            surfaceContainer = Color(0xFF1D1F25),
-            surfaceContainerHigh = Color(0xFF282A30),
-            onSurface = Color(0xFFE3E2E9),
-            onSurfaceVariant = Color(0xFFC6C5D0),
-        )
-    } else {
-        androidx.compose.material3.lightColorScheme(
-            primary = Color(0xFF455DCC),
-            onPrimary = Color.White,
-            primaryContainer = Color(0xFFDDE1FF),
-            surface = Color(0xFFFAF8FF),
-            surfaceContainer = Color(0xFFF0EFF7),
-            surfaceContainerHigh = Color(0xFFE9E7F0),
-            onSurface = Color(0xFF1A1B20),
-            onSurfaceVariant = Color(0xFF45464F),
-        )
-    }
-    MaterialTheme(colorScheme = scheme, content = content)
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LigasePageScaffold(
@@ -260,7 +253,7 @@ private fun LigasePageScaffold(
                 ),
             )
         },
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
     ) { padding ->
         content(Modifier.padding(padding))
@@ -343,6 +336,10 @@ private fun InputPage(
                         .fillMaxWidth()
                         .height(56.dp),
                     shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        disabledContainerColor = LigaseSemanticTheme.colors.surfaceVariant,
+                        disabledContentColor = LigaseSemanticTheme.colors.disabled,
+                    ),
                 ) {
                     Text(stringResource(R.string.ligase_continue))
                 }
@@ -476,6 +473,11 @@ private fun SettingsPage(
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        contentColor = if (globalResolution != null) {
+                            MaterialTheme.colorScheme.onSurface
+                        } else {
+                            LigaseSemanticTheme.colors.disabled
+                        },
                     ),
                 ) {
                     Row(
@@ -485,7 +487,11 @@ private fun SettingsPage(
                         Icon(
                             painter = painterResource(R.drawable.ic_ligase_monitor),
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = if (globalResolution != null) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                LigaseSemanticTheme.colors.disabled
+                            },
                         )
                         Column(
                             modifier = Modifier
@@ -500,7 +506,11 @@ private fun SettingsPage(
                             Text(
                                 text = globalResolution?.label
                                     ?: stringResource(R.string.ligase_sync_unavailable_short),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = if (globalResolution != null) {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                } else {
+                                    LigaseSemanticTheme.colors.disabled
+                                },
                             )
                             Spacer(Modifier.height(6.dp))
                             Text(
@@ -508,7 +518,11 @@ private fun SettingsPage(
                                     if (hdrAvailable) R.string.ligase_hdr_available
                                     else R.string.ligase_hdr_unavailable,
                                 ),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = if (globalResolution != null) {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                } else {
+                                    LigaseSemanticTheme.colors.disabled
+                                },
                                 style = MaterialTheme.typography.labelMedium,
                             )
                         }
@@ -611,6 +625,12 @@ private fun RowScope.ThemeChoice(
                 fontSize = 14.sp,
             )
         },
+        colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = LigaseSemanticTheme.colors.selected,
+            selectedLabelColor = LigaseSemanticTheme.colors.textPrimary,
+            selectedLeadingIconColor = LigaseSemanticTheme.colors.brandPrimary,
+            disabledLabelColor = LigaseSemanticTheme.colors.disabled,
+        ),
         modifier = Modifier.weight(1f),
     )
 }
@@ -633,6 +653,12 @@ private fun RowScope.LanguageChoice(
                 fontSize = 14.sp,
             )
         },
+        colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = LigaseSemanticTheme.colors.selected,
+            selectedLabelColor = LigaseSemanticTheme.colors.textPrimary,
+            selectedLeadingIconColor = LigaseSemanticTheme.colors.brandPrimary,
+            disabledLabelColor = LigaseSemanticTheme.colors.disabled,
+        ),
         modifier = Modifier.weight(1f),
     )
 }

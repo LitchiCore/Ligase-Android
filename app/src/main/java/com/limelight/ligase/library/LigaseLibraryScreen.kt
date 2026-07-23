@@ -52,7 +52,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.painterResource
@@ -64,6 +63,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import com.limelight.R
 import com.limelight.grid.assets.CachedAppAssetLoader
+import com.limelight.ligase.LigaseSemanticTheme
 import com.limelight.ligase.ligaseNavigationContentBottomPadding
 import com.limelight.nvstream.http.ComputerDetails
 import com.limelight.nvstream.http.PairingManager
@@ -109,7 +109,7 @@ fun LigaseLibraryPage(
                 ),
             )
         },
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
     ) { scaffoldPadding ->
         LazyVerticalGrid(
@@ -507,11 +507,15 @@ private fun hostStatusLabel(host: ComputerDetails): Int = when {
     else -> R.string.ligase_host_online
 }
 
-private fun hostStatusColor(host: ComputerDetails): Color = when {
-    host.state == ComputerDetails.State.UNKNOWN -> Color(0xFF8A8A93)
-    host.state == ComputerDetails.State.OFFLINE -> Color(0xFFB05959)
-    host.pairState != PairingManager.PairState.PAIRED -> Color(0xFFD18B2C)
-    else -> Color(0xFF2EAD68)
+@Composable
+private fun hostStatusColor(host: ComputerDetails): Color {
+    val colors = LigaseSemanticTheme.colors
+    return when {
+        host.state == ComputerDetails.State.UNKNOWN -> colors.disabled
+        host.state == ComputerDetails.State.OFFLINE -> colors.errorDanger
+        host.pairState != PairingManager.PairState.PAIRED -> colors.warning
+        else -> colors.success
+    }
 }
 
 @Composable
@@ -669,15 +673,21 @@ private fun LibraryRowCard(
     onClick: () -> Unit,
     onConfigure: () -> Unit,
 ) {
+    val semanticColors = LigaseSemanticTheme.colors
+    val accent = cardAccent(item)
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .height(118.dp)
-            .alpha(if (item.isLaunchable) 1f else 0.56f)
             .clickable(enabled = item.isLaunchable, onClick = onClick),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            contentColor = if (item.isLaunchable) {
+                MaterialTheme.colorScheme.onSurface
+            } else {
+                semanticColors.disabled
+            },
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
@@ -690,7 +700,7 @@ private fun LibraryRowCard(
                 modifier = Modifier
                     .width(92.dp)
                     .fillMaxHeight()
-                    .background(cardAccent(item)),
+                    .background(accent.container),
                 contentAlignment = Alignment.Center,
             ) {
                 if (assetLoader != null && item.launchApp != null) {
@@ -704,7 +714,7 @@ private fun LibraryRowCard(
                     Icon(
                         painter = painterResource(R.drawable.ic_ligase_monitor),
                         contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.9f),
+                        tint = accent.content,
                         modifier = Modifier.size(38.dp),
                     )
                 }
@@ -734,7 +744,7 @@ private fun LibraryRowCard(
                     if (!item.isLaunchable) {
                         Text(
                             text = stringResource(R.string.ligase_library_sync_missing),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = semanticColors.errorDanger,
                             style = MaterialTheme.typography.labelMedium,
                         )
                     }
@@ -766,14 +776,22 @@ private fun LibraryPosterCard(
     onClick: () -> Unit,
     onConfigure: () -> Unit,
 ) {
+    val semanticColors = LigaseSemanticTheme.colors
+    val accent = cardAccent(item)
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(0.74f)
-            .alpha(if (item.isLaunchable) 1f else 0.56f)
             .clickable(enabled = item.isLaunchable, onClick = onClick),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = cardAccent(item)),
+        colors = CardDefaults.cardColors(
+            containerColor = accent.container,
+            contentColor = if (item.isLaunchable) {
+                accent.content
+            } else {
+                semanticColors.disabled
+            },
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -787,6 +805,7 @@ private fun LibraryPosterCard(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    // This is an artwork legibility overlay, not an app-surface color.
                     .background(
                         Brush.verticalGradient(
                             listOf(
@@ -920,12 +939,22 @@ private fun LibraryChip(text: String) {
     }
 }
 
-private fun cardAccent(item: LigaseLibraryItem): Color = when (item.kind) {
-    HostLibraryKind.DESKTOP -> Color(0xFF315A8C)
-    HostLibraryKind.VIRTUAL_DESKTOP -> Color(0xFF67508F)
-    HostLibraryKind.STEAM -> Color(0xFF284C64)
-    HostLibraryKind.EXECUTABLE -> Color(0xFF4E5968)
-    null -> Color(0xFF4A5578)
+private data class CardAccent(
+    val container: Color,
+    val content: Color,
+)
+
+@Composable
+private fun cardAccent(item: LigaseLibraryItem): CardAccent {
+    val colors = LigaseSemanticTheme.colors
+    return when (item.kind) {
+        HostLibraryKind.DESKTOP ->
+            CardAccent(colors.brandPrimary, colors.surface)
+        HostLibraryKind.VIRTUAL_DESKTOP, HostLibraryKind.STEAM ->
+            CardAccent(colors.brandSecondary, colors.surface)
+        HostLibraryKind.EXECUTABLE, null ->
+            CardAccent(colors.surfaceVariant, colors.textPrimary)
+    }
 }
 
 @Composable

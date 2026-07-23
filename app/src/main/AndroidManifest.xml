@@ -194,6 +194,7 @@
             android:name=".preferences.AddComputerManually"
             android:exported="true"
             android:resizeableActivity="true"
+            android:theme="@style/LigaseTheme"
             android:windowSoftInputMode="stateVisible"
             android:enableOnBackInvokedCallback="true"
             android:configChanges="mcc|mnc|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|uiMode|orientation|screenSize|smallestScreenSize|layoutDirection"

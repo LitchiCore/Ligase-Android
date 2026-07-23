@@ -1,14 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ligase_primary">#BAC3FF</color>
-    <color name="ligase_on_primary">#00258A</color>
-    <color name="ligase_primary_container">#173EBC</color>
-    <color name="ligase_on_primary_container">#DFE5FF</color>
-    <color name="ligase_surface">#111319</color>
-    <color name="ligase_surface_container">#1B1D24</color>
-    <color name="ligase_surface_container_high">#262830</color>
-    <color name="ligase_on_surface">#E4E2EA</color>
-    <color name="ligase_on_surface_variant">#C6C5D0</color>
-    <color name="ligase_outline">#90909C</color>
-    <color name="ligase_outline_variant">#45464F</color>
+    <!-- Ligase visual-color-tokens-v1, Host commit cc1065dc (dark). -->
+    <color name="ligase_brand_primary">#B8B1FF</color>
+    <color name="ligase_brand_secondary">#6ED6E4</color>
+    <color name="ligase_background">#15171D</color>
+    <color name="ligase_surface">#20232C</color>
+    <color name="ligase_surface_variant">#2A2E39</color>
+    <color name="ligase_text_primary">#F5F7FB</color>
+    <color name="ligase_text_secondary">#B8C0CE</color>
+    <color name="ligase_border">#747D8E</color>
+    <color name="ligase_selected">#35315C</color>
+    <color name="ligase_success">#56D19B</color>
+    <color name="ligase_warning">#F4B860</color>
+    <color name="ligase_error_danger">#FF7B72</color>
+    <color name="ligase_disabled">#8D96A6</color>
+    <color name="ligase_focus">#B8B1FF</color>
+    <color name="ligase_scrim">#15171D</color>
+    <color name="ligase_shadow">#15171D</color>
+
+    <!-- Material 3 aliases used by the legacy XML product shell. -->
+    <color name="ligase_primary">@color/ligase_brand_primary</color>
+    <color name="ligase_on_primary">@color/ligase_surface</color>
+    <color name="ligase_primary_container">@color/ligase_selected</color>
+    <color name="ligase_on_primary_container">@color/ligase_text_primary</color>
+    <color name="ligase_secondary">@color/ligase_brand_secondary</color>
+    <color name="ligase_on_secondary">@color/ligase_surface</color>
+    <color name="ligase_secondary_container">@color/ligase_surface_variant</color>
+    <color name="ligase_on_secondary_container">@color/ligase_text_primary</color>
+    <color name="ligase_surface_container">@color/ligase_surface_variant</color>
+    <color name="ligase_surface_container_high">@color/ligase_surface_variant</color>
+    <color name="ligase_on_surface">@color/ligase_text_primary</color>
+    <color name="ligase_on_surface_variant">@color/ligase_text_secondary</color>
+    <color name="ligase_outline">@color/ligase_border</color>
+    <color name="ligase_outline_variant">@color/ligase_border</color>
+    <color name="ligase_error">@color/ligase_error_danger</color>
+    <color name="ligase_on_error">@color/ligase_surface</color>
+    <color name="ligase_error_container">@color/ligase_surface_variant</color>
+    <color name="ligase_on_error_container">@color/ligase_error_danger</color>
 </resources>

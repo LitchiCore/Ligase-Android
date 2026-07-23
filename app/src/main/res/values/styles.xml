@@ -25,25 +25,63 @@
         <item name="android:windowBackground">#1A1A1A</item>
     </style>
 
-    <style name="LigaseTheme" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="LigaseThemeBase" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/ligase_primary</item>
         <item name="colorOnPrimary">@color/ligase_on_primary</item>
         <item name="colorPrimaryContainer">@color/ligase_primary_container</item>
         <item name="colorOnPrimaryContainer">@color/ligase_on_primary_container</item>
+        <item name="colorPrimaryInverse">@color/ligase_brand_primary</item>
+        <item name="colorPrimaryFixed">@color/ligase_brand_primary</item>
+        <item name="colorPrimaryFixedDim">@color/ligase_brand_primary</item>
+        <item name="colorOnPrimaryFixed">@color/ligase_surface</item>
+        <item name="colorOnPrimaryFixedVariant">@color/ligase_surface</item>
+        <item name="colorSecondary">@color/ligase_secondary</item>
+        <item name="colorOnSecondary">@color/ligase_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/ligase_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/ligase_on_secondary_container</item>
+        <item name="colorSecondaryFixed">@color/ligase_brand_secondary</item>
+        <item name="colorSecondaryFixedDim">@color/ligase_brand_secondary</item>
+        <item name="colorOnSecondaryFixed">@color/ligase_surface</item>
+        <item name="colorOnSecondaryFixedVariant">@color/ligase_surface</item>
+        <item name="colorTertiary">@color/ligase_brand_secondary</item>
+        <item name="colorOnTertiary">@color/ligase_surface</item>
+        <item name="colorTertiaryContainer">@color/ligase_surface_variant</item>
+        <item name="colorOnTertiaryContainer">@color/ligase_text_primary</item>
+        <item name="colorTertiaryFixed">@color/ligase_brand_secondary</item>
+        <item name="colorTertiaryFixedDim">@color/ligase_brand_secondary</item>
+        <item name="colorOnTertiaryFixed">@color/ligase_surface</item>
+        <item name="colorOnTertiaryFixedVariant">@color/ligase_surface</item>
+        <item name="android:colorBackground">@color/ligase_background</item>
+        <item name="colorOnBackground">@color/ligase_text_primary</item>
         <item name="colorSurface">@color/ligase_surface</item>
+        <item name="colorSurfaceVariant">@color/ligase_surface_variant</item>
         <item name="colorSurfaceContainer">@color/ligase_surface_container</item>
         <item name="colorSurfaceContainerHigh">@color/ligase_surface_container_high</item>
+        <item name="colorSurfaceContainerHighest">@color/ligase_surface_variant</item>
+        <item name="colorSurfaceContainerLow">@color/ligase_surface</item>
+        <item name="colorSurfaceContainerLowest">@color/ligase_surface</item>
+        <item name="colorSurfaceBright">@color/ligase_surface</item>
+        <item name="colorSurfaceDim">@color/ligase_background</item>
+        <item name="colorSurfaceInverse">@color/ligase_text_primary</item>
+        <item name="colorOnSurfaceInverse">@color/ligase_surface</item>
         <item name="colorOnSurface">@color/ligase_on_surface</item>
         <item name="colorOnSurfaceVariant">@color/ligase_on_surface_variant</item>
         <item name="colorOutline">@color/ligase_outline</item>
         <item name="colorOutlineVariant">@color/ligase_outline_variant</item>
+        <item name="colorError">@color/ligase_error</item>
+        <item name="colorOnError">@color/ligase_on_error</item>
+        <item name="colorErrorContainer">@color/ligase_error_container</item>
+        <item name="colorOnErrorContainer">@color/ligase_on_error_container</item>
         <item name="android:fontFamily">sans</item>
-        <item name="android:windowLightStatusBar">true</item>
-        <item name="android:statusBarColor">@color/ligase_surface</item>
-        <item name="android:navigationBarColor">@color/ligase_surface</item>
-        <item name="android:windowBackground">@color/ligase_surface</item>
-        <item name="android:windowLightNavigationBar">true</item>
         <item name="android:windowActionModeOverlay">true</item>
+    </style>
+
+    <style name="LigaseTheme" parent="LigaseThemeBase">
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">@color/ligase_background</item>
+        <item name="android:navigationBarColor">@color/ligase_background</item>
+        <item name="android:windowBackground">@color/ligase_background</item>
+        <item name="android:windowLightNavigationBar">true</item>
     </style>
 
     <style name="LigaseBottomNavigationIndicator" parent="">

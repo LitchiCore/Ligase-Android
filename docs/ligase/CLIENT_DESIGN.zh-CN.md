@@ -29,6 +29,26 @@
 - 高级串流设置采用渐进披露：全局分辨率位于设置页，单游戏覆盖位于卡片设置；
   均不进入首次启动主路径。
 
+## 跨端视觉颜色契约
+
+- Android 颜色语义以 Ligase Host `visual-color-tokens-v1.md` 为跨端权威；当前冻结
+  基线是 Host `ac35ee8a`。Android 不另建产品 palette，也不要求 WinUI 与 Material
+  逐像素一致。
+- `LigaseTheme.kt` 是 Compose 的单一颜色入口，显式映射 Material 3 1.4.0 的全部
+  `ColorScheme` 槽位；未审议的新槽位禁止回退 Material factory default。
+- XML `LigaseThemeBase` 使用同一组 light/dark 资源。Compose 与 XML 资源由自动测试
+  对照，避免再次形成两套漂移的主题。
+- 默认关闭系统动态色；“跟随系统”只跟随明暗模式，不能覆盖品牌色、状态色或焦点色。
+- `selected` 只作为选中容器，普通文字和图标使用 `textPrimary`，`brandPrimary`
+  只用于选中指示或关键图标。状态必须同时提供文字或图标，不能只靠颜色。
+- `disabled` 是必要内容的可读性下限，禁止通过整组件透明度把必要文字降到
+  `4.5:1` 以下。普通文字要求至少 `4.5:1`，大文字、关键图标、焦点环和有意义边界
+  至少 `3:1`；测试从机器色值重新计算，不信任文档中的手算结果。
+- 当前 Compose Material 3 1.4.0 没有 `shadow` 槽位；阴影仅作为 Ligase 自定义
+  alpha overlay primitive。浅色使用 `textPrimary`，深色使用 `background`。
+- `Game` 视频 Surface、串流 HUD、TouchKit 与游戏海报上的 media/artwork overlay
+  不映射为产品 `surface`，继续保持隔离；后者待独立媒体覆盖层契约再集中处理。
+
 ## 强制 Ligase Sync v1 产品边界
 
 - `serverinfo.LigaseSyncVersion == 1` 且存在 `LigaseSyncPath` 才能进入产品游戏库。
