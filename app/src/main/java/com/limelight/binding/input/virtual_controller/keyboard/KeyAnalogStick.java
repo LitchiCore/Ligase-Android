@@ -118,8 +118,6 @@ public class KeyAnalogStick extends keyBoardVirtualControllerElement {
 
 
     private double movement_radius = 0;
-    private double movement_angle = 0;
-
     private float position_stick_x = 0;
     private float position_stick_y = 0;
 
@@ -133,37 +131,6 @@ public class KeyAnalogStick extends keyBoardVirtualControllerElement {
 
     private static double getMovementRadius(float x, float y) {
         return Math.sqrt(x * x + y * y);
-    }
-
-    private static double getAngle(float way_x, float way_y) {
-        // prevent divisions by zero for corner cases
-        if (way_x == 0) {
-            return way_y < 0 ? Math.PI : 0;
-        } else if (way_y == 0) {
-            if (way_x > 0) {
-                return Math.PI * 3 / 2;
-            } else if (way_x < 0) {
-                return Math.PI * 1 / 2;
-            }
-        }
-        // return correct calculated angle for each quadrant
-        if (way_x > 0) {
-            if (way_y < 0) {
-                // first quadrant
-                return 3 * Math.PI / 2 + Math.atan((double) (-way_y / way_x));
-            } else {
-                // second quadrant
-                return Math.PI + Math.atan((double) (way_x / way_y));
-            }
-        } else {
-            if (way_y > 0) {
-                // third quadrant
-                return Math.PI / 2 + Math.atan((double) (way_y / -way_x));
-            } else {
-                // fourth quadrant
-                return 0 + Math.atan((double) (-way_x / -way_y));
-            }
-        }
     }
 
     public KeyAnalogStick(KeyBoardController controller, Context context, String elementId) {
@@ -227,45 +194,53 @@ public class KeyAnalogStick extends keyBoardVirtualControllerElement {
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(getDefaultStrokeWidth());
 
-        // draw outer circle
-        if (!isPressed() || click_state == CLICK_STATE.SINGLE) {
-            paint.setColor(getDefaultColor());
-        } else {
-            paint.setColor(pressedColor);
-        }
+        int outlineColor = virtualController.getControllerMode() ==
+                KeyBoardController.ControllerMode.Active ? getGrayOutlineColor() : getDefaultColor();
+
+        // Outer guides stay gray in normal play. The movable center remains white.
+        paint.setColor(outlineColor);
         canvas.drawCircle(getWidth() / 2, getHeight() / 2, radius_complete, paint);
 
-        paint.setColor(getDefaultColor());
+        paint.setColor(outlineColor);
         // draw dead zone
         canvas.drawCircle(getWidth() / 2, getHeight() / 2, radius_dead_zone, paint);
 
         // draw stick depending on state
         switch (stick_state) {
             case NO_MOVEMENT: {
-                paint.setColor(getDefaultColor());
+                paint.setColor(applyForegroundOpacity(Color.WHITE));
                 canvas.drawCircle(getWidth() / 2, getHeight() / 2, radius_analog_stick, paint);
                 break;
             }
             case MOVED_IN_DEAD_ZONE:
             case MOVED_ACTIVE: {
-                paint.setColor(pressedColor);
+                paint.setColor(applyForegroundOpacity(Color.WHITE));
                 canvas.drawCircle(position_stick_x, position_stick_y, radius_analog_stick, paint);
                 break;
             }
         }
     }
 
+    @Override
+    protected boolean shouldDrawGrayBackground() {
+        return true;
+    }
+
+    @Override
+    protected boolean isGrayBackgroundCircular() {
+        return true;
+    }
+
     private void updatePosition(long eventTime) {
         // get 100% way
         float complete = radius_complete - radius_analog_stick;
 
-        // calculate relative way
-        float correlated_y = (float) (Math.sin(Math.PI / 2 - movement_angle) * (movement_radius));
-        float correlated_x = (float) (Math.cos(Math.PI / 2 - movement_angle) * (movement_radius));
+        float outputX = TouchKitStickMath.outputX(relative_x, relative_y, movement_radius);
+        float outputY = TouchKitStickMath.outputY(relative_x, relative_y, movement_radius);
 
         // update positions
-        position_stick_x = getWidth() / 2 - correlated_x;
-        position_stick_y = getHeight() / 2 - correlated_y;
+        position_stick_x = getWidth() / 2 + outputX;
+        position_stick_y = getHeight() / 2 - outputY;
 
         // Stay active even if we're back in the deadzone because we know the user is actively
         // giving analog stick input and we don't want to snap back into the deadzone.
@@ -278,7 +253,7 @@ public class KeyAnalogStick extends keyBoardVirtualControllerElement {
 
         //  trigger move event if state active
         if (stick_state == STICK_STATE.MOVED_ACTIVE) {
-            notifyOnMovement(-correlated_x / complete, correlated_y / complete);
+            notifyOnMovement(outputX / complete, outputY / complete);
         }
     }
 
@@ -291,9 +266,8 @@ public class KeyAnalogStick extends keyBoardVirtualControllerElement {
         relative_x = -(getWidth() / 2 - event.getX());
         relative_y = -(getHeight() / 2 - event.getY());
 
-        // get radius and angel of movement from center
+        // get radius of movement from center
         movement_radius = getMovementRadius(relative_x, relative_y);
-        movement_angle = getAngle(relative_x, relative_y);
 
         // pass touch event to parent if out of outer circle
         if (movement_radius > radius_complete && !isPressed())

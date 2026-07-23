@@ -17,6 +17,7 @@ import android.os.Vibrator;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.FileProvider;
 import androidx.fragment.app.DialogFragment;
 import androidx.preference.CheckBoxPreference;
@@ -25,6 +26,7 @@ import androidx.preference.ListPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceCategory;
 import androidx.preference.PreferenceFragmentCompat;
+import androidx.preference.PreferenceGroupAdapter;
 import androidx.preference.PreferenceManager;
 import androidx.preference.PreferenceScreen;
 
@@ -50,6 +52,9 @@ import com.limelight.GameMenu;
 import com.limelight.LimeLog;
 import com.limelight.PcView;
 import com.limelight.R;
+import com.limelight.TouchKitLayoutEditorActivity;
+import com.limelight.TouchKitLayoutNames;
+import com.limelight.TouchKitLayoutTransfer;
 import com.limelight.binding.input.virtual_controller.keyboard.KeyBoardControllerConfigurationLoader;
 import com.limelight.binding.video.MediaCodecHelper;
 import com.limelight.utils.Dialog;
@@ -60,6 +65,7 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -164,6 +170,7 @@ public class StreamSettings extends AppCompatActivity {
     public static class SettingsFragment extends PreferenceFragmentCompat {
         private int nativeResolutionStartIndex = Integer.MAX_VALUE;
         private boolean nativeFramerateShown = false;
+        private boolean syncingTouchKitMouseMode;
 
         private PreferenceConfiguration prevPrefConfig;
 
@@ -332,9 +339,64 @@ public class StreamSettings extends AppCompatActivity {
             initializePreferences();
         }
 
+        private void configureTouchKitMouseModePreferences() {
+            CheckBoxPreference cloudMode =
+                    findPreference("checkbox_touchkit_cloud_gaming_mode");
+            ListPreference mouseMode = findPreference("mouse_mode_list");
+            if (cloudMode == null || mouseMode == null) {
+                return;
+            }
+
+            syncingTouchKitMouseMode = true;
+            if (cloudMode.isChecked()) {
+                mouseMode.setValue(TouchKitMouseModeSync.CLOUD_MODE);
+            } else if (TouchKitMouseModeSync.isCloudMode(mouseMode.getValue())) {
+                cloudMode.setChecked(true);
+            }
+            syncingTouchKitMouseMode = false;
+
+            cloudMode.setOnPreferenceChangeListener((preference, newValue) -> {
+                if (syncingTouchKitMouseMode) {
+                    return true;
+                }
+                syncingTouchKitMouseMode = true;
+                mouseMode.setValue(TouchKitMouseModeSync.mouseModeForCloudToggle(
+                        (Boolean) newValue, mouseMode.getValue()));
+                syncingTouchKitMouseMode = false;
+                return true;
+            });
+
+            mouseMode.setOnPreferenceChangeListener((preference, newValue) -> {
+                if (syncingTouchKitMouseMode) {
+                    return true;
+                }
+                syncingTouchKitMouseMode = true;
+                cloudMode.setChecked(TouchKitMouseModeSync.isCloudMode(
+                        String.valueOf(newValue)));
+                syncingTouchKitMouseMode = false;
+                return true;
+            });
+        }
+
         public void initializePreferences() {
             addPreferencesFromResource(R.xml.preferences);
             PreferenceScreen screen = getPreferenceScreen();
+            configureCollapsibleCategories(screen);
+            applyTouchKitCategoryOrder();
+
+            Preference layoutEditor = findPreference("touchkit_layout_editor");
+            if (layoutEditor != null) {
+                layoutEditor.setOnPreferenceClickListener(preference -> {
+                    startActivity(new Intent(requireActivity(), TouchKitLayoutEditorActivity.class));
+                    return true;
+                });
+            }
+
+            configureTouchKitLayoutPreferences();
+            configureTouchKitMouseModePreferences();
+
+            Preference mouseMode = findPreference("mouse_mode_list");
+            if (mouseMode != null) mouseMode.setOrder(0);
 
             AppCompatActivity activity = (AppCompatActivity) requireActivity();
             PackageManager pm = activity.getPackageManager();
@@ -345,7 +407,7 @@ public class StreamSettings extends AppCompatActivity {
                 if (category != null) {
                     screen.removePreference(category);
                 }
-                category = findPreference("category_special_key_layout");
+                category = findPreference("category_touchkit");
                 if (category != null) {
                     screen.removePreference(category);
                 }
@@ -412,7 +474,7 @@ public class StreamSettings extends AppCompatActivity {
                 if (category != null) {
                     category.removePreference(findPreference("checkbox_vibrate_osc"));
                 }
-                category = findPreference("category_special_key_layout");
+                category = findPreference("category_touchkit");
                 if (category != null) {
                     category.removePreference(findPreference("checkbox_vibrate_keyboard"));
                 }
@@ -958,6 +1020,206 @@ public class StreamSettings extends AppCompatActivity {
             }
         }
 
+        private void configureTouchKitLayoutPreferences() {
+            Preference manager = findPreference("touchkit_layout_manager");
+            if (manager != null) {
+                manager.setOnPreferenceClickListener(preference -> {
+                    showTouchKitLayoutManager(manager);
+                    return true;
+                });
+            }
+            Preference transfer = findPreference("touchkit_layout_transfer");
+            if (transfer != null) {
+                transfer.setOnPreferenceClickListener(preference -> {
+                    showTouchKitLayoutTransferDialog();
+                    return true;
+                });
+            }
+        }
+
+        private void showTouchKitLayoutTransferDialog() {
+            String[] actions = {
+                    getString(R.string.touchkit_layout_export_action),
+                    getString(R.string.touchkit_layout_import_action)
+            };
+            new AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.title_touchkit_layout_transfer)
+                    .setItems(actions, (dialog, which) -> {
+                        if (which == 0) {
+                            launchTouchKitLayoutExport();
+                        } else {
+                            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                            intent.addCategory(Intent.CATEGORY_OPENABLE);
+                            // Huawei's Android 8 document provider reports JSON files as
+                            // application/octet-stream, which makes them impossible to tap
+                            // when filtering for application/json. The importer validates
+                            // the TouchKit signature and contents after selection instead.
+                            intent.setType("*/*");
+                            startActivityForResult(intent, TOUCHKIT_IMPORT_REQUEST_CODE);
+                        }
+                    })
+                    .setNegativeButton(R.string.cancel, null)
+                    .show();
+        }
+
+        private void launchTouchKitLayoutExport() {
+            String layoutId = TouchKitLayoutNames.getDefaultLayout(requireContext());
+            String displayName = layoutId;
+            String[] values = TouchKitLayoutNames.getValues(requireContext());
+            String[] names = TouchKitLayoutNames.getNames(requireContext());
+            for (int i = 0; i < values.length; i++) {
+                if (values[i].equals(layoutId)) {
+                    displayName = names[i];
+                    break;
+                }
+            }
+            String safeName = displayName.replaceAll("[\\\\/:*?\"<>|]", "_");
+            Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            intent.setType("application/json");
+            intent.putExtra(Intent.EXTRA_TITLE, safeName + ".touchkit.json");
+            startActivityForResult(intent, TOUCHKIT_EXPORT_REQUEST_CODE);
+        }
+
+        private void showTouchKitLayoutManager(Preference manager) {
+            String[] values = TouchKitLayoutNames.getValues(requireContext());
+            String[] names = TouchKitLayoutNames.getNames(requireContext());
+            String current = TouchKitLayoutNames.getDefaultLayout(requireContext());
+            int selectedIndex = 0;
+            for (int i = 0; i < values.length; i++) {
+                if (values[i].equals(current)) {
+                    selectedIndex = i;
+                    break;
+                }
+            }
+            int[] selected = { selectedIndex };
+            new AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.title_touchkit_layout_manager)
+                    .setSingleChoiceItems(names, selectedIndex, (dialog, which) -> {
+                        selected[0] = which;
+                        PreferenceManager.getDefaultSharedPreferences(requireContext()).edit()
+                                .putString(TouchKitLayoutNames.DEFAULT_LAYOUT_PREF, values[which])
+                                .putString(KeyBoardControllerConfigurationLoader.OSC_PREFERENCE,
+                                        values[which])
+                                .apply();
+                    })
+                    .setPositiveButton(R.string.touchkit_layout_add_action,
+                            (dialog, which) -> showTouchKitAddLayoutDialog())
+                    .setNeutralButton(R.string.touchkit_layout_delete_action,
+                            (dialog, which) -> showTouchKitDeleteLayoutDialog(
+                                    values[selected[0]], names[selected[0]]))
+                    .setNegativeButton(R.string.touchkit_layout_manager_done, null)
+                    .show();
+        }
+
+        private void showTouchKitAddLayoutDialog() {
+            EditText input = new EditText(requireContext());
+            input.setSingleLine(true);
+            input.setHint(R.string.touchkit_new_layout_name);
+            new AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.title_touchkit_add_layout)
+                    .setView(input)
+                    .setPositiveButton(R.string.keyboard_add, (dialog, which) -> {
+                        String name = input.getText().toString().trim();
+                        if (name.isEmpty()) {
+                            Toast.makeText(requireContext(),
+                                    R.string.profile_manager_name_cannot_be_blank,
+                                    Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        String id = TouchKitLayoutNames.add(requireContext(), name);
+                        PreferenceManager.getDefaultSharedPreferences(requireContext()).edit()
+                                .putString(TouchKitLayoutNames.DEFAULT_LAYOUT_PREF, id)
+                                .putString(KeyBoardControllerConfigurationLoader.OSC_PREFERENCE, id)
+                                .apply();
+                        configureTouchKitLayoutPreferences();
+                        Toast.makeText(requireContext(), getString(
+                                R.string.touchkit_layout_added, name), Toast.LENGTH_SHORT).show();
+                    })
+                    .setNegativeButton(R.string.cancel, null)
+                    .show();
+        }
+
+        private void showTouchKitDeleteLayoutDialog(String layoutId, String layoutName) {
+            if (TouchKitLayoutNames.getValues(requireContext()).length <= 1) {
+                Toast.makeText(requireContext(), R.string.touchkit_layout_keep_one,
+                        Toast.LENGTH_SHORT).show();
+                return;
+            }
+            new AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.title_touchkit_delete_layout)
+                    .setMessage(getString(R.string.touchkit_delete_layout_confirm, layoutName))
+                    .setPositiveButton(R.string.touchkit_delete_control, (dialog, which) -> {
+                        if (TouchKitLayoutNames.delete(requireContext(), layoutId)) {
+                            configureTouchKitLayoutPreferences();
+                            Toast.makeText(requireContext(), getString(
+                                    R.string.touchkit_layout_deleted, layoutName),
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                    })
+                    .setNegativeButton(R.string.cancel, null)
+                    .show();
+        }
+
+        private void applyTouchKitCategoryOrder() {
+            String[] categoryKeys = {
+                    "category_video_settings",
+                    "category_touchkit",
+                    "category_input_settings",
+                    "category_onscreen_controls",
+                    "category_gamepad_settings",
+                    "category_audio_settings",
+                    "category_ui_settings",
+                    "category_host_settings",
+                    "category_general_settings",
+                    "category_virtual_trackpad_settings",
+                    "category_perf_monitor_settings",
+                    "category_advanced_settings",
+                    "category_settings_misc"
+            };
+
+            for (int i = 0; i < categoryKeys.length; i++) {
+                Preference category = findPreference(categoryKeys[i]);
+                if (category != null) {
+                    category.setOrder(i);
+                }
+            }
+        }
+
+        private void configureCollapsibleCategories(PreferenceScreen screen) {
+            for (int i = 0; i < screen.getPreferenceCount(); i++) {
+                Preference preference = screen.getPreference(i);
+                if (!(preference instanceof PreferenceCategory)) {
+                    continue;
+                }
+
+                PreferenceCategory category = (PreferenceCategory) preference;
+                int collapsedCount = category.getInitialExpandedChildrenCount();
+                if (collapsedCount == Integer.MAX_VALUE) {
+                    continue;
+                }
+
+                Preference collapse = new Preference(requireContext());
+                collapse.setKey(category.getKey() + "_collapse");
+                collapse.setTitle(R.string.touchkit_collapse);
+                collapse.setIcon(R.drawable.ic_expand_less_24);
+                collapse.setPersistent(false);
+                collapse.setOrder(Integer.MAX_VALUE);
+                collapse.setOnPreferenceClickListener(clicked -> {
+                    category.setInitialExpandedChildrenCount(collapsedCount);
+                    PreferenceGroupAdapter adapter = new PreferenceGroupAdapter(screen);
+                    getListView().setAdapter(adapter);
+                    int categoryPosition = adapter.getPreferenceAdapterPosition(category);
+                    if (categoryPosition >= 0) {
+                        getListView().post(() ->
+                                getListView().scrollToPosition(categoryPosition));
+                    }
+                    return true;
+                });
+                category.addPreference(collapse);
+            }
+        }
+
         private void removeEntryFromListAndSetValue(String resolutionPrefString, String entryToRemove, String nextDefault) {
             removeValue(resolutionPrefString, entryToRemove, new Runnable() {
                 @Override
@@ -994,10 +1256,49 @@ public class StreamSettings extends AppCompatActivity {
 
         int READ_REQUEST_CODE = 1001;
         int READ_REQUEST_SPECIAL_CODE = 1002;
+        int TOUCHKIT_IMPORT_REQUEST_CODE = 1003;
+        int TOUCHKIT_EXPORT_REQUEST_CODE = 1004;
 
         @Override
         public void onActivityResult(int requestCode, int resultCode, Intent data) {
             super.onActivityResult(requestCode, resultCode, data);
+            if (requestCode == TOUCHKIT_IMPORT_REQUEST_CODE
+                    && resultCode == Activity.RESULT_OK && data != null && data.getData() != null) {
+                try {
+                    String json = FileUriUtils.openUriForRead(requireContext(), data.getData());
+                    TouchKitLayoutTransfer.ImportResult imported = TouchKitLayoutTransfer.importLayout(
+                            requireContext(), json, getString(R.string.touchkit_imported_layout_name));
+                    configureTouchKitLayoutPreferences();
+                    Toast.makeText(requireContext(), getString(
+                            R.string.touchkit_layout_imported, imported.displayName),
+                            Toast.LENGTH_SHORT).show();
+                } catch (Exception e) {
+                    Log.e("TouchKitTransfer", "Unable to import layout", e);
+                    Toast.makeText(requireContext(), R.string.touchkit_layout_import_failed,
+                            Toast.LENGTH_LONG).show();
+                }
+                return;
+            }
+
+            if (requestCode == TOUCHKIT_EXPORT_REQUEST_CODE
+                    && resultCode == Activity.RESULT_OK && data != null && data.getData() != null) {
+                try {
+                    String layoutId = TouchKitLayoutNames.getDefaultLayout(requireContext());
+                    String json = TouchKitLayoutTransfer.exportLayout(requireContext(), layoutId);
+                    try (OutputStream output = requireContext().getContentResolver()
+                            .openOutputStream(data.getData(), "wt")) {
+                        if (output == null) throw new IOException("Unable to open destination");
+                        output.write(json.getBytes(StandardCharsets.UTF_8));
+                    }
+                    Toast.makeText(requireContext(), R.string.touchkit_layout_exported,
+                            Toast.LENGTH_SHORT).show();
+                } catch (Exception e) {
+                    Log.e("TouchKitTransfer", "Unable to export layout", e);
+                    Toast.makeText(requireContext(), R.string.touchkit_layout_export_failed,
+                            Toast.LENGTH_LONG).show();
+                }
+                return;
+            }
             if (requestCode == READ_REQUEST_CODE && resultCode == Activity.RESULT_OK && data.getData() != null) {
                 try {
                     Uri uri = data.getData();

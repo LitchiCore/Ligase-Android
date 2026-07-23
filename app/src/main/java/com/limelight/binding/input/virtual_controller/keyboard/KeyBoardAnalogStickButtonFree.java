@@ -2,8 +2,11 @@ package com.limelight.binding.input.virtual_controller.keyboard;
 
 import android.content.Context;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 
-public class KeyBoardAnalogStickButtonFree extends keyAnalogStickFree {
+
+public class KeyBoardAnalogStickButtonFree extends keyAnalogStickFree implements TouchKitConfigurableStick {
 
     private final int MIN_CIRCLE_R = 10000;  //当摇杆移动的非常小时，不产生操作，摇杆范围-32765<x,y<32765
     private final float EIGHTH_PI = 0.4142f;  // y=tan(π/8)x 分界线
@@ -13,7 +16,8 @@ public class KeyBoardAnalogStickButtonFree extends keyAnalogStickFree {
 //    private byte sendFlag = 0;
     private final int[] stickIndex = new int[4];
     private final boolean[] stickBool = new boolean[4];
-    private final int[] stickSender = new int[5];
+    private final boolean[] lastSentStickBool = new boolean[4];
+    private final int[] stickSender = new int[4];
 
     private KeyBoardAnalogStickListener listener;
 
@@ -26,7 +30,7 @@ public class KeyBoardAnalogStickButtonFree extends keyAnalogStickFree {
                                          int[] keyInfo) {
         super(controller, context, elementId);
 
-        for (int i = 0; i < keyInfo.length; i++) {
+        for (int i = 0; i < Math.min(keyInfo.length, stickSender.length); i++) {
             stickSender[i]=keyInfo[i];
         }
         addAnalogStickListener(new AnalogStickListener() {
@@ -115,9 +119,7 @@ public class KeyBoardAnalogStickButtonFree extends keyAnalogStickFree {
                     stickBool[3] = false;
                 }
 
-                for (int i = 0; i < 4; i++) {
-                    listener.onkeyEvent(stickSender[i],stickBool[i]);
-                }
+                dispatchDirectionChanges();
             }
 
             @Override
@@ -127,7 +129,6 @@ public class KeyBoardAnalogStickButtonFree extends keyAnalogStickFree {
 
             @Override
             public void onDoubleClick() {
-                listener.onkeyEvent(stickSender[4],true);
             }
 
             @Override
@@ -140,15 +141,49 @@ public class KeyBoardAnalogStickButtonFree extends keyAnalogStickFree {
                 stickBool[1] = false;
                 stickBool[2] = false;
                 stickBool[3] = false;
-                for (int i = 0; i < 4; i++) {
-                    listener.onkeyEvent(stickSender[i],stickBool[i]);
-                }
-                listener.onkeyEvent(stickSender[4],false);
+                dispatchDirectionChanges();
             }
         });
     }
 
+    private void dispatchDirectionChanges() {
+        for (int i = 0; i < 4; i++) {
+            if (lastSentStickBool[i] != stickBool[i]) {
+                listener.onkeyEvent(stickSender[i], stickBool[i]);
+                lastSentStickBool[i] = stickBool[i];
+            }
+        }
+    }
+
     public interface KeyBoardAnalogStickListener {
         void onkeyEvent(int code,boolean isPress);
+    }
+
+    @Override
+    public String getBindingSpec() {
+        return TouchKitStickBindingSupport.format(stickSender);
+    }
+
+    @Override
+    public boolean setBindingSpec(String spec) {
+        int[] parsed = TouchKitStickBindingSupport.parse(spec, stickSender);
+        if (parsed == null) return false;
+        System.arraycopy(parsed, 0, stickSender, 0, stickSender.length);
+        invalidate();
+        return true;
+    }
+
+    @Override
+    public JSONObject getConfiguration() throws JSONException {
+        JSONObject configuration = super.getConfiguration();
+        configuration.put("STICK_BINDINGS", getBindingSpec());
+        return configuration;
+    }
+
+    @Override
+    public void loadConfiguration(JSONObject configuration) throws JSONException {
+        super.loadConfiguration(configuration);
+        setBindingSpec(TouchKitStickBindingSupport.removeLegacyCenterBinding(
+                configuration.optString("STICK_BINDINGS", getBindingSpec())));
     }
 }

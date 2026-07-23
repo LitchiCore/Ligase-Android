@@ -1,0 +1,116 @@
+{
+  "format": "artemis-touchkit-layout",
+  "version": 1,
+  "name": "战雷_陆战",
+  "sourceLayoutId": "OSC_Keyboard_custom_1784681087809",
+  "preferences": {
+    "key_62": {
+      "type": "string",
+      "value": "{\"LEFT\":2001,\"TOP\":0,\"WIDTH\":151,\"HEIGHT\":151,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"SPACE\",\"DESCRIPTION\":\"机枪\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":62,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "__touchkit_dynamic_elements": {
+      "type": "string",
+      "value": "[{\"type\":5,\"name\":\"按键轮盘\",\"elementId\":\"touchkit_radial_1__instance_1455147300576306\"}]"
+    },
+    "__touchkit_layout_format_version": {
+      "type": "int",
+      "value": 2
+    },
+    "touchkit_radial_1": {
+      "type": "string",
+      "value": "{\"LEFT\":1371,\"TOP\":703,\"WIDTH\":360,\"HEIGHT\":360,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"RADIAL_NAME\":\"数字1\",\"RADIAL_SPEC\":\"4\\n3\\n2\\n1\"}"
+    },
+    "touchkit_scroll_up": {
+      "type": "string",
+      "value": "{\"LEFT\":616,\"TOP\":32,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"向上滚\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"SHOW_PHYSICAL_KEY_NAMES\":false,\"SCROLL_STEP\":1,\"CONTINUOUS_SCROLL\":true}"
+    },
+    "rocker_1": {
+      "type": "string",
+      "value": "{\"LEFT\":162,\"TOP\":585,\"WIDTH\":300,\"HEIGHT\":300,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"STICK_BINDINGS\":\"上=W\\n下=S\\n左=A\\n右=D\"}"
+    },
+    "touchkit_soft_keyboard": {
+      "type": "string",
+      "value": "{\"LEFT\":309,\"TOP\":949,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42}"
+    },
+    "key_111": {
+      "type": "string",
+      "value": "{\"LEFT\":51,\"TOP\":800,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Esc\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":111,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_59": {
+      "type": "string",
+      "value": "{\"LEFT\":234,\"TOP\":63,\"WIDTH\":211,\"HEIGHT\":211,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Shift\",\"DESCRIPTION\":\"瞄准\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":59,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_113": {
+      "type": "string",
+      "value": "{\"LEFT\":349,\"TOP\":266,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Ctrl\",\"DESCRIPTION\":\"热成像\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":113,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_38": {
+      "type": "string",
+      "value": "{\"LEFT\":2176,\"TOP\":14,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"J\",\"DESCRIPTION\":\"一键弃机\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"TIMED_HOLD\",\"TIMED_HOLD_DURATION_MS\":3300,\"EDITABLE_KEY_CODE\":38,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_35": {
+      "type": "string",
+      "value": "{\"LEFT\":457,\"TOP\":388,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"G\",\"DESCRIPTION\":\"烟雾弹\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":35,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "touchkit_radial_1__instance_1455147300576306": {
+      "type": "string",
+      "value": "{\"LEFT\":1500,\"TOP\":642,\"WIDTH\":360,\"HEIGHT\":360,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"RADIAL_NAME\":\"数字2\",\"RADIAL_SPEC\":\"9\\n8\\n7\\n6\\n5\"}"
+    },
+    "key_36": {
+      "type": "string",
+      "value": "{\"LEFT\":304,\"TOP\":389,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"H\",\"DESCRIPTION\":\"引擎烟\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":36,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "m_1": {
+      "type": "string",
+      "value": "{\"LEFT\":1801,\"TOP\":63,\"WIDTH\":225,\"HEIGHT\":225,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"左键\",\"DESCRIPTION\":\"开火\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_53": {
+      "type": "string",
+      "value": "{\"LEFT\":1555,\"TOP\":955,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Y\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":53,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "m_2": {
+      "type": "string",
+      "value": "{\"LEFT\":1656,\"TOP\":204,\"WIDTH\":164,\"HEIGHT\":164,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"中键\",\"DESCRIPTION\":\"测距\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_54": {
+      "type": "string",
+      "value": "{\"LEFT\":461,\"TOP\":190,\"WIDTH\":149,\"HEIGHT\":149,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Z\",\"DESCRIPTION\":\"缩放\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":54,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_51": {
+      "type": "string",
+      "value": "{\"LEFT\":85,\"TOP\":508,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"W\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"TOGGLE\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":51,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_70": {
+      "type": "string",
+      "value": "{\"LEFT\":2132,\"TOP\":176,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"=\",\"DESCRIPTION\":\"补充成员\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":70,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "__touchkit_canvas_height": {
+      "type": "int",
+      "value": 1080
+    },
+    "touchkit_scroll_down": {
+      "type": "string",
+      "value": "{\"LEFT\":484,\"TOP\":35,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"向下滚\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"SHOW_PHYSICAL_KEY_NAMES\":false,\"SCROLL_STEP\":1,\"CONTINUOUS_SCROLL\":true}"
+    },
+    "__touchkit_canvas_width": {
+      "type": "int",
+      "value": 2312
+    },
+    "key_48": {
+      "type": "string",
+      "value": "{\"LEFT\":1422,\"TOP\":954,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"T\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":48,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "key_68": {
+      "type": "string",
+      "value": "{\"LEFT\":1678,\"TOP\":64,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"`\",\"DESCRIPTION\":\"小队标\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":68,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    },
+    "__touchkit_deleted_base_elements": {
+      "type": "string",
+      "value": "[\"dpad_1\",\"key_131\",\"key_132\",\"key_133\",\"key_134\",\"key_135\",\"key_136\",\"key_137\",\"key_138\",\"key_139\",\"key_140\",\"key_141\",\"key_142\",\"key_112\",\"key_124\",\"key_122\",\"key_123\",\"key_92\",\"key_93\",\"key_8\",\"key_9\",\"key_10\",\"key_11\",\"key_12\",\"key_13\",\"key_14\",\"key_15\",\"key_16\",\"key_7\",\"key_144\",\"key_145\",\"key_146\",\"key_147\",\"key_148\",\"key_149\",\"key_150\",\"key_151\",\"key_152\",\"key_153\",\"key_117\",\"key_57\",\"key_61\",\"key_29\",\"key_30\",\"key_31\",\"key_32\",\"key_33\",\"key_34\",\"key_37\",\"key_39\",\"key_40\",\"key_41\",\"key_42\",\"key_43\",\"key_44\",\"key_45\",\"key_46\",\"key_47\",\"key_49\",\"key_50\",\"key_52\",\"key_19\",\"key_20\",\"key_21\",\"key_22\",\"key_67\",\"m_3\",\"m_4\",\"m_5\",\"touchkit_combo_1\",\"touchkit_combo_2\",\"touchkit_combo_3\",\"touchkit_combo_4\",\"touchkit_combo_5\",\"touchkit_combo_6\",\"touchkit_combo_7\",\"touchkit_combo_8\",\"key_81\",\"key_69\",\"key_71\",\"key_72\",\"key_73\",\"key_60\",\"key_115\",\"key_143\",\"key_116\",\"key_120\",\"key_121\",\"key_158\",\"key_157\",\"key_156\",\"key_155\",\"key_154\",\"key_76\",\"key_56\",\"key_55\",\"key_75\",\"key_74\",\"key_82\",\"key_114\",\"key_118\",\"key_58\"]"
+    },
+    "key_66": {
+      "type": "string",
+      "value": "{\"LEFT\":162,\"TOP\":942,\"WIDTH\":120,\"HEIGHT\":120,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"ENTER\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"TIMED_HOLD_DURATION_MS\":500,\"EDITABLE_KEY_CODE\":66,\"SHOW_PHYSICAL_KEY_NAMES\":false}"
+    }
+  }
+}

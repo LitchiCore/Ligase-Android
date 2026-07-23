@@ -126,4 +126,62 @@ public class OverlayPreferencesTest {
         assertEquals(0.25f, cfg2.panOffsetX, 0.0001f);
         assertEquals(0.25f, cfg2.panOffsetY, 0.0001f);
     }
+
+    @Test
+    public void touchKitOptions_AreReadFromProfilePreferences() {
+        ProfilesManager pm = ProfilesManager.getInstance();
+        pm.load(ctx);
+
+        String json = "{\"checkbox_touchkit_cloud_gaming_mode\":true," +
+                "\"checkbox_touchkit_adjustable_overlay\":true," +
+                "\"checkbox_touchkit_disable_gestures\":true}";
+        Type type = new TypeToken<Map<String, Object>>(){}.getType();
+        Map<String, Object> options = new Gson().fromJson(json, type);
+
+        SettingsProfile profile = new SettingsProfile(UUID.randomUUID(), "TouchKit", 0, 0, options);
+        pm.add(profile);
+        pm.setActive(profile.getUuid());
+
+        PreferenceConfiguration config = PreferenceConfiguration.readPreferences(ctx);
+        assertTrue(config.touchkitCloudGamingMode);
+        assertTrue(config.touchkitAdjustableOverlay);
+        assertTrue(config.touchkitDisableGestures);
+    }
+
+    @Test
+    public void cloudMouseMode_EnablesTouchKitCloudMode() {
+        ProfilesManager pm = ProfilesManager.getInstance();
+        pm.load(ctx);
+
+        String json = "{\"mouse_mode_list\":\"6\"," +
+                "\"checkbox_touchkit_cloud_gaming_mode\":false}";
+        Type type = new TypeToken<Map<String, Object>>(){}.getType();
+        Map<String, Object> options = new Gson().fromJson(json, type);
+
+        SettingsProfile profile = new SettingsProfile(
+                UUID.randomUUID(), "Cloud mouse mode", 0, 0, options);
+        pm.add(profile);
+        pm.setActive(profile.getUuid());
+
+        PreferenceConfiguration config = PreferenceConfiguration.readPreferences(ctx);
+        assertTrue(config.touchkitCloudGamingMode);
+        assertTrue(config.touchscreenTrackpad);
+        assertFalse(config.enableMultiTouchScreen);
+    }
+
+    @Test
+    public void legacyAlwaysShowSwitch_MigratesToUnifiedFloatingControls() {
+        ProfilesManager pm = ProfilesManager.getInstance();
+        pm.load(ctx);
+
+        String json = "{\"checkbox_enable_keyboard\":true}";
+        Type type = new TypeToken<Map<String, Object>>(){}.getType();
+        Map<String, Object> options = new Gson().fromJson(json, type);
+        SettingsProfile profile = new SettingsProfile(UUID.randomUUID(), "Legacy TouchKit", 0, 0, options);
+        pm.add(profile);
+        pm.setActive(profile.getUuid());
+
+        PreferenceConfiguration config = PreferenceConfiguration.readPreferences(ctx);
+        assertTrue(config.touchkitAdjustableOverlay);
+    }
 }

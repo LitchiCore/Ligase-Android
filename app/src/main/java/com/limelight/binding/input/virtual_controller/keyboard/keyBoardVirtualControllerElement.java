@@ -8,7 +8,9 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.RectF;
 import android.util.DisplayMetrics;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -44,8 +46,15 @@ public abstract class keyBoardVirtualControllerElement extends View {
     protected final String elementId;
 
     private final Paint paint = new Paint();
+    private final Paint backgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final RectF backgroundRect = new RectF();
+    private int backgroundOpacity = 42;
+    private int globalOpacity = 100;
+    private int globalForegroundOpacity = 100;
 
-    private int normalColor = 0xF0888888;
+    // Text and glyphs use white explicitly in each control. This remains white
+    // as the general OSC opacity changes; outlines are drawn separately in gray.
+    private int normalColor = 0xF0FFFFFF;
     protected int pressedColor = 0xA3DCDCDE;
     private int configMoveColor = 0xF0FF0000;
     private int configResizeColor = 0xF0FF00FF;
@@ -72,46 +81,24 @@ public abstract class keyBoardVirtualControllerElement extends View {
 
     private int lastMoveX;
     private int lastMoveY;
+    private boolean layoutEditorMoved;
 
     protected keyBoardVirtualControllerElement(KeyBoardController controller, Context context, String elementId) {
         super(context);
 
         this.virtualController = controller;
         this.elementId = elementId;
+        backgroundPaint.setColor(Color.GRAY);
     }
 
     protected void moveElement(int pressed_x, int pressed_y, int x, int y) {
         int newPos_x = (int) getX() + x - pressed_x;
         int newPos_y = (int) getY() + y - pressed_y;
 
-        // Save last position for potential resize on ACTION_UP
+        // Preserve the requested position and size. TouchKit deliberately does not snap
+        // controls to screen edges or resize them to match neighboring controls.
         lastMoveX = newPos_x;
         lastMoveY = newPos_y;
-
-        // Only apply snapping in move mode
-        if (virtualController.getControllerMode() == KeyBoardController.ControllerMode.MoveButtons) {
-            // Convert other elements to array for snapping calculation
-            View[] otherViews = new View[virtualController.getElements().size() - 1];
-            int index = 0;
-            for (keyBoardVirtualControllerElement element : virtualController.getElements()) {
-                if (element != this) {
-                    otherViews[index++] = element;
-                }
-            }
-
-            // Calculate snapped position without resize during movement
-            LayoutSnappingHelper.SnapResult snapResult = LayoutSnappingHelper.calculateSnappedPosition(
-                this, otherViews, newPos_x, newPos_y
-            );
-
-            newPos_x = snapResult.newX;
-            newPos_y = snapResult.newY;
-
-            // Provide haptic feedback if snapping occurred
-            if (snapResult.didSnap || snapResult.didAdjustSpacing) {
-                virtualController.vibrate(KeyEvent.ACTION_DOWN);
-            }
-        }
 
         FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) getLayoutParams();
 
@@ -136,33 +123,29 @@ public abstract class keyBoardVirtualControllerElement extends View {
     }
 
     protected void checkAndApplyResize() {
-        if (virtualController.getControllerMode() == KeyBoardController.ControllerMode.MoveButtons) {
-            // Convert other elements to array for overlap check
-            View[] otherViews = new View[virtualController.getElements().size() - 1];
-            int index = 0;
-            for (keyBoardVirtualControllerElement element : virtualController.getElements()) {
-                if (element != this) {
-                    otherViews[index++] = element;
-                }
-            }
-
-            // Check final position for resize
-            LayoutSnappingHelper.SnapResult snapResult = LayoutSnappingHelper.calculateSnappedPosition(
-                this, otherViews, lastMoveX, lastMoveY
-            );
-
-            if (snapResult.didResize) {
-                FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) getLayoutParams();
-                layoutParams.width = snapResult.newWidth;
-                layoutParams.height = snapResult.newHeight;
-                virtualController.vibrate(KeyEvent.ACTION_DOWN);
-                requestLayout();
-            }
-        }
+        // Resizing is explicit through the property editor. Moving never changes size.
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
+        if (shouldDrawGrayBackground()) {
+            int alpha = Math.max(0, Math.min(100, backgroundOpacity)) *
+                    globalOpacity * 255 / 10000;
+            backgroundPaint.setColor((alpha << 24) | 0x00666666);
+            backgroundPaint.setStyle(Paint.Style.FILL);
+            float inset = Math.max(1, getDefaultStrokeWidth() / 2f);
+            backgroundRect.set(inset, inset, getWidth() - inset, getHeight() - inset);
+            configureGrayBackgroundBounds(backgroundRect, inset);
+            if (isGrayBackgroundCircular()) {
+                canvas.drawOval(backgroundRect, backgroundPaint);
+            } else {
+                canvas.drawRoundRect(backgroundRect,
+                        Math.min(backgroundRect.width(), backgroundRect.height()) * 0.22f,
+                        Math.min(backgroundRect.width(), backgroundRect.height()) * 0.22f,
+                        backgroundPaint);
+            }
+        }
+
         onElementDraw(canvas);
 
         if (currentMode != Mode.Normal) {
@@ -228,6 +211,8 @@ public abstract class keyBoardVirtualControllerElement extends View {
             return configMoveColor;
         else if (virtualController.getControllerMode() == KeyBoardController.ControllerMode.ResizeButtons)
             return configResizeColor;
+        else if (virtualController.getControllerMode() == KeyBoardController.ControllerMode.EditProperties)
+            return configSelectedColor;
         else if (virtualController.getControllerMode() == KeyBoardController.ControllerMode.DisableEnableButtons)
             return enabled ? configSelectedColor: configDisabledColor;
         else
@@ -301,8 +286,63 @@ public abstract class keyBoardVirtualControllerElement extends View {
             return true;
         }
 
+        // Android dispatches touches using the rectangular View bounds. Reject a
+        // down event in the transparent corners of circular controls so the event
+        // can continue to a smaller overlapping sibling underneath.
+        if (event.getActionMasked() == MotionEvent.ACTION_DOWN &&
+                !isPointInsideInteractiveRegion(event.getX(), event.getY())) {
+            return false;
+        }
+
+        if (virtualController != null) {
+            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                virtualController.beginControlPointer(event.getPointerId(0));
+            } else if (event.getActionMasked() == MotionEvent.ACTION_UP ||
+                    event.getActionMasked() == MotionEvent.ACTION_CANCEL) {
+                virtualController.endControlPointer(event.getPointerId(0));
+            }
+        }
+
         if (virtualController.getControllerMode() == KeyBoardController.ControllerMode.Active) {
             return onElementTouchEvent(event);
+        }
+
+        if (virtualController.getControllerMode() == KeyBoardController.ControllerMode.LayoutEditor ||
+                virtualController.getControllerMode() == KeyBoardController.ControllerMode.EditProperties) {
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    position_pressed_x = event.getX();
+                    position_pressed_y = event.getY();
+                    startSize_x = getWidth();
+                    startSize_y = getHeight();
+                    layoutEditorMoved = false;
+                    actionEnableMove();
+                    return true;
+                case MotionEvent.ACTION_MOVE:
+                    float threshold = 6 * getResources().getDisplayMetrics().density;
+                    if (Math.abs(event.getX() - position_pressed_x) > threshold ||
+                            Math.abs(event.getY() - position_pressed_y) > threshold) {
+                        layoutEditorMoved = true;
+                    }
+                    if (layoutEditorMoved) {
+                        moveElement((int) position_pressed_x, (int) position_pressed_y,
+                                (int) event.getX(), (int) event.getY());
+                    }
+                    return true;
+                case MotionEvent.ACTION_CANCEL:
+                case MotionEvent.ACTION_UP:
+                    if (layoutEditorMoved) {
+                        checkAndApplyResize();
+                        KeyBoardControllerConfigurationLoader.saveProfile(virtualController,
+                                getContext());
+                    } else if (event.getActionMasked() == MotionEvent.ACTION_UP) {
+                        virtualController.showElementEditor(this);
+                    }
+                    actionCancel();
+                    return true;
+                default:
+                    return true;
+            }
         }
 
         switch (event.getActionMasked()) {
@@ -317,7 +357,11 @@ public abstract class keyBoardVirtualControllerElement extends View {
                 else if (virtualController.getControllerMode() == KeyBoardController.ControllerMode.ResizeButtons)
                     actionEnableResize();
                 else if (virtualController.getControllerMode() == KeyBoardController.ControllerMode.DisableEnableButtons)
-                    actionDisableEnableButton();
+                    {
+                        actionDisableEnableButton();
+                        KeyBoardControllerConfigurationLoader.saveProfile(virtualController,
+                                getContext());
+                    }
                 return true;
             }
             case MotionEvent.ACTION_MOVE: {
@@ -360,6 +404,28 @@ public abstract class keyBoardVirtualControllerElement extends View {
 
     abstract protected void onElementDraw(Canvas canvas);
 
+    protected boolean shouldDrawGrayBackground() {
+        return false;
+    }
+
+    protected boolean isGrayBackgroundCircular() {
+        return false;
+    }
+
+    protected boolean isPointInsideInteractiveRegion(float x, float y) {
+        if (!isGrayBackgroundCircular()) {
+            return x >= 0 && y >= 0 && x <= getWidth() && y <= getHeight();
+        }
+        float radius = Math.min(getWidth(), getHeight()) / 2f;
+        float dx = x - getWidth() / 2f;
+        float dy = y - getHeight() / 2f;
+        return dx * dx + dy * dy <= radius * radius;
+    }
+
+    protected void configureGrayBackgroundBounds(RectF bounds, float inset) {
+        // Subclasses may restrict the background to the actual control area.
+    }
+
     abstract public boolean onElementTouchEvent(MotionEvent event);
 
     protected static final void _DBG(String text) {
@@ -377,11 +443,49 @@ public abstract class keyBoardVirtualControllerElement extends View {
 
 
     public void setOpacity(int opacity) {
-        int hexOpacity = opacity * 255 / 100;
-        this.normalColor = (hexOpacity << 24) | (normalColor & 0x00FFFFFF);
-        this.pressedColor = (hexOpacity << 24) | (pressedColor & 0x00FFFFFF);
-
+        globalOpacity = Math.max(0, Math.min(100, opacity));
         invalidate();
+    }
+
+    protected int getGrayOutlineColor() {
+        int alpha = 0xCC * globalOpacity / 100;
+        return (alpha << 24) | 0x00888888;
+    }
+
+    protected int applyGlobalOpacity(int color) {
+        int alpha = Color.alpha(color) * globalOpacity / 100;
+        return (alpha << 24) | (color & 0x00FFFFFF);
+    }
+
+    protected int applyForegroundOpacity(int color) {
+        int alpha = Color.alpha(color) * globalForegroundOpacity / 100;
+        return (alpha << 24) | (color & 0x00FFFFFF);
+    }
+
+    protected int getScaledOpacityAlpha(int opacityPercent) {
+        return Math.max(0, Math.min(100, opacityPercent)) * globalOpacity * 255 / 10000;
+    }
+
+    public int getBackgroundOpacity() {
+        return backgroundOpacity;
+    }
+
+    public void setBackgroundOpacity(int opacity) {
+        backgroundOpacity = Math.max(0, Math.min(100, opacity));
+        invalidate();
+    }
+
+    public void setGlobalForegroundOpacity(int opacity) {
+        globalForegroundOpacity = Math.max(10, Math.min(100, opacity));
+        invalidate();
+    }
+
+    int getGlobalOpacityForTest() {
+        return globalOpacity;
+    }
+
+    int getGlobalForegroundOpacityForTest() {
+        return globalForegroundOpacity;
     }
 
     protected final float getPercent(float value, float percent) {
@@ -404,6 +508,7 @@ public abstract class keyBoardVirtualControllerElement extends View {
         configuration.put("HEIGHT", layoutParams.height);
         configuration.put("ENABLED", enabled);
         configuration.put("HIDDEN", hidden);
+        configuration.put("BACKGROUND_OPACITY", backgroundOpacity);
         return configuration;
     }
 
@@ -416,7 +521,8 @@ public abstract class keyBoardVirtualControllerElement extends View {
         layoutParams.height = configuration.getInt("HEIGHT");
         enabled = configuration.getBoolean("ENABLED");
         hidden = configuration.optBoolean("HIDDEN", false);
-        
+        backgroundOpacity = configuration.optInt("BACKGROUND_OPACITY", 42);
+
         // Only hide if not in configuration mode
         if (virtualController.getControllerMode() != KeyBoardController.ControllerMode.DisableEnableButtons) {
             setVisibility(!hidden && enabled ? VISIBLE : GONE);

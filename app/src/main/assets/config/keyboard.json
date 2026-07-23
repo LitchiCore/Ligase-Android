@@ -35,28 +35,16 @@
         "code": 3
       },
       {
-        "name": "MR+",
-        "code": 3,
-        "switchButton": 1
-      },
-      {
         "name": "MM",
         "code": 2
       },
       {
-        "name": "TP(R)",
-        "code": 9,
-        "desc": "特殊触控板按键适合魔兽转视野，name的数值可以清空，但是怕不好区分，可以修改成其他的"
+        "name": "侧键 4",
+        "code": 4
       },
       {
-        "name": "TP",
-        "code": 10,
-        "desc": "普通触控板控件"
-      },
-      {
-        "name": "TP(L)",
-        "code": 11,
-        "desc": "一直按着左键不放~"
+        "name": "侧键 5",
+        "code": 5
       }
 
     ],
@@ -118,6 +106,10 @@
         "code": 112
       },
       {
+        "name": "Insert",
+        "code": 124
+      },
+      {
         "name": "Home",
         "code": 122
       },
@@ -132,6 +124,10 @@
       {
         "name": "PgDn",
         "code": 93
+      },
+      {
+        "name": "`",
+        "code": 68
       },
       {
         "name": "1",
@@ -174,24 +170,168 @@
         "code": 7
       },
       {
-        "name": "Ctrl",
+        "name": "+",
+        "code": 81
+      },
+      {
+        "name": "-",
+        "code": 69
+      },
+      {
+        "name": "=",
+        "code": 70
+      },
+      {
+        "name": "[",
+        "code": 71
+      },
+      {
+        "name": "]",
+        "code": 72
+      },
+      {
+        "name": "\\",
+        "code": 73
+      },
+      {
+        "name": ";",
+        "code": 74
+      },
+      {
+        "name": "'",
+        "code": 75
+      },
+      {
+        "name": ",",
+        "code": 55
+      },
+      {
+        "name": ".",
+        "code": 56
+      },
+      {
+        "name": "/",
+        "code": 76
+      },
+      {
+        "name": "Num0",
+        "code": 144
+      },
+      {
+        "name": "Num1",
+        "code": 145
+      },
+      {
+        "name": "Num2",
+        "code": 146
+      },
+      {
+        "name": "Num3",
+        "code": 147
+      },
+      {
+        "name": "Num4",
+        "code": 148
+      },
+      {
+        "name": "Num5",
+        "code": 149
+      },
+      {
+        "name": "Num6",
+        "code": 150
+      },
+      {
+        "name": "Num7",
+        "code": 151
+      },
+      {
+        "name": "Num8",
+        "code": 152
+      },
+      {
+        "name": "Num9",
+        "code": 153
+      },
+      {
+        "name": "Num/",
+        "code": 154
+      },
+      {
+        "name": "Num*",
+        "code": 155
+      },
+      {
+        "name": "Num-",
+        "code": 156
+      },
+      {
+        "name": "Num+",
+        "code": 157
+      },
+      {
+        "name": "Num.",
+        "code": 158
+      },
+      {
+        "name": "LeftCtrl",
         "code": 113
       },
       {
-        "name": "Win",
+        "name": "RightCtrl",
+        "code": 114
+      },
+      {
+        "name": "LeftWin",
         "code": 117
       },
       {
-        "name": "Alt",
+        "name": "RightWin",
+        "code": 118
+      },
+      {
+        "name": "LeftAlt",
         "code": 57
+      },
+      {
+        "name": "RightAlt",
+        "code": 58
       },
       {
         "name": "Space",
         "code": 62
       },
       {
-        "name": "Shift",
+        "name": "LeftShift",
         "code": 59
+      },
+      {
+        "name": "RightShift",
+        "code": 60
+      },
+      {
+        "name": "CapsLock",
+        "code": 115
+      },
+      {
+        "name": "NumLock",
+        "code": 143
+      },
+      {
+        "name": "ScrollLock",
+        "code": 116
+      },
+      {
+        "name": "PrintScreen",
+        "code": 120
+      },
+      {
+        "name": "Pause",
+        "code": 121
+      },
+      {
+        "name": "Menu",
+        "code": 82
       },
       {
         "name": "Tab",
@@ -306,10 +446,6 @@
         "code": 54
       },
       {
-        "name": "Insert",
-        "code": 124
-      },
-      {
         "name": "↑",
         "code": 19
       },
@@ -326,7 +462,7 @@
         "code": 22
       },
       {
-        "name": "⌫",
+        "name": "Backspace",
         "code": 67
       }
     ]

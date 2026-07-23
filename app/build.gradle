@@ -1,4 +1,32 @@
+import java.util.Properties
+
 apply plugin: 'com.android.application'
+
+def touchKitSigningPropertiesFile = System.getenv('ARTEMIS_TOUCHKIT_SIGNING_PROPERTIES')
+        ? file(System.getenv('ARTEMIS_TOUCHKIT_SIGNING_PROPERTIES'))
+        : new File(System.getProperty('user.home'), '.artemis-touchkit/signing.properties')
+def touchKitSigningProperties = new Properties()
+def touchKitReleaseRequested = gradle.startParameter.taskNames.any {
+    it.toLowerCase().contains('release')
+}
+
+if (touchKitSigningPropertiesFile.isFile()) {
+    touchKitSigningPropertiesFile.withInputStream {
+        touchKitSigningProperties.load(it)
+    }
+
+    ['storeFile', 'storePassword', 'keyAlias', 'keyPassword'].each { propertyName ->
+        if (!touchKitSigningProperties.getProperty(propertyName)) {
+            throw new GradleException("Missing ${propertyName} in ${touchKitSigningPropertiesFile}")
+        }
+    }
+}
+else if (touchKitReleaseRequested) {
+    throw new GradleException(
+            "TouchKit release signing is not configured. Run " +
+                    "scripts/create-touchkit-release-keystore.ps1 first, or set " +
+                    "ARTEMIS_TOUCHKIT_SIGNING_PROPERTIES.")
+}
 
 android {
     ndkVersion "27.0.12077973"
@@ -11,8 +39,8 @@ android {
         minSdk 21
         targetSdk 34
 
-        versionName "20.2.6"
-        versionCode = 57
+        versionName "20.2.6-touchkit-beta.5"
+        versionCode = 62
 
         // Generate native debug symbols to allow Google Play to symbolicate our native crashes
         ndk.debugSymbolLevel = 'FULL'
@@ -54,9 +82,9 @@ android {
 
             resValue "string",
                     "obtainium_app_url",
-                    "https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.limelight.noir%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2FClassicOldSong%2Fmoonlight-android%22%2C%22author%22%3A%22ClassicOldSong%22%2C%22name%22%3A%22Artemis%22%2C%22additionalSettings%22%3A%22%7B%5C%22apkFilterRegEx%5C%22%3A%5C%22nonRoot%5C%22%2C%5C%22matchGroutToUse%5C%22%3A%5C%22%241%5C%22%2C%5C%22versionExtractionRegEx%5C%22%3A%5C%22v(.%2B)%5C%22%7D%22%7D"
+                    "https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.litchicore.artemis.touchkit.noir%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2FLitchiCore%2Fmoonlight-android%22%2C%22author%22%3A%22LitchiCore%22%2C%22name%22%3A%22Artemis%20TouchKit%22%2C%22additionalSettings%22%3A%22%7B%5C%22apkFilterRegEx%5C%22%3A%5C%22nonRoot_game-arm64-v8a-release%5C%5C%5C%5C.apk%24%5C%22%2C%5C%22matchGroupToUse%5C%22%3A%5C%22%241%5C%22%2C%5C%22versionExtractionRegEx%5C%22%3A%5C%22v(.%2B)%5C%22%7D%22%7D"
 
-            applicationId "com.limelight"
+            applicationId "com.litchicore.artemis.touchkit"
             dimension "root"
             buildConfigField "boolean", "ROOT_BUILD", "false"
         }
@@ -93,17 +121,31 @@ android {
         }
     }
 
+    signingConfigs {
+        touchKitRelease {
+            if (touchKitSigningPropertiesFile.isFile()) {
+                storeFile file(touchKitSigningProperties.getProperty('storeFile'))
+                storePassword touchKitSigningProperties.getProperty('storePassword')
+                keyAlias touchKitSigningProperties.getProperty('keyAlias')
+                keyPassword touchKitSigningProperties.getProperty('keyPassword')
+            }
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix ".noirdebug"
-            resValue "string", "app_label", "Diana"
+            resValue "string", "app_label", "TouchKit Debug"
             resValue "string", "app_label_root", "Diana (Root)"
-            resValue "string", "app_label_game", "Diana (Game)"
+            resValue "string", "app_label_game", "TouchKit Debug"
 
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
         release {
+            if (touchKitSigningPropertiesFile.isFile()) {
+                signingConfig signingConfigs.touchKitRelease
+            }
             // To whomever is releasing/using an APK in release mode with
             // Moonlight's official application ID, please stop. I see every
             // single one of your crashes in my Play Console and it makes
@@ -135,9 +177,9 @@ android {
             //
             // TL;DR: Leave the following line alone!
             applicationIdSuffix ".noir"
-            resValue "string", "app_label", "Artemis"
-            resValue "string", "app_label_root", "Artemis (Root)"
-            resValue "string", "app_label_game", "Artemis (Game)"
+            resValue "string", "app_label", "Artemis TouchKit"
+            resValue "string", "app_label_root", "Artemis TouchKit (Root)"
+            resValue "string", "app_label_game", "Artemis TouchKit"
 
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'

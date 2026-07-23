@@ -147,13 +147,44 @@ public class KeyboardDigitalPadButton extends keyBoardVirtualControllerElement{
         );
     }
 
-    private void newDirectionCallback(int direction) {
-        _DBG("direction: " + direction);
+    @Override
+    protected boolean shouldDrawGrayBackground() {
+        return true;
+    }
+
+    private void updateDirection(int newDirection) {
+        int changedDirections = changedDirections(direction, newDirection);
+        if (changedDirections == 0) {
+            return;
+        }
+        direction = newDirection;
+        _DBG("direction: " + direction + " changed: " + changedDirections);
 
         // notify listeners
         for (DigitalPadListener listener : listeners) {
-            listener.onDirectionChange(direction);
+            listener.onDirectionChange(direction, changedDirections);
         }
+    }
+
+    static int changedDirections(int previousDirection, int newDirection) {
+        return previousDirection ^ newDirection;
+    }
+
+    static int directionForPosition(float x, float y, int width, int height) {
+        int newDirection = DIGITAL_PAD_DIRECTION_NO_DIRECTION;
+        if (x < width * 0.33f) {
+            newDirection |= DIGITAL_PAD_DIRECTION_LEFT;
+        }
+        if (x > width * 0.66f) {
+            newDirection |= DIGITAL_PAD_DIRECTION_RIGHT;
+        }
+        if (y > height * 0.66f) {
+            newDirection |= DIGITAL_PAD_DIRECTION_DOWN;
+        }
+        if (y < height * 0.33f) {
+            newDirection |= DIGITAL_PAD_DIRECTION_UP;
+        }
+        return newDirection;
     }
 
     @Override
@@ -162,29 +193,15 @@ public class KeyboardDigitalPadButton extends keyBoardVirtualControllerElement{
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
             case MotionEvent.ACTION_MOVE: {
-                direction = 0;
-
-                if (event.getX() < getPercent(getWidth(), 33)) {
-                    direction |= DIGITAL_PAD_DIRECTION_LEFT;
-                }
-                if (event.getX() > getPercent(getWidth(), 66)) {
-                    direction |= DIGITAL_PAD_DIRECTION_RIGHT;
-                }
-                if (event.getY() > getPercent(getHeight(), 66)) {
-                    direction |= DIGITAL_PAD_DIRECTION_DOWN;
-                }
-                if (event.getY() < getPercent(getHeight(), 33)) {
-                    direction |= DIGITAL_PAD_DIRECTION_UP;
-                }
-                newDirectionCallback(direction);
+                updateDirection(directionForPosition(event.getX(), event.getY(),
+                        getWidth(), getHeight()));
                 invalidate();
 
                 return true;
             }
             case MotionEvent.ACTION_CANCEL:
             case MotionEvent.ACTION_UP: {
-                direction = 0;
-                newDirectionCallback(direction);
+                updateDirection(DIGITAL_PAD_DIRECTION_NO_DIRECTION);
                 invalidate();
 
                 return true;
@@ -197,6 +214,6 @@ public class KeyboardDigitalPadButton extends keyBoardVirtualControllerElement{
     }
 
     public interface DigitalPadListener {
-        void onDirectionChange(int direction);
+        void onDirectionChange(int direction, int changedDirections);
     }
 }

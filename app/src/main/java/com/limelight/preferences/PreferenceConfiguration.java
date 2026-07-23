@@ -56,6 +56,8 @@ public class PreferenceConfiguration {
     private static final String HOST_AUDIO_PREF_STRING = "checkbox_host_audio";
     private static final String DEADZONE_PREF_STRING = "seekbar_deadzone";
     private static final String OSC_OPACITY_PREF_STRING = "seekbar_osc_opacity";
+    private static final String TOUCHKIT_OVERLAY_OPACITY_PREF_STRING =
+            "seekbar_touchkit_overlay_opacity";
     private static final String LANGUAGE_PREF_STRING = "list_languages";
     private static final String SMALL_ICONS_PREF_STRING = "checkbox_small_icon_mode";
     private static final String MULTI_CONTROLLER_PREF_STRING = "checkbox_multi_controller";
@@ -239,6 +241,7 @@ public class PreferenceConfiguration {
     public int framePacingWarpFactor = 0;
     public int deadzonePercentage;
     public int oscOpacity;
+    public int touchkitOverlayOpacity;
     public int oscKeyboardOpacity;
     public int onscreenKeyboardHeight;
     public boolean onscreenKeyboardAutoFitDisabled;
@@ -282,6 +285,11 @@ public class PreferenceConfiguration {
     public boolean enableBackMenu;
     public boolean enableFloatingButton;
     public boolean showOverlayZoomToggleButton;
+    public boolean touchkitCloudGamingMode;
+    public boolean touchkitLinearPointer;
+    public boolean touchkitDisableGestures;
+    public boolean touchkitAdjustableOverlay;
+    public boolean touchkitShowButtonDescriptions;
 
     //Invert video width/height
     public boolean autoInvertVideoResolution;
@@ -872,6 +880,8 @@ private static int getFramePacingValue(Context context) {
         config.deadzonePercentage = prefs.getInt(DEADZONE_PREF_STRING, DEFAULT_DEADZONE);
 
         config.oscOpacity = prefs.getInt(OSC_OPACITY_PREF_STRING, DEFAULT_OPACITY);
+        config.touchkitOverlayOpacity = prefs.getInt(
+                TOUCHKIT_OVERLAY_OPACITY_PREF_STRING, 100);
 
         config.language = prefs.getString(LANGUAGE_PREF_STRING, DEFAULT_LANGUAGE);
 
@@ -906,6 +916,7 @@ private static int getFramePacingValue(Context context) {
                 break;
             case 2: // Trackpad (natural)
             case 3: // Trackpad (gaming)
+            case 6: // TouchKit cloud gaming
                 config.enableMultiTouchScreen = false;
                 config.touchscreenTrackpad = true;
                 break;
@@ -980,6 +991,21 @@ private static int getFramePacingValue(Context context) {
         config.enableMouseLocalCursor=prefs.getBoolean("checkbox_mouse_local_cursor",false);
 
         config.enableMultiTouchGestures = prefs.getBoolean("checkbox_multi_touch_gestures", false);
+
+        config.touchkitCloudGamingMode = prefs.getBoolean(
+                "checkbox_touchkit_cloud_gaming_mode", false) ||
+                TouchKitMouseModeSync.isCloudMode(
+                        prefs.getString("mouse_mode_list", TouchKitMouseModeSync.DEFAULT_MODE));
+        config.touchkitLinearPointer = "linear".equals(
+                prefs.getString("list_touchkit_input_mode", "accelerated"));
+        config.touchkitDisableGestures = prefs.getBoolean(
+                "checkbox_touchkit_disable_gestures", false);
+        // The old "show on all streams" switch controlled the same overlay. Use it
+        // as a one-way fallback for upgrades, while keeping a single setting in the UI.
+        config.touchkitAdjustableOverlay = prefs.contains("checkbox_touchkit_adjustable_overlay")
+                ? prefs.getBoolean("checkbox_touchkit_adjustable_overlay", false)
+                : prefs.getBoolean(CHECKBOX_ENABLE_KEYBOARD, false);
+        config.touchkitShowButtonDescriptions = prefs.getBoolean("checkbox_touchkit_show_descriptions", true);
 
 
         config.enablePerfOverlayLiteDialog=prefs.getBoolean("checkbox_enable_perf_overlay_lite_dialog",false);

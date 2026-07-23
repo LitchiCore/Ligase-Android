@@ -19,6 +19,8 @@ gen/
 
 # Local configuration file (sdk path, etc)
 local.properties
+.android-sdk/
+build-touchkit*.log
 key/
 
 # Windows thumbnail db
