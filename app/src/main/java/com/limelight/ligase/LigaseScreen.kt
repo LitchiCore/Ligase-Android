@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -50,8 +49,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -66,7 +63,6 @@ import com.limelight.ligase.library.LigaseLibraryStatus
 import com.limelight.ligase.library.LigaseResolutionDto
 import com.limelight.ligase.library.LibraryLayoutMode
 import com.limelight.nvstream.http.ComputerDetails
-import com.limelight.nvstream.http.PairingManager
 
 enum class LigasePage(
     @StringRes val label: Int,
@@ -256,146 +252,6 @@ private fun LigasePageScaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
     ) { padding ->
         content(Modifier.padding(padding))
-    }
-}
-
-@Composable
-private fun HomePage(
-    hosts: List<ComputerDetails>,
-    onHostClick: (ComputerDetails) -> Unit,
-    onHostLongClick: (ComputerDetails) -> Unit,
-    onAddHost: () -> Unit,
-) {
-    LigasePageScaffold(stringResource(R.string.ligase_brand)) { pageModifier ->
-        if (hosts.isEmpty()) {
-            Column(
-                modifier = pageModifier
-                    .fillMaxSize()
-                    .padding(horizontal = 32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Surface(
-                    modifier = Modifier.size(88.dp),
-                    shape = RoundedCornerShape(28.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_computer),
-                        contentDescription = null,
-                        modifier = Modifier.padding(24.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                }
-                Spacer(Modifier.height(24.dp))
-                Text(
-                    text = stringResource(R.string.ligase_home_empty_title),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                )
-                Spacer(Modifier.height(10.dp))
-                Text(
-                    text = stringResource(R.string.ligase_home_empty_summary),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
-                Spacer(Modifier.height(26.dp))
-                Button(onClick = onAddHost) {
-                    Text(stringResource(R.string.ligase_add_computer))
-                }
-            }
-        } else {
-            val bottomPadding = ligaseNavigationContentBottomPadding()
-            LazyColumn(
-                modifier = pageModifier.fillMaxSize(),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                    start = 20.dp,
-                    top = 12.dp,
-                    end = 20.dp,
-                    bottom = bottomPadding,
-                ),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text(
-                            text = stringResource(R.string.ligase_home_subtitle),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Button(onClick = onAddHost) {
-                            Text(stringResource(R.string.ligase_add_computer))
-                        }
-                    }
-                }
-                items(hosts, key = { it.uuid ?: it.name }) { host ->
-                    HostCard(host, onHostClick, onHostLongClick)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun HostCard(
-    host: ComputerDetails,
-    onClick: (ComputerDetails) -> Unit,
-    onLongClick: (ComputerDetails) -> Unit,
-) {
-    val status = when {
-        host.state == ComputerDetails.State.UNKNOWN -> R.string.ligase_host_checking
-        host.state == ComputerDetails.State.OFFLINE -> R.string.ligase_host_offline
-        host.pairState != PairingManager.PairState.PAIRED -> R.string.ligase_host_pair_required
-        else -> R.string.ligase_host_online
-    }
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .semantics { contentDescription = host.name }
-            .clickable(onClick = { onClick(host) }),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        ),
-    ) {
-        Row(
-            modifier = Modifier.padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Surface(
-                modifier = Modifier.size(56.dp),
-                shape = RoundedCornerShape(18.dp),
-                color = MaterialTheme.colorScheme.primaryContainer,
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_computer),
-                    contentDescription = null,
-                    modifier = Modifier.padding(14.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 16.dp),
-            ) {
-                Text(
-                    text = host.name,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = stringResource(status),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
     }
 }
 

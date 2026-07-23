@@ -203,7 +203,11 @@ fun LigaseLibraryPage(
                 }
                 visibleItems.isEmpty() -> {
                     item(span = { GridItemSpan(maxLineSpan) }) {
-                        LibraryMessage(loading = false, query = query)
+                        LibraryMessage(
+                            loading = false,
+                            query = query,
+                            onRefresh = if (query.isBlank()) onRetrySync else null,
+                        )
                     }
                 }
                 else -> {
@@ -612,6 +616,7 @@ private fun GamesSectionHeader(
 private fun LibraryMessage(
     loading: Boolean,
     query: String,
+    onRefresh: (() -> Unit)? = null,
 ) {
     Column(
         modifier = Modifier
@@ -623,14 +628,33 @@ private fun LibraryMessage(
             CircularProgressIndicator(modifier = Modifier.size(32.dp))
             Spacer(Modifier.height(14.dp))
         }
-        Text(
-            text = when {
-                loading -> stringResource(R.string.ligase_library_loading)
-                query.isBlank() -> stringResource(R.string.ligase_library_empty)
-                else -> stringResource(R.string.ligase_library_no_results)
-            },
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        if (!loading && query.isBlank()) {
+            Text(
+                text = stringResource(R.string.ligase_library_empty),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.ligase_library_empty_summary),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (onRefresh != null) {
+                Spacer(Modifier.height(20.dp))
+                androidx.compose.material3.Button(onClick = onRefresh) {
+                    Text(stringResource(R.string.ligase_refresh))
+                }
+            }
+        } else {
+            Text(
+                text = if (loading) {
+                    stringResource(R.string.ligase_library_loading)
+                } else {
+                    stringResource(R.string.ligase_library_no_results)
+                },
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

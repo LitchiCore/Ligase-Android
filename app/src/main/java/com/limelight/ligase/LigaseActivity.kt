@@ -30,6 +30,7 @@ import androidx.preference.PreferenceManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import com.limelight.LimeLog
 import com.limelight.R
 import com.limelight.binding.PlatformBinding
 import com.limelight.computers.ComputerManagerListener
@@ -47,6 +48,7 @@ import com.limelight.ligase.library.LigaseSyncRepository
 import com.limelight.ligase.library.LigaseSyncSnapshotDto
 import com.limelight.ligase.library.LibraryLayoutMode
 import com.limelight.nvstream.http.ComputerDetails
+import com.limelight.nvstream.http.HostHttpResponseException
 import com.limelight.nvstream.http.NvHTTP
 import com.limelight.nvstream.http.NvApp
 import com.limelight.nvstream.http.PairingManager
@@ -531,7 +533,8 @@ class LigaseActivity : AppCompatActivity() {
                     updateLibraryFromRaw(host.rawAppList)
                     startAppListUpdates()
                 }
-            } catch (_: Exception) {
+            } catch (error: Exception) {
+                LimeLog.warning("Ligase library sync failed: $error")
                 runOnUiThread {
                     if (
                         libraryHost?.uuid != host.uuid ||
@@ -581,6 +584,9 @@ class LigaseActivity : AppCompatActivity() {
 
     private fun handleSyncWriteFailure(host: ComputerDetails, error: Throwable) {
         if (libraryHost?.uuid != host.uuid) return
+        if (error is HostHttpResponseException && !error.responseBody.isNullOrBlank()) {
+            LimeLog.warning("Ligase sync write error response: ${error.responseBody}")
+        }
         if (LigaseSyncRepository.isRevisionConflict(error)) {
             toast(R.string.ligase_sync_revision_conflict)
             fetchLibrarySync(force = true)
@@ -775,31 +781,29 @@ class LigaseActivity : AppCompatActivity() {
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.save, null)
             .create()
-        dialog.setOnShowListener {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                if (allowUseGlobal && globalChoice.isChecked) {
-                    dialog.dismiss()
-                    onSave(null)
-                    return@setOnClickListener
-                }
-                val width = widthInput.text?.toString()?.toIntOrNull()
-                val height = heightInput.text?.toString()?.toIntOrNull()
-                val resolution = if (width != null && height != null) {
-                    LigaseResolutionDto(width, height)
-                } else {
-                    null
-                }
-                if (resolution == null || !resolution.isValid()) {
-                    val error = getString(R.string.ligase_resolution_invalid)
-                    widthLayout.error = error
-                    heightLayout.error = error
-                    return@setOnClickListener
-                }
-                dialog.dismiss()
-                onSave(resolution)
-            }
-        }
         dialog.show()
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            if (allowUseGlobal && globalChoice.isChecked) {
+                dialog.dismiss()
+                onSave(null)
+                return@setOnClickListener
+            }
+            val width = widthInput.text?.toString()?.toIntOrNull()
+            val height = heightInput.text?.toString()?.toIntOrNull()
+            val resolution = if (width != null && height != null) {
+                LigaseResolutionDto(width, height)
+            } else {
+                null
+            }
+            if (resolution == null || !resolution.isValid()) {
+                val error = getString(R.string.ligase_resolution_invalid)
+                widthLayout.error = error
+                heightLayout.error = error
+                return@setOnClickListener
+            }
+            dialog.dismiss()
+            onSave(resolution)
+        }
     }
 
     private fun updateGlobalResolution(
@@ -814,6 +818,9 @@ class LigaseActivity : AppCompatActivity() {
                     snapshot.streaming.revision,
                     resolution,
                 )
+                LimeLog.info(
+                    "Ligase global resolution saved at streaming revision ${updated.revision}",
+                )
                 runOnUiThread {
                     if (libraryHost?.uuid != host.uuid) return@runOnUiThread
                     librarySyncSnapshot =
@@ -821,6 +828,7 @@ class LigaseActivity : AppCompatActivity() {
                     toast(R.string.ligase_sync_saved)
                 }
             } catch (error: Exception) {
+                LimeLog.warning("Ligase global resolution write failed: $error")
                 runOnUiThread { handleSyncWriteFailure(host, error) }
             }
         }.start()
@@ -832,6 +840,10 @@ class LigaseActivity : AppCompatActivity() {
         appUuid: String,
         resolution: LigaseResolutionDto?,
     ) {
+        LimeLog.info(
+            "Ligase app resolution write queued for $appUuid at base revision " +
+                snapshot.streaming.revision,
+        )
         Thread {
             try {
                 val updated = syncRepository.updateAppResolution(
@@ -840,6 +852,9 @@ class LigaseActivity : AppCompatActivity() {
                     appUuid,
                     resolution,
                 )
+                LimeLog.info(
+                    "Ligase app resolution saved at streaming revision ${updated.revision}",
+                )
                 runOnUiThread {
                     if (libraryHost?.uuid != host.uuid) return@runOnUiThread
                     librarySyncSnapshot =
@@ -847,6 +862,7 @@ class LigaseActivity : AppCompatActivity() {
                     toast(R.string.ligase_sync_saved)
                 }
             } catch (error: Exception) {
+                LimeLog.warning("Ligase app resolution write failed: $error")
                 runOnUiThread { handleSyncWriteFailure(host, error) }
             }
         }.start()
@@ -869,24 +885,22 @@ class LigaseActivity : AppCompatActivity() {
             .setNegativeButton(R.string.cancel, null)
             .setPositiveButton(R.string.proceed, null)
             .create()
-        dialog.setOnShowListener {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val address = input.text?.toString()?.trim().orEmpty()
-                val parsed = parseAddress(address)
-                if (parsed == null) {
-                    inputLayout.error = getString(R.string.addpc_unknown_host)
-                    return@setOnClickListener
-                }
-                dialog.dismiss()
-                addHost(parsed.first, parsed.second)
-            }
-            input.requestFocus()
-            input.post {
-                (getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager)
-                    .showSoftInput(input, InputMethodManager.SHOW_IMPLICIT)
-            }
-        }
         dialog.show()
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            val address = input.text?.toString()?.trim().orEmpty()
+            val parsed = parseAddress(address)
+            if (parsed == null) {
+                inputLayout.error = getString(R.string.addpc_unknown_host)
+                return@setOnClickListener
+            }
+            dialog.dismiss()
+            addHost(parsed.first, parsed.second)
+        }
+        input.requestFocus()
+        input.post {
+            (getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager)
+                .showSoftInput(input, InputMethodManager.SHOW_IMPLICIT)
+        }
     }
 
     private fun parseAddress(raw: String): Pair<String, Int>? {

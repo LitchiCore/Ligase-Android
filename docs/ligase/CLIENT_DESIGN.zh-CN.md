@@ -21,6 +21,10 @@
 - 游戏库支持搜索、稳定排序值以及用户可选的列表/竖向海报布局。
 - 每个游戏卡片右下角提供独立设置入口；该入口与卡片启动点击隔离，用于选择
   “使用全局设置”或“自定义分辨率”。
+- 游戏的发现、添加、删除、可执行路径和 Steam App 管理只存在于 Ligase Host。
+  Android 不提供添加、导入、扫描或删除游戏入口，也不通过 API 修改游戏集合。
+  空游戏库引导用户到电脑端 Ligase Host 添加游戏，并仅提供刷新。
+- “添加电脑”属于 Android 的连接管理能力，与“添加游戏”严格区分。
 - 设置页提供串流输入、明亮/黑暗主题和语言（跟随系统、简体中文、English）。
 - 高级串流设置采用渐进披露：全局分辨率位于设置页，单游戏覆盖位于卡片设置；
   均不进入首次启动主路径。
@@ -35,8 +39,25 @@
   TLS 行为；不能从 HTTP 端口推导 HTTPS 端口。
 - Android 只写排序和串流分辨率。应用的新增与删除只由 Host 管理。
 - 写入遇到 revision 冲突时重新拉取完整快照，提示用户重新操作，不自动重放旧写入。
+- NvHTTP 对非成功响应保留结构化错误体，便于 Sync 写入诊断；日志只能记录契约错误
+  JSON，不能记录客户端证书、私钥、TLS 密钥或配对秘密。
 - UI 不直接呈现 Sync v1、404、409、revision 等实现细节；失败状态提供升级 Host、
   检查 Host/网络或重试等下一步。
+
+## 多客户端可见性与配对演进
+
+- Host 后续 Sync item 的 `publishedToClients` 在 Android DTO 中必须是 nullable
+  Boolean；字段缺失按可见处理，即 `hostPublished = value != false`。
+- 本机隐藏按规范化小写 `(hostUniqueId, appUuid)` 分区，只存 Android 本地，
+  不上传、不改变 Host revision；有效可见性为 Host 已发布且不在本机隐藏集合中。
+- `desktop` 和 `virtualDesktop` 首版均不可隐藏。“已隐藏游戏”只能恢复本机隐藏，
+  不能覆盖 Host 全局隐藏。Android 仍不能写游戏集合或 Host publication。
+- attended-pairing v1 已完成跨端安全审议，但尚未实现。实现必须使用独立
+  `AttendedPairingRepository` / `AttendedPairingCoordinator`，按 Host 冻结契约执行
+  X25519、HKDF-SHA-256、ChaCha20-Poly1305、RFC 8785 JCS、DER 证书绑定、
+  双端 `XXXX-XXXX` 安全码、120 秒单调时钟超时及 fail-closed 清理。
+- 普通配对 UI 最终不显示 legacy PIN；旧 PIN 仅在 attended pairing 完成手机/平板
+  allow、reject、timeout、replay、restart 和 re-pair 验收前保留为高级兼容路径。
 
 ## 保留的 GameStream 传输 ABI
 
@@ -89,6 +110,21 @@ HDR 分层处理：
 - applist 的旧 `IsHdrSupported` 仅保留在底层兼容对象中，不能作为游戏内容 HDR
   能力或产品库元数据。
 
+## 开发期代码边界
+
+- Sync JSON DTO 与校验、Host 写请求集中在 `LigaseSyncRepository`；UI 不直接拼接路由
+  或 JSON。
+- `LigaseLibraryAdapter` 只接受成功的 Sync v1 快照，并按 UUID 合并 applist 启动参数；
+  旧 `fromGameStream` 产品库回退和临时 appId 身份已删除。
+- Compose 只消费明确的加载、就绪、不兼容和同步失败状态；旧电脑首页产品页面已删除，
+  避免与“游戏库即首页”长期并存。
+- 当前最高结构债务是 `LigaseActivity` 仍同时承担电脑连接协调、同步 UI state、写入、
+  启动和传统 View 弹窗。后续功能增长前应拆出可测试的 library state holder/coordinator，
+  但不得因此复制第二套状态源或改写稳定的配对与串流链。
+- Gson 反射读取的 Sync DTO 必须保留精确 R8 keep 规则；minified debug APK 也是
+  必测产物。传统 Material Dialog 的 positive button 必须在 `show()` 后绑定，避免
+  按钮只关闭弹窗而未触发添加电脑或分辨率写入；对应行为需有回归测试。
+
 ## 构建与验收
 
 Ligase 调试包必须构建 `nonRoot_gameDebug`：
@@ -110,3 +146,10 @@ ARM64 APK：
 若在线 Host 尚未部署 Sync v1，只能验收“不兼容、升级、重试”状态，不能声称
 游戏库同步、排序/分辨率写回、冲突恢复或 HDR 已端到端通过。部署新核心后还需
 逐项完成真实双端联合验收。
+
+2026-07-23 已在 V2353A 对隔离 Host `10.168.1.191:49989` 完成真实联合验收：
+Sync GET、UUID-only merge、排序、全局/单游戏分辨率、恢复全局继承、409 重拉且
+不重放、HDR 分层以及携带 `appuuid + appid` 的 1600×900 physical desktop launch
+均通过。AGS2-AL00 已验证横屏左侧导航、空电脑引导、手动添加与 Host 身份识别；
+第二台设备 legacy PIN 因隔离 Host 49990 管理凭据不可恢复而未完成提交，不能宣称
+平板配对/Sync 端到端通过。

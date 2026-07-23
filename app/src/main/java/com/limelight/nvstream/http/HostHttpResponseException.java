@@ -7,10 +7,16 @@ public class HostHttpResponseException extends IOException {
     
     private int errorCode;
     private String errorMsg;
-    
+    private String responseBody;
+
     public HostHttpResponseException(int errorCode, String errorMsg) {
+        this(errorCode, errorMsg, null);
+    }
+
+    public HostHttpResponseException(int errorCode, String errorMsg, String responseBody) {
         this.errorCode = errorCode;
         this.errorMsg = errorMsg;
+        this.responseBody = responseBody;
     }
     
     public int getErrorCode() {
@@ -19,6 +25,10 @@ public class HostHttpResponseException extends IOException {
     
     public String getErrorMessage() {
         return errorMsg;
+    }
+
+    public String getResponseBody() {
+        return responseBody;
     }
     
     @Override

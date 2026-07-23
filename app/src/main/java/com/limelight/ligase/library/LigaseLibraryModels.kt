@@ -52,18 +52,6 @@ enum class LigaseLibraryStatus {
     SYNC_ERROR,
 }
 
-/**
- * Future Host synchronization DTO. It intentionally contains no Windows path,
- * working directory, or command line fields.
- */
-data class HostLibrarySnapshotDto(
-    val schemaVersion: Int,
-    val revision: Long,
-    val updatedAt: String,
-    val sortMode: String,
-    val items: List<HostLibraryItemDto>,
-)
-
 data class HostLibraryItemDto(
     val id: String,
     val kind: String,
@@ -96,16 +84,7 @@ data class LigaseLibrarySyncDto(
     val updatedAt: String,
     val sortMode: String,
     val items: List<HostLibraryItemDto>,
-) {
-    fun asAdapterSnapshot(schemaVersion: Int): HostLibrarySnapshotDto =
-        HostLibrarySnapshotDto(
-            schemaVersion = schemaVersion,
-            revision = revision,
-            updatedAt = updatedAt,
-            sortMode = sortMode,
-            items = items,
-        )
-}
+)
 
 data class LigaseResolutionDto(
     val width: Int,
@@ -161,13 +140,6 @@ sealed interface LibraryItemKey {
     data class HostUuid(val uuid: String) : LibraryItemKey {
         override val stableValue: String = "uuid:$uuid"
     }
-
-    data class GameStreamFallback(
-        val hostUniqueId: String,
-        val appId: Int,
-    ) : LibraryItemKey {
-        override val stableValue: String = "gamestream:$hostUniqueId:$appId"
-    }
 }
 
 data class LigaseLibraryItem(
@@ -193,48 +165,15 @@ object LigaseLibraryAdapter {
     const val DESKTOP_UUID = "78A25216-F239-45BD-B4AA-F41C814066E9"
     const val VIRTUAL_DESKTOP_UUID = "8902CB19-674A-403D-A587-41B092E900BA"
 
-    fun fromGameStream(
-        hostUniqueId: String,
-        apps: List<NvApp>,
-    ): List<LigaseLibraryItem> = apps.map { app ->
-        val uuid = app.appUUID.normalizedUuidOrNull()
-        val kind = when (uuid) {
-            DESKTOP_UUID -> HostLibraryKind.DESKTOP
-            VIRTUAL_DESKTOP_UUID -> HostLibraryKind.VIRTUAL_DESKTOP
-            else -> null
-        }
-        LigaseLibraryItem(
-            key = uuid?.let(LibraryItemKey::HostUuid)
-                ?: LibraryItemKey.GameStreamFallback(hostUniqueId, app.appId),
-            name = when (kind) {
-                HostLibraryKind.DESKTOP -> "监控桌面"
-                HostLibraryKind.VIRTUAL_DESKTOP -> "虚拟桌面"
-                else -> app.appName
-            },
-            kind = kind,
-            hostAppUuid = uuid,
-            appId = app.appId,
-            steamAppId = null,
-            addedAt = null,
-            updatedAt = null,
-            lastPlayedAt = null,
-            launchApp = app,
-        )
-    }
-
-    /**
-     * Combines a future Host snapshot with the current GameStream app list.
-     * The Host owns metadata and ordering state; GameStream owns launchability.
-     */
-    fun fromHostSnapshot(
-        snapshot: HostLibrarySnapshotDto,
+    fun fromSyncSnapshot(
+        snapshot: LigaseSyncSnapshotDto,
         gameStreamApps: List<NvApp>,
     ): List<LigaseLibraryItem> {
         val launchApps = gameStreamApps.mapNotNull { app ->
             app.appUUID.normalizedUuidOrNull()?.let { it to app }
         }.toMap()
 
-        return snapshot.items.mapNotNull { dto ->
+        return snapshot.library.items.mapNotNull { dto ->
             val uuid = dto.id.normalizedUuidOrNull() ?: return@mapNotNull null
             val kind = HostLibraryKind.fromWireValue(dto.kind) ?: return@mapNotNull null
             val launchApp = launchApps[uuid]
@@ -257,15 +196,6 @@ object LigaseLibraryAdapter {
             )
         }
     }
-
-    fun fromSyncSnapshot(
-        snapshot: LigaseSyncSnapshotDto,
-        gameStreamApps: List<NvApp>,
-    ): List<LigaseLibraryItem> =
-        fromHostSnapshot(
-            snapshot = snapshot.library.asAdapterSnapshot(snapshot.schemaVersion),
-            gameStreamApps = gameStreamApps,
-        )
 
     fun visibleItems(
         items: List<LigaseLibraryItem>,

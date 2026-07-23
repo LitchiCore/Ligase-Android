@@ -546,16 +546,22 @@ public class NvHTTP {
             return body;
         }
         
-        // Unsuccessful, so close the response body
+        // Preserve structured error details for callers such as Ligase Sync.
+        String errorBody = null;
         if (body != null) {
-            body.close();
+            try {
+                errorBody = body.string();
+            }
+            catch (IOException ignored) {
+                body.close();
+            }
         }
         
         if (response.code() == 404) {
             throw new FileNotFoundException(completeUrl.toString());
         }
         else {
-            throw new HostHttpResponseException(response.code(), response.message());
+            throw new HostHttpResponseException(response.code(), response.message(), errorBody);
         }
     }
 

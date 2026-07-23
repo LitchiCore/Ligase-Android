@@ -890,7 +890,9 @@
     <string name="ligase_library_title">Game library</string>
     <string name="ligase_library_back">Back to computers</string>
     <string name="ligase_library_loading">Loading games…</string>
-    <string name="ligase_library_empty">This host has no available games</string>
+    <string name="ligase_library_empty">No games yet</string>
+    <string name="ligase_library_empty_summary">Add games in Ligase Host on your computer, then refresh this library.</string>
+    <string name="ligase_refresh">Refresh</string>
     <string name="ligase_library_no_results">No matching games</string>
     <string name="ligase_library_search_hint">Search games</string>
     <string name="ligase_library_sort_label">Sort by</string>

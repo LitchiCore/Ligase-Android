@@ -876,7 +876,9 @@
     <string name="ligase_library_title">游戏库</string>
     <string name="ligase_library_back">返回主机列表</string>
     <string name="ligase_library_loading">正在加载游戏…</string>
-    <string name="ligase_library_empty">这台主机暂无可用项目</string>
+    <string name="ligase_library_empty">还没有游戏</string>
+    <string name="ligase_library_empty_summary">请在电脑上的 Ligase Host 添加游戏，然后刷新游戏库。</string>
+    <string name="ligase_refresh">刷新</string>
     <string name="ligase_library_no_results">没有找到匹配项目</string>
     <string name="ligase_library_search_hint">搜索游戏</string>
     <string name="ligase_library_sort_label">排序方式</string>

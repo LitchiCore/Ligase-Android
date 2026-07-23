@@ -9,12 +9,16 @@ import org.junit.Test
 
 class LigaseLibraryAdapterTest {
     @Test
-    fun `GameStream adapter recognizes fixed system UUIDs and canonical labels`() {
-        val items = LigaseLibraryAdapter.fromGameStream(
-            hostUniqueId = "host-a",
-            apps = listOf(
-                app("Host supplied name", LigaseLibraryAdapter.VIRTUAL_DESKTOP_UUID, 9),
-                app("Another host name", LigaseLibraryAdapter.DESKTOP_UUID.lowercase(), 8),
+    fun `Sync adapter recognizes system kinds and uses canonical labels`() {
+        val snapshot = syncSnapshot(
+            item(LigaseLibraryAdapter.VIRTUAL_DESKTOP_UUID, HostLibraryKind.VIRTUAL_DESKTOP, "Host supplied name"),
+            item(LigaseLibraryAdapter.DESKTOP_UUID, HostLibraryKind.DESKTOP, "Another host name"),
+        )
+        val items = LigaseLibraryAdapter.fromSyncSnapshot(
+            snapshot,
+            listOf(
+                app("Protocol virtual", LigaseLibraryAdapter.VIRTUAL_DESKTOP_UUID, 9),
+                app("Protocol desktop", LigaseLibraryAdapter.DESKTOP_UUID.lowercase(), 8),
             ),
         )
 
@@ -29,25 +33,29 @@ class LigaseLibraryAdapterTest {
     }
 
     @Test
-    fun `GameStream adapter never uses display name as fallback identity`() {
-        val first = LigaseLibraryAdapter.fromGameStream(
-            "host-a",
-            listOf(app("Same name", "", 11)),
-        ).single()
-        val second = LigaseLibraryAdapter.fromGameStream(
-            "host-a",
-            listOf(app("Same name", "", 12)),
+    fun `Sync adapter never uses display name as fallback identity`() {
+        val syncUuid = "A0000000-0000-0000-0000-000000000001"
+        val snapshot = syncSnapshot(item(syncUuid, HostLibraryKind.STEAM, "Same name"))
+        val mapped = LigaseLibraryAdapter.fromSyncSnapshot(
+            snapshot,
+            listOf(app("Same name", "B0000000-0000-0000-0000-000000000002", 12)),
         ).single()
 
-        assertEquals("gamestream:host-a:11", first.key.stableValue)
-        assertEquals("gamestream:host-a:12", second.key.stableValue)
-        assertFalse(first.key == second.key)
+        assertEquals("uuid:$syncUuid", mapped.key.stableValue)
+        assertFalse(mapped.isLaunchable)
+        assertNull(mapped.appId)
     }
 
     @Test
     fun `system entries remain first and fixed while ordinary games are sorted`() {
-        val items = LigaseLibraryAdapter.fromGameStream(
-            "host-a",
+        val snapshot = syncSnapshot(
+            item("A0000000-0000-0000-0000-000000000001", HostLibraryKind.STEAM, "Zeta"),
+            item(LigaseLibraryAdapter.VIRTUAL_DESKTOP_UUID, HostLibraryKind.VIRTUAL_DESKTOP, "Virtual"),
+            item("A0000000-0000-0000-0000-000000000002", HostLibraryKind.EXECUTABLE, "Alpha"),
+            item(LigaseLibraryAdapter.DESKTOP_UUID, HostLibraryKind.DESKTOP, "Desktop"),
+        )
+        val items = LigaseLibraryAdapter.fromSyncSnapshot(
+            snapshot,
             listOf(
                 app("Zeta", "A0000000-0000-0000-0000-000000000001", 1),
                 app("Virtual", LigaseLibraryAdapter.VIRTUAL_DESKTOP_UUID, 2),
@@ -71,26 +79,16 @@ class LigaseLibraryAdapterTest {
     @Test
     fun `future snapshot metadata is authoritative but launch app remains GameStream`() {
         val launchApp = app("Protocol name", "A0000000-0000-0000-0000-000000000001", 42)
-        val snapshot = HostLibrarySnapshotDto(
-            schemaVersion = 1,
-            revision = 12,
-            updatedAt = "2026-07-23T04:30:00Z",
-            sortMode = HostSortMode.ADDED_NEWEST.wireValue,
-            items = listOf(
-                HostLibraryItemDto(
-                    id = launchApp.appUUID,
-                    kind = HostLibraryKind.STEAM.wireValue,
-                    name = "Host library name",
-                    steamAppId = 123456,
-                    addedAt = "2026-07-22T04:30:00Z",
-                    updatedAt = "2026-07-23T04:30:00Z",
-                    lastPlayedAt = null,
-                    system = false,
-                ),
+        val snapshot = syncSnapshot(
+            item(
+                id = launchApp.appUUID,
+                kind = HostLibraryKind.STEAM,
+                name = "Host library name",
+                steamAppId = 123456,
             ),
         )
 
-        val mapped = LigaseLibraryAdapter.fromHostSnapshot(snapshot, listOf(launchApp)).single()
+        val mapped = LigaseLibraryAdapter.fromSyncSnapshot(snapshot, listOf(launchApp)).single()
 
         assertEquals("Host library name", mapped.name)
         assertEquals(HostLibraryKind.STEAM, mapped.kind)
@@ -101,26 +99,15 @@ class LigaseLibraryAdapterTest {
 
     @Test
     fun `sync snapshot retains unavailable item but disables launch`() {
-        val snapshot = HostLibrarySnapshotDto(
-            schemaVersion = 1,
-            revision = 1,
-            updatedAt = "2026-07-23T04:30:00Z",
-            sortMode = HostSortMode.NAME_ASCENDING.wireValue,
-            items = listOf(
-                HostLibraryItemDto(
-                    id = LigaseLibraryAdapter.VIRTUAL_DESKTOP_UUID,
-                    kind = HostLibraryKind.VIRTUAL_DESKTOP.wireValue,
-                    name = "Virtual",
-                    steamAppId = null,
-                    addedAt = "2026-07-23T04:30:00Z",
-                    updatedAt = "2026-07-23T04:30:00Z",
-                    lastPlayedAt = null,
-                    system = true,
-                ),
+        val snapshot = syncSnapshot(
+            item(
+                LigaseLibraryAdapter.VIRTUAL_DESKTOP_UUID,
+                HostLibraryKind.VIRTUAL_DESKTOP,
+                "Virtual",
             ),
         )
 
-        val item = LigaseLibraryAdapter.fromHostSnapshot(snapshot, emptyList()).single()
+        val item = LigaseLibraryAdapter.fromSyncSnapshot(snapshot, emptyList()).single()
         assertEquals(HostLibraryKind.VIRTUAL_DESKTOP, item.kind)
         assertFalse(item.isLaunchable)
         assertNull(item.launchApp)
@@ -174,4 +161,38 @@ class LigaseLibraryAdapterTest {
 
     private fun app(name: String, uuid: String, id: Int): NvApp =
         NvApp(name, uuid, id, false)
+
+    private fun item(
+        id: String,
+        kind: HostLibraryKind,
+        name: String,
+        steamAppId: Long? = null,
+    ) = HostLibraryItemDto(
+        id = id,
+        kind = kind.wireValue,
+        name = name,
+        steamAppId = steamAppId,
+        addedAt = "2026-07-22T04:30:00Z",
+        updatedAt = "2026-07-23T04:30:00Z",
+        lastPlayedAt = null,
+        system = kind.isSystem,
+    )
+
+    private fun syncSnapshot(vararg items: HostLibraryItemDto) = LigaseSyncSnapshotDto(
+        schemaVersion = 1,
+        capabilities = LigaseCapabilitiesDto(hdrEncodingSupported = true),
+        library = LigaseLibrarySyncDto(
+            revision = 12,
+            updatedAt = "2026-07-23T04:30:00Z",
+            sortMode = HostSortMode.NAME_ASCENDING.wireValue,
+            items = items.toList(),
+        ),
+        streaming = LigaseStreamingSyncDto(
+            schemaVersion = 1,
+            revision = 4,
+            updatedAt = "2026-07-23T04:30:00Z",
+            globalResolution = LigaseResolutionDto(1920, 1080),
+            apps = emptyMap(),
+        ),
+    )
 }
