@@ -238,13 +238,13 @@ class LigaseActivity : AppCompatActivity() {
         if (polling || !foreground) return
         binder.startPolling(ComputerManagerListener { details ->
             runOnUiThread {
-                val index = hosts.indexOfFirst { it.uuid == details.uuid }
+                val index = hosts.indexOfFirst { it.uuid.equals(details.uuid, ignoreCase = true) }
                 if (index >= 0) hosts[index] = details
                 else {
                     hosts += details
                     hosts.sortBy { it.name.lowercase() }
                 }
-                if (libraryHost?.uuid == details.uuid) {
+                if (libraryHost?.uuid?.equals(details.uuid, ignoreCase = true) == true) {
                     libraryHost = details
                     libraryRunningAppId = details.runningGameId
                     handleSelectedHostCapabilities(details)
@@ -453,11 +453,11 @@ class LigaseActivity : AppCompatActivity() {
     }
 
     private fun removeHost(host: ComputerDetails) {
-        val wasSelected = libraryHost?.uuid == host.uuid
+        val wasSelected = libraryHost?.uuid?.equals(host.uuid, ignoreCase = true) == true
         if (wasSelected) clearLibraryState()
         managerBinder?.removeComputer(host)
         DiskAssetLoader(this).deleteAssetsForComputer(host.uuid)
-        hosts.removeAll { it.uuid == host.uuid }
+        hosts.removeAll { it.uuid.equals(host.uuid, ignoreCase = true) }
         if (wasSelected) selectDefaultHostIfNeeded()
     }
 

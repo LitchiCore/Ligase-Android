@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Locale;
 import java.util.Stack;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -46,12 +47,14 @@ import org.xmlpull.v1.XmlPullParserFactory;
 
 import com.limelight.BuildConfig;
 import com.limelight.LimeLog;
+import com.limelight.ligase.endpoint.LigaseScopedEndpointDns;
 import com.limelight.nvstream.ConnectionContext;
 import com.limelight.nvstream.http.PairingManager.PairState;
 import com.limelight.nvstream.jni.MoonBridge;
 import com.limelight.utils.DeviceUtils;
 
 import okhttp3.ConnectionPool;
+import okhttp3.Dns;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -111,7 +114,9 @@ public class NvHTTP {
         throw new IllegalStateException("No X509 trust manager found");
     }
 
-    private void initializeHttpState(final LimelightCryptoProvider cryptoProvider) {
+    private void initializeHttpState(
+            final LimelightCryptoProvider cryptoProvider,
+            final Dns endpointDns) {
         keyManager = new X509KeyManager() {
             public String chooseClientAlias(String[] keyTypes,
                     Principal[] issuers, Socket socket) { return "Limelight-RSA"; }
@@ -177,6 +182,7 @@ public class NvHTTP {
         httpClientLongConnectTimeout = new OkHttpClient.Builder()
                 .connectionPool(new ConnectionPool(0, 1, TimeUnit.MILLISECONDS))
                 .hostnameVerifier(hv)
+                .dns(endpointDns == null ? Dns.SYSTEM : endpointDns)
                 .readTimeout(READ_TIMEOUT, TimeUnit.MILLISECONDS)
                 .connectTimeout(LONG_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS)
                 .proxy(Proxy.NO_PROXY)
@@ -184,6 +190,7 @@ public class NvHTTP {
 
         httpClientShortConnectTimeout = httpClientLongConnectTimeout.newBuilder()
                 .connectTimeout(SHORT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS)
+                .callTimeout(SHORT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS)
                 .build();
 
         httpClientLongConnectNoReadTimeout = httpClientLongConnectTimeout.newBuilder()
@@ -208,8 +215,6 @@ public class NvHTTP {
 
         this.serverCert = serverCert;
 
-        initializeHttpState(cryptoProvider);
-
         this.httpsPort = httpsPort;
 
         try {
@@ -218,6 +223,11 @@ public class NvHTTP {
             // for what OkHTTP thinks is an IPv6 address. Normalize it into IPv4 form
             // to avoid triggering this bug.
             String addressString = address.address;
+            LigaseScopedEndpointDns scopedDns =
+                    LigaseScopedEndpointDns.fromLegacyAddress(addressString);
+            if (scopedDns != null) {
+                addressString = LigaseScopedEndpointDns.SYNTHETIC_HOST;
+            }
             if (addressString.contains(":") && addressString.contains(".")) {
                 InetAddress addr = InetAddress.getByName(addressString);
                 if (addr instanceof Inet4Address) {
@@ -230,6 +240,7 @@ public class NvHTTP {
                     .host(addressString)
                     .port(address.port)
                     .build();
+            initializeHttpState(cryptoProvider, scopedDns);
         } catch (IllegalArgumentException e) {
             // Encapsulate IllegalArgumentException into IOException for callers to handle more easily
             throw new IOException(e);
@@ -407,7 +418,7 @@ public class NvHTTP {
         }
 
         // UUID is mandatory to determine which machine is responding
-        details.uuid = getXmlString(serverInfo, "uniqueid", true);
+        details.uuid = getXmlString(serverInfo, "uniqueid", true).toLowerCase(Locale.ROOT);
 
         String permStr = getXmlString(serverInfo, "Permission", false);
         if (permStr != null) {

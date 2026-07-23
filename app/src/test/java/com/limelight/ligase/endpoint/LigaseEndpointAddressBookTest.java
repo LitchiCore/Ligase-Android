@@ -197,4 +197,41 @@ public class LigaseEndpointAddressBookTest {
             context.deleteDatabase("computers4.db");
         }
     }
+
+    @Test
+    public void databaseTreatsHostUuidCaseAsOneIdentity() {
+        Context context = ApplicationProvider.getApplicationContext();
+        context.deleteDatabase("computers4.db");
+        try {
+            ComputerDatabaseManager manager = new ComputerDatabaseManager(context);
+            ComputerDetails uppercase = new ComputerDetails();
+            uppercase.uuid = "53BEB7EC-9788-CC23-461A-061F153029A5";
+            uppercase.name = "Ligase Host";
+            uppercase.manualAddress =
+                    new ComputerDetails.AddressTuple("10.168.1.191", 49989);
+            manager.updateComputer(uppercase);
+
+            ComputerDetails lowercase = new ComputerDetails();
+            lowercase.uuid = "53beb7ec-9788-cc23-461a-061f153029a5";
+            lowercase.name = "Ligase Host";
+            lowercase.ipv6Address = new ComputerDetails.AddressTuple(
+                    "2409:8a6c:172:c8c0:23ce:699d:3592:ad65",
+                    49989);
+            manager.updateComputer(lowercase);
+            manager.close();
+
+            SQLiteDatabase raw = context.openOrCreateDatabase("computers4.db", 0, null);
+            android.database.Cursor cursor = raw.rawQuery(
+                    "SELECT UUID FROM Computers WHERE LOWER(UUID)=?",
+                    new String[]{lowercase.uuid});
+            assertEquals(1, cursor.getCount());
+            assertTrue(cursor.moveToFirst());
+            assertEquals(lowercase.uuid, cursor.getString(0));
+            cursor.close();
+            raw.close();
+        }
+        finally {
+            context.deleteDatabase("computers4.db");
+        }
+    }
 }

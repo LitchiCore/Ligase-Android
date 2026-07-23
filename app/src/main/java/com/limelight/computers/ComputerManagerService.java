@@ -6,7 +6,6 @@ import java.io.StringReader;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -16,6 +15,10 @@ import java.util.concurrent.locks.ReentrantLock;
 import com.limelight.LimeLog;
 import com.limelight.binding.PlatformBinding;
 import com.limelight.discovery.DiscoveryService;
+import com.limelight.ligase.endpoint.LigaseEndpoint;
+import com.limelight.ligase.endpoint.LigaseEndpointAddressBook;
+import com.limelight.ligase.endpoint.LigaseEndpointRaceExecutor;
+import com.limelight.ligase.endpoint.LigaseEndpointSelectionPlan;
 import com.limelight.nvstream.NvConnection;
 import com.limelight.nvstream.http.ComputerDetails;
 import com.limelight.nvstream.http.NvApp;
@@ -281,7 +284,7 @@ public class ComputerManagerService extends Service {
         public ComputerDetails getComputer(String uuid) {
             synchronized (pollingTuples) {
                 for (PollingTuple tuple : pollingTuples) {
-                    if (uuid.equals(tuple.computer.uuid)) {
+                    if (uuid.equalsIgnoreCase(tuple.computer.uuid)) {
                         return tuple.computer;
                     }
                 }
@@ -293,7 +296,7 @@ public class ComputerManagerService extends Service {
         public void invalidateStateForComputer(String uuid) {
             synchronized (pollingTuples) {
                 for (PollingTuple tuple : pollingTuples) {
-                    if (uuid.equals(tuple.computer.uuid)) {
+                    if (uuid.equalsIgnoreCase(tuple.computer.uuid)) {
                         // We need the network lock to prevent a concurrent poll
                         // from wiping this change out
                         synchronized (tuple.networkLock) {
@@ -439,7 +442,7 @@ public class ComputerManagerService extends Service {
         synchronized (pollingTuples) {
             for (PollingTuple tuple : pollingTuples) {
                 // Check if this is the same computer
-                if (tuple.computer.uuid.equals(details.uuid)) {
+                if (tuple.computer.uuid.equalsIgnoreCase(details.uuid)) {
                     // Update the saved computer with potentially new details
                     tuple.computer.update(details);
 
@@ -475,7 +478,7 @@ public class ComputerManagerService extends Service {
             // See if we have record of this PC to pull its pinned cert
             synchronized (pollingTuples) {
                 for (PollingTuple tuple : pollingTuples) {
-                    if (tuple.computer.uuid.equals(fakeDetails.uuid)) {
+                    if (tuple.computer.uuid.equalsIgnoreCase(fakeDetails.uuid)) {
                         fakeDetails.serverCert = tuple.computer.serverCert;
                         break;
                     }
@@ -511,7 +514,7 @@ public class ComputerManagerService extends Service {
         synchronized (pollingTuples) {
             // Remove the computer from the computer list
             for (PollingTuple tuple : pollingTuples) {
-                if (tuple.computer.uuid.equals(computer.uuid)) {
+                if (tuple.computer.uuid.equalsIgnoreCase(computer.uuid)) {
                     if (tuple.thread != null) {
                         // Interrupt the thread on this entry
                         tuple.thread.interrupt();
@@ -541,7 +544,10 @@ public class ComputerManagerService extends Service {
         }
     }
 
-    private ComputerDetails tryPollIp(ComputerDetails details, ComputerDetails.AddressTuple address) {
+    private ComputerDetails tryPollEndpoint(
+            ComputerDetails details,
+            LigaseEndpoint endpoint) {
+        ComputerDetails.AddressTuple address = endpoint.toLegacyAddressTuple();
         try {
             // If the current address's port number matches the active address's port number, we can also assume
             // the HTTPS port will also match. This assumption is currently safe because Sunshine sets all ports
@@ -552,10 +558,8 @@ public class ComputerManagerService extends Service {
             NvHTTP http = new NvHTTP(address, portMatchesActiveAddress ? details.httpsPort : 0, idManager.getUniqueId(), details.serverCert,
                     PlatformBinding.getCryptoProvider(ComputerManagerService.this));
 
-            // If this PC is currently online at this address, extend the timeouts to allow more time for the PC to respond.
-            boolean isLikelyOnline = details.state == ComputerDetails.State.ONLINE && address.equals(details.activeAddress);
-
-            ComputerDetails newDetails = http.getComputerDetails(isLikelyOnline);
+            // Endpoint selection has a frozen 3 second per-candidate deadline.
+            ComputerDetails newDetails = http.getComputerDetails(false);
 
             // Check if this is the PC we expected
             if (newDetails.uuid == null) {
@@ -563,7 +567,7 @@ public class ComputerManagerService extends Service {
                 return null;
             }
             // details.uuid can be null on initial PC add
-            else if (details.uuid != null && !details.uuid.equals(newDetails.uuid)) {
+            else if (details.uuid != null && !details.uuid.equalsIgnoreCase(newDetails.uuid)) {
                 // We got the wrong PC!
                 LimeLog.info("Polling returned the wrong PC!");
                 return null;
@@ -578,131 +582,28 @@ public class ComputerManagerService extends Service {
         }
     }
 
-    private static class ParallelPollTuple {
-        public ComputerDetails.AddressTuple address;
-        public ComputerDetails existingDetails;
-
-        public boolean complete;
-        public Thread pollingThread;
-        public ComputerDetails returnedDetails;
-
-        public ParallelPollTuple(ComputerDetails.AddressTuple address, ComputerDetails existingDetails) {
-            this.address = address;
-            this.existingDetails = existingDetails;
-        }
-
-        public void interrupt() {
-            if (pollingThread != null) {
-                pollingThread.interrupt();
-            }
-        }
-    }
-
-    private void startParallelPollThread(ParallelPollTuple tuple, HashSet<ComputerDetails.AddressTuple> uniqueAddresses) {
-        // Don't bother starting a polling thread for an address that doesn't exist
-        // or if the address has already been polled with an earlier tuple
-        if (tuple.address == null || !uniqueAddresses.add(tuple.address)) {
-            tuple.complete = true;
-            tuple.returnedDetails = null;
-            return;
-        }
-
-        tuple.pollingThread = new Thread() {
-            @Override
-            public void run() {
-                ComputerDetails details = tryPollIp(tuple.existingDetails, tuple.address);
-
-                synchronized (tuple) {
-                    tuple.complete = true; // Done
-                    tuple.returnedDetails = details; // Polling result
-
-                    tuple.notify();
-                }
-            }
-        };
-        tuple.pollingThread.setName("Parallel Poll - "+tuple.address+" - "+tuple.existingDetails.name);
-        tuple.pollingThread.start();
-    }
-
     private ComputerDetails parallelPollPc(ComputerDetails details) throws InterruptedException {
-        ParallelPollTuple localInfo = new ParallelPollTuple(details.localAddress, details);
-        ParallelPollTuple manualInfo = new ParallelPollTuple(details.manualAddress, details);
-        ParallelPollTuple remoteInfo = new ParallelPollTuple(details.remoteAddress, details);
-        ParallelPollTuple ipv6Info = new ParallelPollTuple(details.ipv6Address, details);
-
-        // These must be started in order of precedence for the deduplication algorithm
-        // to result in the correct behavior.
-        HashSet<ComputerDetails.AddressTuple> uniqueAddresses = new HashSet<>();
-        startParallelPollThread(localInfo, uniqueAddresses);
-        startParallelPollThread(manualInfo, uniqueAddresses);
-        startParallelPollThread(remoteInfo, uniqueAddresses);
-        startParallelPollThread(ipv6Info, uniqueAddresses);
-
-        try {
-            // Check local first
-            synchronized (localInfo) {
-                while (!localInfo.complete) {
-                    localInfo.wait();
-                }
-
-                if (localInfo.returnedDetails != null) {
-                    localInfo.returnedDetails.activeAddress = localInfo.address;
-                    return localInfo.returnedDetails;
-                }
-            }
-
-            // Now manual
-            synchronized (manualInfo) {
-                while (!manualInfo.complete) {
-                    manualInfo.wait();
-                }
-
-                if (manualInfo.returnedDetails != null) {
-                    manualInfo.returnedDetails.activeAddress = manualInfo.address;
-                    return manualInfo.returnedDetails;
-                }
-            }
-
-            // Now remote IPv4
-            synchronized (remoteInfo) {
-                while (!remoteInfo.complete) {
-                    remoteInfo.wait();
-                }
-
-                if (remoteInfo.returnedDetails != null) {
-                    remoteInfo.returnedDetails.activeAddress = remoteInfo.address;
-                    return remoteInfo.returnedDetails;
-                }
-            }
-
-            // Now global IPv6
-            synchronized (ipv6Info) {
-                while (!ipv6Info.complete) {
-                    ipv6Info.wait();
-                }
-
-                if (ipv6Info.returnedDetails != null) {
-                    ipv6Info.returnedDetails.activeAddress = ipv6Info.address;
-                    return ipv6Info.returnedDetails;
-                }
-            }
-        } finally {
-            // Stop any further polling if we've found a working address or we've been
-            // interrupted by an attempt to stop polling.
-            localInfo.interrupt();
-            manualInfo.interrupt();
-            remoteInfo.interrupt();
-            ipv6Info.interrupt();
+        List<LigaseEndpoint> candidates =
+                LigaseEndpointAddressBook.fromComputerDetails(details);
+        List<LigaseEndpointSelectionPlan.Attempt> attempts =
+                LigaseEndpointSelectionPlan.forCandidates(candidates);
+        LigaseEndpointRaceExecutor<ComputerDetails> executor =
+                new LigaseEndpointRaceExecutor<>();
+        LigaseEndpointRaceExecutor.Result<ComputerDetails> result =
+                executor.race(attempts, endpoint -> tryPollEndpoint(details, endpoint));
+        if (result == null) {
+            return null;
         }
-
-        return null;
+        result.value.activeAddress = result.endpoint.toLegacyAddressTuple();
+        return result.value;
     }
 
     private boolean pollComputer(ComputerDetails details) throws InterruptedException {
         // Poll all addresses in parallel to speed up the process
         LimeLog.info("Starting parallel poll for "+details.name+" ("+details.localAddress +", "+details.remoteAddress +", "+details.manualAddress+", "+details.ipv6Address+")");
         ComputerDetails polledDetails = parallelPollPc(details);
-        LimeLog.info("Parallel poll for "+details.name+" returned address: "+details.activeAddress);
+        LimeLog.info("Parallel poll for "+details.name+" returned address: "+
+                (polledDetails == null ? null : polledDetails.activeAddress));
 
         if (polledDetails != null) {
             details.update(polledDetails);
@@ -835,7 +736,7 @@ public class ComputerManagerService extends Service {
         private PollingTuple getPollingTuple(ComputerDetails details) {
             synchronized (pollingTuples) {
                 for (PollingTuple tuple : pollingTuples) {
-                    if (details.uuid.equals(tuple.computer.uuid)) {
+                    if (details.uuid.equalsIgnoreCase(tuple.computer.uuid)) {
                         return tuple;
                     }
                 }

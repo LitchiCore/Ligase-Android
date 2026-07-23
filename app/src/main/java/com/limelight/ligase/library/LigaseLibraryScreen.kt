@@ -381,7 +381,10 @@ private fun HostStrip(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         lazyListItems(hosts, key = { it.uuid ?: it.name }) { host ->
-                            val selected = host.uuid == selectedHost?.uuid
+                            val selected = host.uuid.equals(
+                                selectedHost?.uuid,
+                                ignoreCase = true,
+                            )
                             Surface(
                                 modifier = Modifier
                                     .fillMaxWidth()

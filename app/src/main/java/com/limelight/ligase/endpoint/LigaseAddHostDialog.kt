@@ -29,7 +29,9 @@ object LigaseAddHostDialog {
             helperText = activity.getString(R.string.ligase_computer_address_hint)
         }
         val addressInput = TextInputEditText(addressLayout.context).apply {
-            inputType = InputType.TYPE_CLASS_TEXT
+            inputType = InputType.TYPE_CLASS_TEXT or
+                InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD or
+                InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
             setSingleLine(true)
         }
         addressLayout.addView(addressInput)

@@ -107,11 +107,17 @@ Android 与 Host 以 Host 的 `endpoint-contract-v2.md` 为共同权威。电脑
 IPv4 文本或端口。当前发现与 GameStream 传输仍通过首个同来源候选投影到旧
 `AddressTuple`，这是明确的过渡 ABI，不是第二套身份源。
 
-双栈选择策略已独立为纯计划层：IPv6/IPv4 候选交错，启动间隔 250ms，单候选探测
-最多 3s、整体最多 5s；只有 `serverinfo` 健康且 uniqueid 匹配才算成功，配对后
-HTTPS 还必须通过证书固定。当前阶段尚未替换发现执行链，也未宣称 scoped
-link-local 可用于 native RTSP：OkHttp 4.12 不接受含 scope 的 host，因此后续必须
-使用 scoped `Inet6Address` transport adapter，并对 MoonBridge/RTSP 做独立实网验收。
+双栈选择策略已接入电脑轮询执行链：literal IPv6/IPv4 候选交错，启动间隔
+250ms，单候选探测最多 3s、整体最多 5s；只有 `serverinfo` 健康且 uniqueid
+匹配才算成功，配对后 HTTPS 还必须通过证书固定。取消竞速只停止其余只读探测，
+不会重复配对、启动或写入。
+
+OkHttp 4.12 不接受含 scope 的 host。HTTP/HTTPS 使用 synthetic URL host 与自定义
+DNS，把已校验的 `link-local%zone` 转为 scoped `Inet6Address`，避免把 RFC 6874
+authority 直接交给 OkHttp。当前真实 LAN 联合验收覆盖 global IPv6；link-local
+HTTP/HTTPS 与 native RTSP 仍缺少可达实网，不得宣称通过。Hostname 当前作为一个
+有界候选交给 OkHttp，尚未把 DNS 返回的 IPv6/IPv4 地址展开为独立的 250ms
+stagger 尝试，这是后续基础设施风险，不影响已验证的 literal IPv4/IPv6 路径。
 
 普通“添加电脑”界面将地址和端口分栏，默认端口 48989。用户可输入 hostname、
 IPv4、IPv6 或 `link-local%接口`；协议、路径、query、fragment 和 userinfo 会被拒绝。
@@ -218,6 +224,12 @@ ARM64 APK：
 2026-07-23 已在 V2353A 对隔离 Host `10.168.1.191:49989` 完成真实联合验收：
 Sync GET、UUID-only merge、排序、全局/单游戏分辨率、恢复全局继承、409 重拉且
 不重放、HDR 分层以及携带 `appuuid + appid` 的 1600×900 physical desktop launch
-均通过。AGS2-AL00 已验证横屏左侧导航、空电脑引导、手动添加与 Host 身份识别；
-第二台设备 legacy PIN 因隔离 Host 49990 管理凭据不可恢复而未完成提交，不能宣称
-平板配对/Sync 端到端通过。
+均通过。
+
+同日 AGS2-AL00 使用 fresh identity 的隔离验收实例完成 literal LAN global IPv6
+全链路验收：手动添加、Host UUID 校验、legacy pair、X.509 DER 指纹固定、
+HTTPS Sync v1、UUID-only applist merge、physical desktop launch、bracketed IPv6
+RTSP authority、控制/视频/音频/输入流、首帧硬解码，以及应用内确认结束会话均
+通过。Host 复核结束后 `currentgame=0 / SUNSHINE_SERVER_FREE` 且连接与 UDP
+串流端口已释放。验收实例、自动 PIN 通道和凭据仅属于测试基础设施，不构成产品
+配对 UI；attended pairing 仍按上文 readiness 门推进。

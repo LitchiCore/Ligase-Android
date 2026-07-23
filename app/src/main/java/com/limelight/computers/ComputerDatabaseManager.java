@@ -85,7 +85,10 @@ public class ComputerDatabaseManager {
     }
 
     public void deleteComputer(ComputerDetails details) {
-        computerDb.delete(COMPUTER_TABLE_NAME, COMPUTER_UUID_COLUMN_NAME+"=?", new String[]{details.uuid});
+        computerDb.delete(
+                COMPUTER_TABLE_NAME,
+                "LOWER("+COMPUTER_UUID_COLUMN_NAME+")=?",
+                new String[]{details.uuid.toLowerCase(Locale.ROOT)});
     }
 
     public static JSONObject tupleToJson(ComputerDetails.AddressTuple tuple) throws JSONException {
@@ -111,6 +114,7 @@ public class ComputerDatabaseManager {
     }
 
     public boolean updateComputer(ComputerDetails details) {
+        details.uuid = details.uuid.toLowerCase(Locale.ROOT);
         ContentValues values = new ContentValues();
         values.put(COMPUTER_UUID_COLUMN_NAME, details.uuid);
         values.put(COMPUTER_NAME_COLUMN_NAME, details.name);
@@ -134,13 +138,32 @@ public class ComputerDatabaseManager {
             values.put(SERVER_CERT_COLUMN_NAME, (byte[])null);
             e.printStackTrace();
         }
-        return -1 != computerDb.insertWithOnConflict(COMPUTER_TABLE_NAME, null, values, SQLiteDatabase.CONFLICT_REPLACE);
+        computerDb.beginTransaction();
+        try {
+            // Case is not part of Host identity. Replace all case variants atomically.
+            computerDb.delete(
+                    COMPUTER_TABLE_NAME,
+                    "LOWER("+COMPUTER_UUID_COLUMN_NAME+")=?",
+                    new String[]{details.uuid});
+            boolean inserted = -1 != computerDb.insertWithOnConflict(
+                    COMPUTER_TABLE_NAME,
+                    null,
+                    values,
+                    SQLiteDatabase.CONFLICT_REPLACE);
+            if (inserted) {
+                computerDb.setTransactionSuccessful();
+            }
+            return inserted;
+        }
+        finally {
+            computerDb.endTransaction();
+        }
     }
 
     private ComputerDetails getComputerFromCursor(Cursor c) {
         ComputerDetails details = new ComputerDetails();
 
-        details.uuid = c.getString(0);
+        details.uuid = c.getString(0).toLowerCase(Locale.ROOT);
         details.name = c.getString(1);
         try {
             JSONObject addresses = new JSONObject(c.getString(2));
@@ -217,8 +240,8 @@ public class ComputerDatabaseManager {
      */
     public ComputerDetails getComputerByUUID(String uuid) {
         try (final Cursor c = computerDb.query(
-                COMPUTER_TABLE_NAME, null, COMPUTER_UUID_COLUMN_NAME+"=?",
-                new String[]{ uuid }, null, null, null)
+                COMPUTER_TABLE_NAME, null, "LOWER("+COMPUTER_UUID_COLUMN_NAME+")=?",
+                new String[]{ uuid.toLowerCase(Locale.ROOT) }, null, null, null)
         ) {
             if (!c.moveToFirst()) {
                 // No matching computer

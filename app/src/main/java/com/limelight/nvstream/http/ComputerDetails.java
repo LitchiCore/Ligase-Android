@@ -5,6 +5,7 @@ import androidx.annotation.NonNull;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 import com.limelight.ligase.endpoint.LigaseEndpoint;
@@ -129,7 +130,7 @@ public class ComputerDetails {
     public void update(ComputerDetails details) {
         this.state = details.state;
         this.name = details.name;
-        this.uuid = details.uuid;
+        this.uuid = details.uuid == null ? null : details.uuid.toLowerCase(Locale.ROOT);
         this.permission = details.permission;
         if (details.activeAddress != null) {
             this.activeAddress = details.activeAddress;
