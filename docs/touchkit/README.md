@@ -6,9 +6,10 @@ It works inside the streaming screen and does not request Android's system overl
 ## Quick start
 
 1. Open **Settings > Cloud gaming controls**.
-2. Enable **Cloud gaming mode** for touch-oriented relative mouse movement.
-3. Enable **Show floating controls** if you want an on-screen button layout. The two switches are
-   independent.
+2. Enable **Cloud gaming mode**. Artemis selects the matching entry under **Mouse mode**
+   automatically; selecting another mouse mode disables the Cloud gaming switch.
+3. Enable **Show floating controls** if you want an on-screen button layout. This controls the
+   button layer without changing the mouse mode.
 4. Open **Edit button layout**. Drag a control to move it, or tap it to edit its properties. The
    editor does not send input to the host.
 5. Use **Expand** to show movement curve, X/Y sensitivity, opacity, vibration, and layout transfer.
@@ -17,6 +18,19 @@ It works inside the streaming screen and does not request Android's system overl
 Enable **Disable touch gestures** if the game should use floating controls for all clicks and keys.
 This keeps direct one-finger pointer movement but disables tap clicks, double-tap dragging,
 multi-finger scrolling, momentum, and three-to-five-finger shortcuts.
+
+## Touch gestures
+
+| Gesture | Host input |
+| --- | --- |
+| Move one finger | Relative mouse movement |
+| Tap with one finger | Left click |
+| Double-tap, then move | Hold the left button and drag |
+| Tap with two fingers | Right click |
+| Move two fingers | Vertical or horizontal scrolling |
+| Tap with three fingers | Show the Android soft keyboard |
+| Tap with four fingers | Toggle the full on-screen keyboard |
+| Tap with five fingers | Open the Artemis quick menu when enabled |
 
 ## Controls and bindings
 
@@ -58,17 +72,7 @@ pressed; slide toward a segment to select it.
 
 ![War Thunder layout editor](screenshots/war-thunder-layout-editor.jpg)
 
-### Button and joystick properties
-
-![Button properties](screenshots/button-properties.jpg)
-
-![Genshin Impact joystick bindings](screenshots/joystick-bindings.png)
-
-![Timed-hold properties](screenshots/timed-hold-properties.jpg)
-
 ### Key wheel
-
-![Key wheel editor](screenshots/key-wheel-editor.jpg)
 
 ![Expanded key wheel](screenshots/key-wheel-expanded.jpg)
 
@@ -93,6 +97,8 @@ Use **Import and export layouts** in the expanded Cloud gaming controls section:
 - **Import layout** validates the file, creates a new layout, and selects it.
 - Existing layouts are not overwritten.
 - Host information, credentials, streaming settings, and per-game associations are not exported.
+- Legacy raw Artemis button-layout JSON can be imported, but full application settings are not
+  part of the layout format.
 
 Layouts moved between devices with different aspect ratios may need small position or size
 adjustments in the editor.
@@ -106,3 +112,10 @@ Importable real-world layouts are available for
 The settings-page slider adjusts gray backgrounds and outlines globally. In the editor, **More
 actions** provides separate global controls for backgrounds and for text/icons. Individual controls
 can still override their gray-background opacity.
+
+## Gyroscope aiming
+
+Add a gyroscope control to a layout and tap it to lock or disable gyroscope-assisted aiming. While
+enabled, device rotation becomes relative mouse movement and the screen stays awake. X/Y
+sensitivity, deadzone, and axis inversion can be adjusted independently. Calibrate the axes in a
+safe scene when using a device for the first time.

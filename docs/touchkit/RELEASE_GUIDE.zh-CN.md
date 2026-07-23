@@ -8,8 +8,8 @@
 - 应用名称：`Artemis TouchKit`
 - Release 包名：`com.litchicore.artemis.touchkit.noir`
 - Debug 包名：`com.litchicore.artemis.touchkit.noirdebug`
-- 首个测试版本：`20.2.6-touchkit-beta.1`
-- 建议标签：`v20.2.6-touchkit-beta.1`
+- 当前公开测试线：`20.2.6-touchkit-beta.x`
+- 标签规则：`v` + `versionName`，例如 `v20.2.6-touchkit-beta.4`
 
 Debug 与 Release 是两个独立应用，Android 不会自动迁移它们的数据。由 Debug 切换到
 Release 前，应先在 **设置 > 云游戏操作 > 展开 > 导入与导出布局** 中导出布局，再在
@@ -48,12 +48,12 @@ Release 版中导入。主机配对信息和完整应用设置目前不会随布
 
 每次发布都必须同时修改 `app/build.gradle` 中的两个字段：
 
-- `versionName`：用户看到的版本，例如 `20.2.6-touchkit-beta.2`；
+- `versionName`：用户看到的版本，例如 `20.2.6-touchkit-beta.4`；
 - `versionCode`：Android 比较升级顺序的整数，每次发布必须递增。
 
-建议阶段：
+版本阶段：
 
-1. `beta.1`、`beta.2`：真实设备测试和界面调整；
+1. `beta.x`：真实设备测试和界面调整；
 2. `rc.1`：功能冻结，只修阻断发布的问题；
 3. `20.2.6-touchkit.1`：首个稳定版。
 
@@ -108,9 +108,10 @@ Get-FileHash `
 
 Release 页面必须写出完整 SHA-256。下载者可以据此确认文件没有损坏或被替换。
 
-## 两台设备验收
+## 实机验收
 
-至少在手机和平板各运行一次同一个 Release APK：
+每次发布至少在一台真实设备运行同一个 Release APK；涉及屏幕比例或跨设备迁移的改动，
+还应增加一台不同尺寸的手机或平板：
 
 1. 全新安装后能够启动、配对并进入虚拟桌面；
 2. 导入原神或战雷示例布局，位置和尺寸基本正确；
@@ -120,18 +121,18 @@ Release 页面必须写出完整 SHA-256。下载者可以据此确认文件没�
 6. 导出布局，再导入为新布局，不覆盖原布局；
 7. 从旧 Release 执行 `adb install -r` 升级后，主机和布局仍然保留。
 
-首个 Release 没有旧版可升级，第 7 项从 `beta.2` 开始成为强制检查。
+已有公开版本后，第 7 项是强制检查。
 
 ## 创建 GitHub Pre-release
 
 建议流程：
 
-1. 将 Draft PR 改为 Ready，确认检查通过后合并；
-2. 在合并提交上创建标签 `v20.2.6-touchkit-beta.1`；
+1. 确认发布提交已经推送，测试结果和实机验收记录完整；
+2. 在生成 APK 的同一提交上创建版本标签；
 3. 新建 GitHub Release 并勾选 **Set as a pre-release**；
 4. 上传 arm64 Release APK；
 5. 写明版本、提交、SHA-256、主要功能、已知限制和布局迁移方法；
-6. 从 Release 页面重新下载 APK，再验证一次哈希和安装。
+6. 确认远端标签、分支和 Release 资产对应同一提交，并复核 GitHub 显示的资产摘要。
 
 不要把本地 Debug APK改名后上传。文件名中的 `release`、应用内版本、Git 标签和 Release
 标题必须相互对应。
