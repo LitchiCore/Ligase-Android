@@ -117,8 +117,6 @@ public class keyAnalogStickFree extends keyBoardVirtualControllerElement {
     private boolean bIsFingerOnScreen = false;
 
     private double movement_radius = 0;
-    private double movement_angle = 0;
-
     private float position_stick_x = 0;
     private float position_stick_y = 0;
 
@@ -144,37 +142,6 @@ public class keyAnalogStickFree extends keyBoardVirtualControllerElement {
 
     private static double getMovementRadius(float x, float y) {
         return Math.sqrt(x * x + y * y);
-    }
-
-    private static double getAngle(float way_x, float way_y) {
-        // prevent divisions by zero for corner cases
-        if (way_x == 0) {
-            return way_y < 0 ? Math.PI : 0;
-        } else if (way_y == 0) {
-            if (way_x > 0) {
-                return Math.PI * 3 / 2;
-            } else if (way_x < 0) {
-                return Math.PI * 1 / 2;
-            }
-        }
-        // return correct calculated angle for each quadrant
-        if (way_x > 0) {
-            if (way_y < 0) {
-                // first quadrant
-                return 3 * Math.PI / 2 + Math.atan((double) (-way_y / way_x));
-            } else {
-                // second quadrant
-                return Math.PI + Math.atan((double) (way_x / way_y));
-            }
-        } else {
-            if (way_y > 0) {
-                // third quadrant
-                return Math.PI / 2 + Math.atan((double) (way_y / -way_x));
-            } else {
-                // fourth quadrant
-                return 0 + Math.atan((double) (-way_x / -way_y));
-            }
-        }
     }
 
     public keyAnalogStickFree(KeyBoardController controller, Context context, String elementId) {
@@ -311,13 +278,12 @@ public class keyAnalogStickFree extends keyBoardVirtualControllerElement {
     private void updatePosition(long eventTime) {
         float complete = radius_complete - radius_analog_stick;
 
-        // calculate relative way
-        float correlated_y = (float) (Math.sin(Math.PI / 2 - movement_angle) * (movement_radius));
-        float correlated_x = (float) (Math.cos(Math.PI / 2 - movement_angle) * (movement_radius));
+        float outputX = TouchKitStickMath.outputX(relative_x, relative_y, movement_radius);
+        float outputY = TouchKitStickMath.outputY(relative_x, relative_y, movement_radius);
 
         // update positions
-        position_stick_x = touchStartX - correlated_x;
-        position_stick_y = touchStartY - correlated_y;
+        position_stick_x = touchStartX + outputX;
+        position_stick_y = touchStartY - outputY;
 
         // Stay active even if we're back in the deadzone because we know the user is actively
         // giving analog stick input and we don't want to snap back into the deadzone.
@@ -330,7 +296,18 @@ public class keyAnalogStickFree extends keyBoardVirtualControllerElement {
 
         //  trigger move event if state active
         if (stick_state == keyAnalogStickFree.STICK_STATE.MOVED_ACTIVE) {
-            notifyOnMovement(-correlated_x / complete, correlated_y / complete);
+            notifyOnMovement(outputX / complete, outputY / complete);
+        }
+    }
+
+    private void updateMovement(MotionEvent event, int pointerIndex) {
+        touchX = event.getX(pointerIndex);
+        touchY = event.getY(pointerIndex);
+        relative_x = touchX - touchStartX;
+        relative_y = touchY - touchStartY;
+        movement_radius = getMovementRadius(relative_x, relative_y);
+        if (movement_radius > radius_complete - radius_analog_stick) {
+            movement_radius = radius_complete - radius_analog_stick;
         }
     }
 
@@ -338,36 +315,21 @@ public class keyAnalogStickFree extends keyBoardVirtualControllerElement {
     public boolean onElementTouchEvent(MotionEvent event) {
         // save last click state
         CLICK_STATE lastClickState = click_state;
-        relative_x = -(touchStartX - event.getX());
-        relative_y = -(touchStartY - event.getY());
-
-        // get radius and angel of movement from center
-        movement_radius = getMovementRadius(relative_x, relative_y);
-        movement_angle = getAngle(relative_x, relative_y);
-
-        // pass touch event to parent if out of outer circle
-//        if (movement_radius > radius_complete && !isPressed())
-//            return false;
-
-        // chop radius if out of outer circle or near the edge
-        if (movement_radius > (radius_complete - radius_analog_stick)) {
-            movement_radius = radius_complete - radius_analog_stick;
-        }
         // handle event depending on action
         switch (event.getActionMasked()) {
             // down event (touch event)
             case MotionEvent.ACTION_DOWN:
             case MotionEvent.ACTION_POINTER_DOWN: {
                 if (!bIsFingerOnScreen) {
-                    touchID = event.getPointerId(event.getActionIndex());
-                    touchStartX = event.getX();
-                    touchStartY = event.getY();
+                    int pointerIndex = event.getActionIndex();
+                    touchID = event.getPointerId(pointerIndex);
+                    touchStartX = event.getX(pointerIndex);
+                    touchStartY = event.getY(pointerIndex);
                     bIsFingerOnScreen = true;
                 }
 
                 if (touchID == event.getPointerId(event.getActionIndex())) {
-                    touchX = event.getX();
-                    touchY = event.getY();
+                    updateMovement(event, event.getActionIndex());
 
                     // set to dead zoned, will be corrected in update position if necessary
                     stick_state = STICK_STATE.MOVED_IN_DEAD_ZONE;
@@ -385,17 +347,14 @@ public class keyAnalogStickFree extends keyBoardVirtualControllerElement {
                     // set item pressed and update
                     setPressed(true);
 
-                    updatePosition(event.getEventTime());
                 }
                 break;
             }
             case MotionEvent.ACTION_MOVE: {
                 for (int i = 0; i < event.getPointerCount(); i++) {
                     if (touchID == event.getPointerId(i)) {
-                        touchX = event.getX();
-                        touchY = event.getY();
-
-                        updatePosition(event.getEventTime());
+                        updateMovement(event, i);
+                        break;
                     }
                 }
                 break;
