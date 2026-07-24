@@ -26,7 +26,8 @@ enum class HostSortMode(val wireValue: String) {
     NAME_DESCENDING("nameDescending"),
     ADDED_NEWEST("addedNewest"),
     ADDED_OLDEST("addedOldest"),
-    LAST_PLAYED_NEWEST("lastPlayedNewest");
+    LAST_PLAYED_NEWEST("lastPlayedNewest"),
+    MANUAL("manual");
 
     companion object {
         fun fromWireValue(value: String?): HostSortMode =
@@ -73,6 +74,7 @@ data class HostLibraryItemDto(
     val updatedAt: String,
     val lastPlayedAt: String?,
     val system: Boolean,
+    val publishedToClients: Boolean? = null,
 )
 
 data class LigaseSyncSnapshotDto(
@@ -183,6 +185,7 @@ object LigaseLibraryAdapter {
         return snapshot.library.items.mapNotNull { dto ->
             val uuid = dto.id.normalizedUuidOrNull() ?: return@mapNotNull null
             val kind = HostLibraryKind.fromWireValue(dto.kind) ?: return@mapNotNull null
+            if (!kind.isSystem && dto.publishedToClients == false) return@mapNotNull null
             val launchApp = launchApps[uuid]
 
             LigaseLibraryItem(
@@ -212,6 +215,10 @@ object LigaseLibraryAdapter {
         val filtered = query.trim().takeIf(String::isNotEmpty)?.let { normalized ->
             items.filter { it.name.contains(normalized, ignoreCase = true) }
         } ?: items
+
+        if (sortMode == HostSortMode.MANUAL) {
+            return filtered
+        }
 
         val systemItems = filtered
             .filter(LigaseLibraryItem::isSystem)
@@ -247,6 +254,7 @@ object LigaseLibraryAdapter {
                 newestFirst = true,
                 fallback = nameAscending,
             )
+            HostSortMode.MANUAL -> nameAscending
         }
     }
 

@@ -20,8 +20,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContent
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -45,9 +47,11 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffo
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteDefaults
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,7 +70,13 @@ import com.limelight.ligase.library.LigaseLibraryItem
 import com.limelight.ligase.library.LigaseLibraryPage
 import com.limelight.ligase.library.LigaseLibraryStatus
 import com.limelight.ligase.library.LigaseResolutionDto
+import com.limelight.ligase.library.LibraryConnectivity
+import com.limelight.ligase.library.LibraryHdrState
 import com.limelight.ligase.library.LibraryLayoutMode
+import com.limelight.ligase.library.ManualLibraryOrderDraft
+import com.limelight.ligase.library.ManualLibrarySortActionState
+import com.limelight.ligase.library.ManualLibrarySortError
+import com.limelight.ligase.library.messageResource
 import com.limelight.ligase.input.LigaseInputCategory
 import com.limelight.ligase.input.LigaseInputDevice
 import com.limelight.ligase.input.LigaseInputPage
@@ -109,14 +119,17 @@ fun LigaseRoot(
     libraryLoading: Boolean,
     libraryRefreshing: Boolean,
     libraryStatus: LigaseLibraryStatus,
+    libraryConnectivity: LibraryConnectivity,
+    libraryRevision: Long?,
     libraryGlobalResolution: LigaseResolutionDto?,
-    libraryHdrAvailable: Boolean,
+    libraryHdrState: LibraryHdrState,
     libraryRunningAppId: Int,
     librarySortMode: HostSortMode,
     libraryLayoutMode: LibraryLayoutMode,
     libraryAssetLoader: CachedAppAssetLoader?,
     libraryCanOperate: Boolean,
     libraryCanConfigureInput: Boolean,
+    manualSortState: ManualLibrarySortActionState,
     pairingState: AttendedPairingUiState,
     onPageSelected: (LigasePage) -> Unit,
     onInputSelected: (InputDeviceMode) -> Unit,
@@ -135,6 +148,7 @@ fun LigaseRoot(
     onLibraryLaunch: (LigaseLibraryItem) -> Unit,
     onLibraryConfigure: (LigaseLibraryItem) -> Unit,
     onLibraryRetrySync: () -> Unit,
+    onManualOrderSubmit: (List<String>) -> Unit,
     onGlobalResolutionClick: () -> Unit,
     onPairingCancel: () -> Unit,
     onPairingDismiss: () -> Unit,
@@ -174,6 +188,54 @@ fun LigaseRoot(
                     LigaseNavigationPlacement.SIDE -> NavigationSuiteType.NavigationRail
                 }
                 val semanticColors = LigaseSemanticTheme.colors
+                val libraryOnline = libraryConnectivity == LibraryConnectivity.ONLINE
+                var manualOrderDraft by remember(libraryHost?.uuid) {
+                    mutableStateOf<ManualLibraryOrderDraft?>(null)
+                }
+                var manualConflictRevision by remember(libraryHost?.uuid) {
+                    mutableStateOf<Long?>(null)
+                }
+                var manualConflictPending by remember(libraryHost?.uuid) {
+                    mutableStateOf(false)
+                }
+                LaunchedEffect(libraryCanOperate) {
+                    if (!libraryCanOperate) {
+                        manualOrderDraft = null
+                        manualConflictRevision = null
+                        manualConflictPending = false
+                    }
+                }
+                LaunchedEffect(manualSortState.appliedRevision) {
+                    if (manualSortState.appliedRevision != null) {
+                        manualOrderDraft = null
+                        manualConflictRevision = null
+                        manualConflictPending = false
+                    }
+                }
+                LaunchedEffect(
+                    manualSortState.error,
+                    libraryRevision,
+                    libraryItems.mapNotNull(LigaseLibraryItem::hostAppUuid),
+                ) {
+                    if (manualSortState.error == ManualLibrarySortError.REVISION_CONFLICT) {
+                        if (!manualConflictPending) {
+                            manualConflictRevision = libraryRevision
+                            manualConflictPending = true
+                        } else if (libraryRevision != manualConflictRevision) {
+                            manualOrderDraft =
+                                ManualLibraryOrderDraft.fromLibraryItems(libraryItems)
+                            manualConflictRevision = null
+                            manualConflictPending = false
+                        }
+                    }
+                }
+                val libraryGridState = rememberSaveable(
+                    libraryHost?.uuid,
+                    libraryLayoutMode,
+                    saver = LazyGridState.Saver,
+                ) {
+                    LazyGridState()
+                }
                 val navigationItemColors = NavigationSuiteDefaults.itemColors(
                     navigationBarItemColors = NavigationBarItemDefaults.colors(
                         selectedIconColor = semanticColors.textPrimary,
@@ -194,30 +256,7 @@ fun LigaseRoot(
                         disabledTextColor = semanticColors.disabled,
                     ),
                 )
-                NavigationSuiteScaffold(
-                    layoutType = navigationType,
-                    navigationSuiteItems = {
-                        LigasePage.entries.forEach { destination ->
-                            val enabled =
-                                destination != LigasePage.INPUT || libraryCanConfigureInput
-                            item(
-                                selected = currentPage == destination,
-                                onClick = { onPageSelected(destination) },
-                                enabled = enabled,
-                                colors = navigationItemColors,
-                                icon = {
-                                    Icon(
-                                        painter = painterResource(destination.icon),
-                                        contentDescription = stringResource(destination.label),
-                                        modifier = Modifier.size(24.dp),
-                                    )
-                                },
-                                label = { Text(stringResource(destination.label)) },
-                            )
-                        }
-                    },
-                    containerColor = MaterialTheme.colorScheme.background,
-                ) {
+                val pageContent: @Composable () -> Unit = {
                     AnimatedContent(
                         targetState = currentPage,
                         transitionSpec = { fadeIn() togetherWith fadeOut() },
@@ -231,11 +270,16 @@ fun LigaseRoot(
                                 loading = libraryLoading,
                                 refreshing = libraryRefreshing,
                                 status = libraryStatus,
+                                connectivity = libraryConnectivity,
                                 runningAppId = libraryRunningAppId,
                                 sortMode = librarySortMode,
                                 layoutMode = libraryLayoutMode,
+                                gridState = libraryGridState,
                                 assetLoader = libraryAssetLoader,
-                                canOperate = libraryCanConfigureInput,
+                                hasOperatePermission = libraryCanConfigureInput,
+                                actionsEnabled = libraryCanConfigureInput && libraryOnline,
+                                showTopBar =
+                                    navigationType != NavigationSuiteType.NavigationRail,
                                 onSortModeChanged = onLibrarySortModeChanged,
                                 onLayoutModeChanged = onLibraryLayoutModeChanged,
                                 onHostSelected = onHostClick,
@@ -244,6 +288,41 @@ fun LigaseRoot(
                                 onLaunch = onLibraryLaunch,
                                 onConfigure = onLibraryConfigure,
                                 onRetrySync = onLibraryRetrySync,
+                                manualOrderDraft = manualOrderDraft,
+                                manualSortSaving = manualSortState.saving,
+                                manualSortEditingEnabled = libraryCanOperate &&
+                                    libraryOnline &&
+                                    !(
+                                        manualSortState.error ==
+                                            ManualLibrarySortError.REVISION_CONFLICT &&
+                                            manualConflictPending
+                                    ),
+                                manualSortErrorMessage =
+                                    manualSortErrorMessage(manualSortState.error),
+                                onManualSort = {
+                                    if (libraryCanOperate && libraryOnline) {
+                                        manualOrderDraft =
+                                            ManualLibraryOrderDraft.fromLibraryItems(libraryItems)
+                                        manualConflictRevision = null
+                                        manualConflictPending = false
+                                    }
+                                },
+                                onManualMove = { movingUuid, targetUuid ->
+                                    manualOrderDraft = manualOrderDraft?.move(
+                                        movingUuid,
+                                        targetUuid,
+                                    )
+                                },
+                                onManualSave = {
+                                    manualOrderDraft?.let { draft ->
+                                        onManualOrderSubmit(draft.orderedPublishedUuids)
+                                    }
+                                },
+                                onManualCancel = {
+                                    manualOrderDraft = null
+                                    manualConflictRevision = null
+                                    manualConflictPending = false
+                                },
                             )
                             LigasePage.INPUT -> LigaseInputPage(
                                 selectedInput = selectedInput,
@@ -266,8 +345,8 @@ fun LigaseRoot(
                                 themeMode = themeMode,
                                 languageMode = languageMode,
                                 globalResolution = libraryGlobalResolution,
-                                hdrAvailable = libraryHdrAvailable,
-                                canOperate = libraryCanOperate,
+                                hdrState = libraryHdrState,
+                                canOperate = libraryCanOperate && libraryOnline,
                                 onOpenInput = { onPageSelected(LigasePage.INPUT) },
                                 onThemeSelected = onThemeSelected,
                                 onLanguageSelected = onLanguageSelected,
@@ -275,6 +354,46 @@ fun LigaseRoot(
                                 onAdvancedSettings = onAdvancedSettings,
                             )
                         }
+                    }
+                }
+                if (navigationType == NavigationSuiteType.NavigationRail) {
+                    Row(modifier = Modifier.fillMaxSize()) {
+                        LigaseLandscapeSidebar(
+                            currentPage = currentPage,
+                            inputEnabled = libraryCanConfigureInput && libraryOnline,
+                            onPageSelected = onPageSelected,
+                        )
+                        Box(modifier = Modifier.weight(1f)) {
+                            pageContent()
+                        }
+                    }
+                } else {
+                    NavigationSuiteScaffold(
+                        layoutType = navigationType,
+                        navigationSuiteItems = {
+                            LigasePage.entries.forEach { destination ->
+                                val enabled =
+                                    destination != LigasePage.INPUT ||
+                                        libraryCanConfigureInput && libraryOnline
+                                item(
+                                    selected = currentPage == destination,
+                                    onClick = { onPageSelected(destination) },
+                                    enabled = enabled,
+                                    colors = navigationItemColors,
+                                    icon = {
+                                        Icon(
+                                            painter = painterResource(destination.icon),
+                                            contentDescription = stringResource(destination.label),
+                                            modifier = Modifier.size(24.dp),
+                                        )
+                                    },
+                                    label = { Text(stringResource(destination.label)) },
+                                )
+                            }
+                        },
+                        containerColor = MaterialTheme.colorScheme.background,
+                    ) {
+                        pageContent()
                     }
                 }
             }
@@ -286,6 +405,101 @@ fun LigaseRoot(
         }
     }
 }
+
+@Composable
+private fun LigaseLandscapeSidebar(
+    currentPage: LigasePage,
+    inputEnabled: Boolean,
+    onPageSelected: (LigasePage) -> Unit,
+) {
+    val compactPhoneLandscape =
+        LocalConfiguration.current.screenHeightDp < 600
+    Surface(
+        modifier = Modifier
+            .width(if (compactPhoneLandscape) 156.dp else 184.dp)
+            .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.safeContent),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                text = stringResource(
+                    if (currentPage == LigasePage.HOME) {
+                        R.string.ligase_library_title
+                    } else {
+                        currentPage.label
+                    },
+                ),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                style = if (compactPhoneLandscape) {
+                    MaterialTheme.typography.headlineSmall
+                } else {
+                    MaterialTheme.typography.headlineMedium
+                },
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.height(10.dp))
+            LigasePage.entries.forEach { destination ->
+                val enabled = destination != LigasePage.INPUT || inputEnabled
+                val selected = currentPage == destination
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    color = if (selected) {
+                        LigaseSemanticTheme.colors.selected
+                    } else {
+                        MaterialTheme.colorScheme.surfaceContainerLow
+                    },
+                    contentColor = if (enabled) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        LigaseSemanticTheme.colors.disabled
+                    },
+                    onClick = { onPageSelected(destination) },
+                    enabled = enabled,
+                ) {
+                    Row(
+                        modifier = Modifier.padding(
+                            horizontal = 14.dp,
+                            vertical = if (compactPhoneLandscape) 10.dp else 13.dp,
+                        ),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(destination.icon),
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp),
+                        )
+                        Text(
+                            text = stringResource(destination.label),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = if (selected) {
+                                FontWeight.SemiBold
+                            } else {
+                                FontWeight.Normal
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@StringRes
+private fun manualSortErrorMessage(error: ManualLibrarySortError?): Int? =
+    when (error) {
+        null -> null
+        ManualLibrarySortError.REVISION_CONFLICT -> R.string.ligase_manual_sort_conflict
+        ManualLibrarySortError.PERMISSION_DENIED ->
+            R.string.ligase_manual_sort_permission_denied
+        ManualLibrarySortError.INVALID_ORDER,
+        ManualLibrarySortError.FAILED -> R.string.ligase_manual_sort_failed
+    }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -320,7 +534,7 @@ private fun SettingsPage(
     themeMode: LigaseThemeMode,
     languageMode: LigaseLanguageMode,
     globalResolution: LigaseResolutionDto?,
-    hdrAvailable: Boolean,
+    hdrState: LibraryHdrState,
     canOperate: Boolean,
     onOpenInput: () -> Unit,
     onThemeSelected: (LigaseThemeMode) -> Unit,
@@ -428,10 +642,7 @@ private fun SettingsPage(
                             )
                             Spacer(Modifier.height(6.dp))
                             Text(
-                                text = stringResource(
-                                    if (hdrAvailable) R.string.ligase_hdr_available
-                                    else R.string.ligase_hdr_unavailable,
-                                ),
+                                text = stringResource(hdrState.reason.messageResource()),
                                 color = if (globalResolution != null) {
                                     MaterialTheme.colorScheme.onSurfaceVariant
                                 } else {

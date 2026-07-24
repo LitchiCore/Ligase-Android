@@ -54,6 +54,31 @@ class LigaseSyncRepository(
         )
     }
 
+    fun updateManualOrder(
+        http: NvHTTP,
+        request: ManualLibrarySortRequest,
+    ): ManualLibrarySortResponse {
+        require(ManualLibrarySortValidator.isSafeRevision(request.baseRevision)) {
+            "Library revision is outside the Host contract"
+        }
+        require(
+            request.orderedAppUuids.all(ManualLibrarySortValidator::isCanonicalUuid) &&
+                request.orderedAppUuids.distinct().size == request.orderedAppUuids.size,
+        ) {
+            "Manual library order contains an invalid UUID sequence"
+        }
+        return ManualLibrarySortCodec.parseResponse(
+            http.postLigaseJson(
+                LIBRARY_SORT_PATH,
+                ManualLibrarySortCodec.encodeRequest(request, gson),
+            ),
+            request.orderedAppUuids,
+        )
+    }
+
+    internal fun encodeManualOrderWrite(request: ManualLibrarySortRequest): String =
+        ManualLibrarySortCodec.encodeRequest(request, gson)
+
     internal fun encodeAppResolutionWrite(
         baseRevision: Long,
         appUuid: String,
@@ -105,6 +130,7 @@ class LigaseSyncRepository(
         const val SUPPORTED_SYNC_VERSION = 1
         const val SUPPORTED_SCHEMA_VERSION = 1
         const val STREAMING_PATH = "/ligase/v1/streaming"
+        const val LIBRARY_SORT_PATH = "/ligase/v1/library/sort"
 
         fun isRevisionConflict(error: Throwable): Boolean =
             error is HostHttpResponseException && error.errorCode == 409

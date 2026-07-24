@@ -25,6 +25,16 @@
   给出可重试提示。同一电脑刷新 single-flight，切换电脑后旧结果不得回写。手势过程
   中内容跟手下移并露出纯白文字区，依次显示“下拉刷新 / 松开刷新 / 正在刷新”，不使用
   图案；标题栏使用独立的 `surfaceVariant` 层级色。
+- 最后成功的游戏库内容保存在 Activity 范围的 immutable session state 中；页面重入、
+  旋转、Host checking/offline 轮询和刷新错误只更新连接、加载或错误维度，不把内容
+  置空。离线时保留选中 Host 身份、页面与最后快照，但所有启动、输入和网络写入都由
+  实时 `ONLINE + operate` 门拒绝；重新在线后原地强制拉取 Sync+applist，以 ticket
+  边界替换快照。只有明确切换或删除 Host 才清除上一台电脑的快照。
+- 当前跨进程旧缓存只有 GameStream applist，没有 Sync 快照、库权限来源或
+  `LigaseClientAccessMode` 授权证明，不能安全恢复为 Ligase 产品库。进程重启后的离线
+  Host 因而只恢复电脑身份并显示离线空态，不读取或泄露旧 applist；未来若加入磁盘
+  snapshot，必须同时持久化并复核 Host UUID、证书身份和已授权库读取状态，权限撤销时
+  删除私有游戏元数据。
 - 每个游戏卡片右下角提供独立设置入口；该入口与卡片启动点击隔离，用于选择
   “使用全局设置”或“自定义分辨率”。
 - 游戏的发现、添加、删除、可执行路径和 Steam App 管理只存在于 Ligase Host。
@@ -235,17 +245,22 @@ Sync v1 仍兼容读取并校验以下 `sortMode` 机器值：
 - `addedNewest`
 - `addedOldest`
 - `lastPlayedNewest`
+- `manual`
 
-Host 的 `revision`、字段内容与 `items[]` 是数据权威。Android 按电脑保存本机显示排序
-偏好，但不调用 library sort POST。名称和时间比较只使用 Sync 字段；相同或缺失时间
-使用名称与 canonical UUID 作稳定 tie-break。若 Host 未提供任何 `lastPlayedAt`，
-“最近游玩”选项禁用并明确提示暂无 Host 记录，禁止使用 Android 启动历史补猜。
-下拉刷新成功后对最新 Sync 表重新应用本机显示排序，失败时保留上次内容及显示顺序。
+Host 的 `revision`、字段内容与 `items[]` 是数据权威。Android 按电脑保存名称、添加
+时间和最近游玩的本机显示排序偏好，这些模式不调用 library sort POST。名称和时间比较
+只使用 Sync 字段；相同或缺失时间使用名称与 canonical UUID 作稳定 tie-break。若 Host
+未提供任何 `lastPlayedAt`，“最近游玩”选项禁用并明确提示暂无 Host 记录，禁止使用
+Android 启动历史补猜。下拉刷新成功后对最新 Sync 表重新应用本机显示排序，失败时保留
+上次内容及显示顺序。
 
-未来“手动排序”属于独立的共享 Host canonical order：Android 进入明确的拖拽编辑态，
-仅按 canonical app UUID 提交完整顺序和 `baseRevision`，409 后重拉并要求用户重新
-排列，禁止自动重放。该模式在 Host DTO/路由冻结并下发前不展示、不猜接口；名称与
-时间排序始终保持纯本机偏好。
+“手动排序”是共享 Host canonical order。Android 首页编辑态允许移动全部 published
+项目（包括“监控桌面”和“虚拟桌面”，系统入口仍不可删除或隐藏），并向
+`POST /ligase/v1/library/sort` 提交全部 published 项目各一次组成的 lowercase
+canonical UUID 序列以及最后成功 Sync 的 `baseRevision`。请求与成功响应执行严格
+safe-integer、字段、UUID、去重和完整集合校验；成功后按 Host 返回序列原子更新 session
+content。409 只触发一次 GET Sync 并提示用户基于新快照重新排列，绝不自动重放 POST；
+observe 为 403 且不产生乐观写。名称与时间排序始终保持纯本机偏好。
 
 有效分辨率优先使用单游戏覆盖，否则继承全局分辨率。该结果会在 Ligase 启动入口
 覆盖旧本地分辨率偏好并传入现有 `Game`，Host 在 `/launch` 再次执行同一规则。
@@ -255,7 +270,9 @@ HDR 分层处理：
 
 - `sync.capabilities.hdrEncodingSupported` 表示 Host 当前可编码 HDR/10-bit；
 - Android 独立检测当前显示设备和解码能力；
-- 用户只看到最终“HDR 可用/不可用”；真正请求 HDR 必须同时满足 Host 和 Android；
+- Android 同时读取用户 HDR 开关，并派生稳定 typed reason：用户关闭、Host 编码不支持、
+  显示不支持、解码不支持、能力待检测或最终可用；不需要新增 Host DTO；
+- 真正请求 HDR 必须同时满足用户启用、Host 编码、Android 显示与解码能力；
 - applist 的旧 `IsHdrSupported` 仅保留在底层兼容对象中，不能作为游戏内容 HDR
   能力或产品库元数据。
 
@@ -265,11 +282,12 @@ HDR 分层处理：
   或 JSON。
 - `LigaseLibraryAdapter` 只接受成功的 Sync v1 快照，并按 UUID 合并 applist 启动参数；
   旧 `fromGameStream` 产品库回退和临时 appId 身份已删除。
-- Compose 只消费明确的加载、就绪、不兼容和同步失败状态；旧电脑首页产品页面已删除，
+- Compose 消费 `LibrarySessionState` 中相互独立的 last-successful content、
+  connectivity、initialLoading、refreshing 和 typed error；旧电脑首页产品页面已删除，
   避免与“游戏库即首页”长期并存。
-- 当前最高结构债务是 `LigaseActivity` 仍同时承担电脑连接协调、同步 UI state、写入、
-  启动和传统 View 弹窗。后续功能增长前应拆出可测试的 library state holder/coordinator，
-  但不得因此复制第二套状态源或改写稳定的配对与串流链。
+- `LibrarySessionViewModel` 与纯 `LibrarySessionStore` 已从 `LigaseActivity` 拆出唯一
+  library 状态源；Activity 仍负责电脑连接桥接、网络线程、启动和传统 View 弹窗，
+  后续按触达范围继续小步提取，不复制第二套状态源或改写稳定配对/串流链。
 - Gson 反射读取的 Sync DTO 必须保留精确 R8 keep 规则；minified debug APK 也是
   必测产物。传统 Material Dialog 的 positive button 必须在 `show()` 后绑定，避免
   按钮只关闭弹窗而未触发添加电脑或分辨率写入；对应行为需有回归测试。
