@@ -11,7 +11,7 @@ import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class LibrarySessionStateTest {
+class LibrarySessionStoreTest {
     @Test
     fun `same host page reentry preserves last successful content`() {
         val store = readyStore(HOST_A)
