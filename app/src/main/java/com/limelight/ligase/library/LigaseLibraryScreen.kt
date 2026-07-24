@@ -85,6 +85,7 @@ fun LigaseLibraryPage(
     sortMode: HostSortMode,
     layoutMode: LibraryLayoutMode,
     assetLoader: CachedAppAssetLoader?,
+    canOperate: Boolean,
     onSortModeChanged: (HostSortMode) -> Unit,
     onLayoutModeChanged: (LibraryLayoutMode) -> Unit,
     onHostSelected: (ComputerDetails) -> Unit,
@@ -174,6 +175,20 @@ fun LigaseLibraryPage(
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+            if (selectedHost?.pairState == PairingManager.PairState.PAIRED && !canOperate) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = RoundedCornerShape(16.dp),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.ligase_observe_mode_summary),
+                            modifier = Modifier.padding(14.dp),
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        )
+                    }
+                }
+            }
             item(span = { GridItemSpan(maxLineSpan) }) {
                 HostStrip(
                     hosts = hosts,
@@ -208,6 +223,15 @@ fun LigaseLibraryPage(
                             )
                         }
                     }
+                    LigaseLibraryStatus.PERMISSION_ERROR -> {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            LibrarySyncMessage(
+                                title = stringResource(R.string.ligase_sync_permission_error_title),
+                                summary = stringResource(R.string.ligase_sync_permission_error_summary),
+                                retry = onRetrySync,
+                            )
+                        }
+                    }
                     LigaseLibraryStatus.IDLE,
                     LigaseLibraryStatus.LOADING -> {
                         item(span = { GridItemSpan(maxLineSpan) }) {
@@ -236,6 +260,7 @@ fun LigaseLibraryPage(
                         count = visibleItems.size,
                         sortMode = sortMode,
                         layoutMode = layoutMode,
+                        canChangeSort = canOperate,
                         onSortModeChanged = onSortModeChanged,
                         onLayoutModeChanged = onLayoutModeChanged,
                     )
@@ -266,6 +291,7 @@ fun LigaseLibraryPage(
                                 item = item,
                                 running = item.appId != null && item.appId == runningAppId,
                                 assetLoader = assetLoader,
+                                canOperate = canOperate,
                                 onClick = { onLaunch(item) },
                                 onConfigure = { onConfigure(item) },
                             )
@@ -274,6 +300,7 @@ fun LigaseLibraryPage(
                                 item = item,
                                 running = item.appId != null && item.appId == runningAppId,
                                 assetLoader = assetLoader,
+                                canOperate = canOperate,
                                 onClick = { onLaunch(item) },
                                 onConfigure = { onConfigure(item) },
                             )
@@ -570,6 +597,7 @@ private fun GamesSectionHeader(
     count: Int,
     sortMode: HostSortMode,
     layoutMode: LibraryLayoutMode,
+    canChangeSort: Boolean,
     onSortModeChanged: (HostSortMode) -> Unit,
     onLayoutModeChanged: (LibraryLayoutMode) -> Unit,
 ) {
@@ -594,7 +622,7 @@ private fun GamesSectionHeader(
         }
         Box {
             Surface(
-                modifier = Modifier.clickable { expanded = true },
+                modifier = Modifier.clickable(enabled = canChangeSort) { expanded = true },
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 shape = RoundedCornerShape(14.dp),
             ) {
@@ -621,6 +649,7 @@ private fun GamesSectionHeader(
                 HostSortMode.entries.forEach { mode ->
                     DropdownMenuItem(
                         text = { Text(sortModeLabel(mode)) },
+                        enabled = canChangeSort,
                         onClick = {
                             expanded = false
                             onSortModeChanged(mode)
@@ -717,6 +746,7 @@ private fun LibraryRowCard(
     item: LigaseLibraryItem,
     running: Boolean,
     assetLoader: CachedAppAssetLoader?,
+    canOperate: Boolean,
     onClick: () -> Unit,
     onConfigure: () -> Unit,
 ) {
@@ -726,7 +756,7 @@ private fun LibraryRowCard(
         modifier = Modifier
             .fillMaxWidth()
             .height(118.dp)
-            .clickable(enabled = item.isLaunchable, onClick = onClick),
+            .clickable(enabled = item.isLaunchable && canOperate, onClick = onClick),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -800,6 +830,7 @@ private fun LibraryRowCard(
         }
             IconButton(
                 onClick = onConfigure,
+                enabled = canOperate,
                 modifier = Modifier.align(Alignment.BottomEnd),
             ) {
                 Icon(
@@ -820,6 +851,7 @@ private fun LibraryPosterCard(
     item: LigaseLibraryItem,
     running: Boolean,
     assetLoader: CachedAppAssetLoader?,
+    canOperate: Boolean,
     onClick: () -> Unit,
     onConfigure: () -> Unit,
 ) {
@@ -829,7 +861,7 @@ private fun LibraryPosterCard(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(0.74f)
-            .clickable(enabled = item.isLaunchable, onClick = onClick),
+            .clickable(enabled = item.isLaunchable && canOperate, onClick = onClick),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = accent.container,
@@ -905,7 +937,7 @@ private fun LibraryPosterCard(
                 shape = CircleShape,
                 color = Color.Black.copy(alpha = 0.46f),
             ) {
-                IconButton(onClick = onConfigure) {
+                IconButton(onClick = onConfigure, enabled = canOperate) {
                     Icon(
                         painter = painterResource(R.drawable.ic_settings),
                         contentDescription = stringResource(

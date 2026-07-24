@@ -87,6 +87,9 @@ public class ComputerDetails {
     public int ligaseSyncVersion;
     public String ligaseSyncPath;
     public boolean ligaseHdrEncodingSupported;
+    public int ligaseAttendedPairingVersion;
+    public String ligaseAttendedPairingPath;
+    public String ligaseClientAccessMode;
     public boolean nvidiaServer;
 
     // VDisplay info
@@ -173,6 +176,9 @@ public class ComputerDetails {
         this.ligaseSyncVersion = details.ligaseSyncVersion;
         this.ligaseSyncPath = details.ligaseSyncPath;
         this.ligaseHdrEncodingSupported = details.ligaseHdrEncodingSupported;
+        this.ligaseAttendedPairingVersion = details.ligaseAttendedPairingVersion;
+        this.ligaseAttendedPairingPath = details.ligaseAttendedPairingPath;
+        this.ligaseClientAccessMode = details.ligaseClientAccessMode;
 
         this.vDisplayDriverReady = details.vDisplayDriverReady;
         this.vDisplaySupported = details.vDisplaySupported;

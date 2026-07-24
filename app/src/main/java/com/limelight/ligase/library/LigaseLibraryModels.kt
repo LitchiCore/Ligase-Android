@@ -50,6 +50,18 @@ enum class LigaseLibraryStatus {
     READY,
     INCOMPATIBLE,
     SYNC_ERROR,
+    PERMISSION_ERROR,
+}
+
+internal object LibrarySyncAutoLoadPolicy {
+    fun shouldFetch(
+        hasSnapshot: Boolean,
+        status: LigaseLibraryStatus,
+    ): Boolean =
+        !hasSnapshot &&
+            status != LigaseLibraryStatus.INCOMPATIBLE &&
+            status != LigaseLibraryStatus.SYNC_ERROR &&
+            status != LigaseLibraryStatus.PERMISSION_ERROR
 }
 
 data class HostLibraryItemDto(

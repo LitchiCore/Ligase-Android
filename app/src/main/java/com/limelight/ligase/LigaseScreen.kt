@@ -71,6 +71,9 @@ import com.limelight.ligase.input.LigaseInputCategory
 import com.limelight.ligase.input.LigaseInputDevice
 import com.limelight.ligase.input.LigaseInputPage
 import com.limelight.ligase.input.LigaseTouchLayout
+import com.limelight.ligase.input.LigaseTouchOverlayMode
+import com.limelight.ligase.pairing.AttendedPairingDialog
+import com.limelight.ligase.pairing.AttendedPairingUiState
 import com.limelight.nvstream.http.ComputerDetails
 
 enum class LigasePage(
@@ -98,6 +101,7 @@ fun LigaseRoot(
     selectedMouseKey: String?,
     touchLayouts: List<LigaseTouchLayout>,
     selectedTouchLayoutId: String?,
+    touchOverlayMode: LigaseTouchOverlayMode,
     languageMode: LigaseLanguageMode,
     hosts: List<ComputerDetails>,
     libraryHost: ComputerDetails?,
@@ -111,11 +115,15 @@ fun LigaseRoot(
     librarySortMode: HostSortMode,
     libraryLayoutMode: LibraryLayoutMode,
     libraryAssetLoader: CachedAppAssetLoader?,
+    libraryCanOperate: Boolean,
+    libraryCanConfigureInput: Boolean,
+    pairingState: AttendedPairingUiState,
     onPageSelected: (LigasePage) -> Unit,
     onInputSelected: (InputDeviceMode) -> Unit,
     onInputConfirmed: () -> Unit,
     onInputDeviceSelected: (LigaseInputCategory, String) -> Unit,
     onTouchLayoutSelected: (String) -> Unit,
+    onTouchOverlayModeChanged: (LigaseTouchOverlayMode) -> Unit,
     onThemeSelected: (LigaseThemeMode) -> Unit,
     onLanguageSelected: (LigaseLanguageMode) -> Unit,
     onHostClick: (ComputerDetails) -> Unit,
@@ -128,6 +136,8 @@ fun LigaseRoot(
     onLibraryConfigure: (LigaseLibraryItem) -> Unit,
     onLibraryRetrySync: () -> Unit,
     onGlobalResolutionClick: () -> Unit,
+    onPairingCancel: () -> Unit,
+    onPairingDismiss: () -> Unit,
 ) {
     LigaseComposeTheme(themeMode) {
         Box(
@@ -145,10 +155,12 @@ fun LigaseRoot(
                     selectedMouseKey = selectedMouseKey,
                     touchLayouts = touchLayouts,
                     selectedTouchLayoutId = selectedTouchLayoutId,
+                    touchOverlayMode = touchOverlayMode,
                     onInputSelected = onInputSelected,
                     onInputConfirmed = onInputConfirmed,
                     onDeviceSelected = onInputDeviceSelected,
                     onTouchLayoutSelected = onTouchLayoutSelected,
+                    onTouchOverlayModeChanged = onTouchOverlayModeChanged,
                 )
             } else {
                 val configuration = LocalConfiguration.current
@@ -186,9 +198,12 @@ fun LigaseRoot(
                     layoutType = navigationType,
                     navigationSuiteItems = {
                         LigasePage.entries.forEach { destination ->
+                            val enabled =
+                                destination != LigasePage.INPUT || libraryCanConfigureInput
                             item(
                                 selected = currentPage == destination,
                                 onClick = { onPageSelected(destination) },
+                                enabled = enabled,
                                 colors = navigationItemColors,
                                 icon = {
                                     Icon(
@@ -220,6 +235,7 @@ fun LigaseRoot(
                                 sortMode = librarySortMode,
                                 layoutMode = libraryLayoutMode,
                                 assetLoader = libraryAssetLoader,
+                                canOperate = libraryCanConfigureInput,
                                 onSortModeChanged = onLibrarySortModeChanged,
                                 onLayoutModeChanged = onLibraryLayoutModeChanged,
                                 onHostSelected = onHostClick,
@@ -238,10 +254,12 @@ fun LigaseRoot(
                                 selectedMouseKey = selectedMouseKey,
                                 touchLayouts = touchLayouts,
                                 selectedTouchLayoutId = selectedTouchLayoutId,
+                                touchOverlayMode = touchOverlayMode,
                                 onInputSelected = onInputSelected,
                                 onInputConfirmed = onInputConfirmed,
                                 onDeviceSelected = onInputDeviceSelected,
                                 onTouchLayoutSelected = onTouchLayoutSelected,
+                                onTouchOverlayModeChanged = onTouchOverlayModeChanged,
                             )
                             LigasePage.SETTINGS -> SettingsPage(
                                 selectedInput = selectedInput ?: InputDeviceMode.TOUCH,
@@ -249,6 +267,7 @@ fun LigaseRoot(
                                 languageMode = languageMode,
                                 globalResolution = libraryGlobalResolution,
                                 hdrAvailable = libraryHdrAvailable,
+                                canOperate = libraryCanOperate,
                                 onOpenInput = { onPageSelected(LigasePage.INPUT) },
                                 onThemeSelected = onThemeSelected,
                                 onLanguageSelected = onLanguageSelected,
@@ -259,6 +278,11 @@ fun LigaseRoot(
                     }
                 }
             }
+            AttendedPairingDialog(
+                state = pairingState,
+                onCancel = onPairingCancel,
+                onDismiss = onPairingDismiss,
+            )
         }
     }
 }
@@ -297,6 +321,7 @@ private fun SettingsPage(
     languageMode: LigaseLanguageMode,
     globalResolution: LigaseResolutionDto?,
     hdrAvailable: Boolean,
+    canOperate: Boolean,
     onOpenInput: () -> Unit,
     onThemeSelected: (LigaseThemeMode) -> Unit,
     onLanguageSelected: (LigaseLanguageMode) -> Unit,
@@ -320,7 +345,7 @@ private fun SettingsPage(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(onClick = onOpenInput),
+                        .clickable(enabled = canOperate, onClick = onOpenInput),
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -356,13 +381,13 @@ private fun SettingsPage(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable(
-                            enabled = globalResolution != null,
+                            enabled = canOperate && globalResolution != null,
                             onClick = onGlobalResolutionClick,
                         ),
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        contentColor = if (globalResolution != null) {
+                        contentColor = if (canOperate && globalResolution != null) {
                             MaterialTheme.colorScheme.onSurface
                         } else {
                             LigaseSemanticTheme.colors.disabled

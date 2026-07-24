@@ -119,6 +119,8 @@ class LigaseInputModelsTest {
         )!!
 
         assertTrue(touch.showTouchControls)
+        assertFalse(touch.showVirtualGamepad)
+        assertTrue(touch.showTouchKitKeyboard)
         assertEquals("OSC_Keyboard_1", touch.touchLayoutId)
         assertFalse(gamepad.showTouchControls)
         assertNull(gamepad.touchLayoutId)
@@ -136,6 +138,49 @@ class LigaseInputModelsTest {
                 com.limelight.ligase.InputDeviceMode.TOUCH,
                 "deleted-layout",
                 setOf("available-layout"),
+            ),
+        )
+    }
+
+    @Test
+    fun `touch screen control modes are mutually exclusive`() {
+        val gamepadOnly = LigaseInputLaunchPolicy.resolve(
+            mode = com.limelight.ligase.InputDeviceMode.TOUCH,
+            selectedTouchLayoutId = null,
+            availableTouchLayoutIds = emptySet(),
+            overlayMode = LigaseTouchOverlayMode.VIRTUAL_GAMEPAD,
+        )!!
+        val keyboardOnly = LigaseInputLaunchPolicy.resolve(
+            mode = com.limelight.ligase.InputDeviceMode.TOUCH,
+            selectedTouchLayoutId = "layout",
+            availableTouchLayoutIds = setOf("layout"),
+            overlayMode = LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD,
+        )!!
+        val gesturesOnly = LigaseInputLaunchPolicy.resolve(
+            mode = com.limelight.ligase.InputDeviceMode.TOUCH,
+            selectedTouchLayoutId = null,
+            availableTouchLayoutIds = emptySet(),
+            overlayMode = LigaseTouchOverlayMode.GESTURES_ONLY,
+        )!!
+
+        assertTrue(gamepadOnly.showVirtualGamepad)
+        assertFalse(gamepadOnly.showTouchKitKeyboard)
+        assertNull(gamepadOnly.touchLayoutId)
+        assertFalse(keyboardOnly.showVirtualGamepad)
+        assertTrue(keyboardOnly.showTouchKitKeyboard)
+        assertEquals("layout", keyboardOnly.touchLayoutId)
+        assertFalse(gesturesOnly.showTouchControls)
+        assertNull(gesturesOnly.touchLayoutId)
+    }
+
+    @Test
+    fun `keyboard overlay still requires exact available layout`() {
+        assertNull(
+            LigaseInputLaunchPolicy.resolve(
+                mode = com.limelight.ligase.InputDeviceMode.TOUCH,
+                selectedTouchLayoutId = "missing",
+                availableTouchLayoutIds = emptySet(),
+                overlayMode = LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD,
             ),
         )
     }

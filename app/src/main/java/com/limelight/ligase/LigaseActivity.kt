@@ -20,7 +20,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.ViewModelProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -28,6 +30,7 @@ import androidx.preference.PreferenceManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import com.limelight.BuildConfig
 import com.limelight.LimeLog
 import com.limelight.R
 import com.limelight.binding.PlatformBinding
@@ -42,6 +45,7 @@ import com.limelight.ligase.library.LigaseLibraryAdapter
 import com.limelight.ligase.library.LigaseLibraryItem
 import com.limelight.ligase.library.LigaseLibraryStatus
 import com.limelight.ligase.library.LibraryRefreshCoordinator
+import com.limelight.ligase.library.LibrarySyncAutoLoadPolicy
 import com.limelight.ligase.library.LigaseResolutionDto
 import com.limelight.ligase.library.LigaseSyncRepository
 import com.limelight.ligase.library.LigaseSyncSnapshotDto
@@ -54,6 +58,13 @@ import com.limelight.ligase.input.LigaseInputDeviceRepository
 import com.limelight.ligase.input.LigaseInputLaunchPolicy
 import com.limelight.ligase.input.LigaseTouchLayout
 import com.limelight.ligase.input.LigaseTouchLayoutRepository
+import com.limelight.ligase.input.LigaseTouchOverlayMode
+import com.limelight.ligase.pairing.AttendedPairingCoordinator
+import com.limelight.ligase.pairing.AttendedPairingCrypto
+import com.limelight.ligase.pairing.AttendedPairingRepository
+import com.limelight.ligase.pairing.AttendedPairingViewModel
+import com.limelight.ligase.pairing.LigaseAccessUiPolicy
+import com.limelight.ligase.pairing.LigaseClientAccessMode
 import com.limelight.nvstream.http.ComputerDetails
 import com.limelight.nvstream.http.HostHttpResponseException
 import com.limelight.nvstream.http.NvHTTP
@@ -81,11 +92,13 @@ class LigaseActivity : AppCompatActivity() {
     private var selectedKeyboardKey by mutableStateOf<String?>(null)
     private var selectedMouseKey by mutableStateOf<String?>(null)
     private var selectedTouchLayoutId by mutableStateOf<String?>(null)
+    private var touchOverlayMode by mutableStateOf(LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD)
     private var themeMode by mutableStateOf(LigaseThemeMode.SYSTEM)
     private var languageMode by mutableStateOf(LigaseLanguageMode.SYSTEM)
     private val hosts = mutableStateListOf<ComputerDetails>()
     private val libraryItems = mutableStateListOf<LigaseLibraryItem>()
     private var libraryHost by mutableStateOf<ComputerDetails?>(null)
+    private var libraryAccessMode by mutableStateOf<String?>(null)
     private var libraryLoading by mutableStateOf(false)
     private var libraryRefreshing by mutableStateOf(false)
     private var libraryStatus by mutableStateOf(LigaseLibraryStatus.IDLE)
@@ -103,6 +116,7 @@ class LigaseActivity : AppCompatActivity() {
     private val syncRepository = LigaseSyncRepository()
     private lateinit var inputDeviceRepository: LigaseInputDeviceRepository
     private lateinit var touchLayoutRepository: LigaseTouchLayoutRepository
+    private lateinit var pairingViewModel: AttendedPairingViewModel
 
     private var managerBinder: ComputerManagerService.ComputerManagerBinder? = null
     private var appListPoller: ComputerManagerService.ApplistPoller? = null
@@ -156,6 +170,7 @@ class LigaseActivity : AppCompatActivity() {
             this,
             LigaseInputCategory.MOUSE,
         )
+        touchOverlayMode = LigasePreferences.getTouchOverlayMode(this)
         inputDeviceRepository = LigaseInputDeviceRepository(this) { devices ->
             inputDevices.clear()
             inputDevices.addAll(devices)
@@ -169,8 +184,17 @@ class LigaseActivity : AppCompatActivity() {
             ?.let { saved -> LigasePage.entries.firstOrNull { it.name == saved } }
             ?: if (onboarding) LigasePage.INPUT else LigasePage.HOME
         pendingLibraryHostUuid = savedInstanceState?.getString(STATE_LIBRARY_HOST_UUID)
+        pairingViewModel = ViewModelProvider(this)[AttendedPairingViewModel::class.java]
 
         setContent {
+            LaunchedEffect(pairingViewModel.state) {
+                if (pairingViewModel.state == com.limelight.ligase.pairing.AttendedPairingUiState.Completed) {
+                    pairingViewModel.targetHostUuid
+                        ?.let { managerBinder?.getComputer(it) }
+                        ?.let(::openLibrary)
+                    pairingViewModel.markCompletedHandled()
+                }
+            }
             LigaseRoot(
                 themeMode = themeMode,
                 onboarding = onboarding,
@@ -182,6 +206,7 @@ class LigaseActivity : AppCompatActivity() {
                 selectedMouseKey = selectedMouseKey,
                 touchLayouts = touchLayouts,
                 selectedTouchLayoutId = selectedTouchLayoutId,
+                touchOverlayMode = touchOverlayMode,
                 languageMode = languageMode,
                 hosts = hosts,
                 libraryHost = libraryHost,
@@ -195,11 +220,19 @@ class LigaseActivity : AppCompatActivity() {
                 librarySortMode = librarySortMode,
                 libraryLayoutMode = libraryLayoutMode,
                 libraryAssetLoader = libraryAssetLoader,
+                libraryCanOperate = LigaseAccessUiPolicy.canOperate(libraryAccessMode),
+                libraryCanConfigureInput = LigaseAccessUiPolicy.canConfigureInput(
+                    hasSelectedHost = libraryHost != null,
+                    paired = libraryHost?.pairState == PairState.PAIRED,
+                    accessMode = libraryAccessMode,
+                ),
+                pairingState = pairingViewModel.state,
                 onPageSelected = ::selectPage,
                 onInputSelected = ::selectInput,
                 onInputConfirmed = ::confirmInput,
                 onInputDeviceSelected = ::selectInputDevice,
                 onTouchLayoutSelected = ::selectTouchLayout,
+                onTouchOverlayModeChanged = ::selectTouchOverlayMode,
                 onThemeSelected = ::selectTheme,
                 onLanguageSelected = ::selectLanguage,
                 onHostClick = ::onHostClicked,
@@ -214,6 +247,8 @@ class LigaseActivity : AppCompatActivity() {
                 onLibraryConfigure = ::showLibraryItemSettings,
                 onLibraryRetrySync = ::retryLibrarySync,
                 onGlobalResolutionClick = ::showGlobalResolutionSettings,
+                onPairingCancel = pairingViewModel::cancel,
+                onPairingDismiss = pairingViewModel::dismissStopped,
             )
         }
 
@@ -261,6 +296,11 @@ class LigaseActivity : AppCompatActivity() {
         } else {
             toast(R.string.ligase_touch_layout_missing_short)
         }
+    }
+
+    private fun selectTouchOverlayMode(mode: LigaseTouchOverlayMode) {
+        touchOverlayMode = mode
+        LigasePreferences.setTouchOverlayMode(this, mode)
     }
 
     private fun selectTheme(mode: LigaseThemeMode) {
@@ -324,6 +364,7 @@ class LigaseActivity : AppCompatActivity() {
                 }
                 if (libraryHost?.uuid?.equals(details.uuid, ignoreCase = true) == true) {
                     libraryHost = details
+                    libraryAccessMode = details.ligaseClientAccessMode
                     libraryRunningAppId = details.runningGameId
                     handleSelectedHostCapabilities(details)
                     if (librarySyncSnapshot != null) {
@@ -370,6 +411,27 @@ class LigaseActivity : AppCompatActivity() {
             return
         }
 
+        if (host.ligaseAttendedPairingVersion == 1 &&
+            !host.ligaseAttendedPairingPath.isNullOrBlank()
+        ) {
+            pairHostAttended(host, binder)
+            return
+        }
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.ligase_pair_legacy_title)
+            .setMessage(R.string.ligase_pair_legacy_summary)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.ligase_pair_continue) { _, _ ->
+                pairHostLegacy(host, binder)
+            }
+            .show()
+    }
+
+    private fun pairHostLegacy(
+        host: ComputerDetails,
+        binder: ComputerManagerService.ComputerManagerBinder,
+    ) {
         val pin = PairingManager.generatePinString()
         val progressDialog = MaterialAlertDialogBuilder(this)
             .setTitle(R.string.pair_pairing_title)
@@ -438,6 +500,68 @@ class LigaseActivity : AppCompatActivity() {
         }.start()
     }
 
+    private fun pairHostAttended(
+        host: ComputerDetails,
+        binder: ComputerManagerService.ComputerManagerBinder,
+    ) {
+        try {
+            val cryptoProvider = PlatformBinding.getCryptoProvider(this)
+            val http = NvHTTP(
+                ServerHelper.getCurrentAddressFromComputer(host),
+                host.httpsPort,
+                binder.uniqueId,
+                host.serverCert,
+                cryptoProvider,
+            )
+            val pairingManager = http.pairingManager
+            val coordinator = AttendedPairingCoordinator(
+                repository = AttendedPairingRepository(http),
+                crypto = AttendedPairingCrypto(),
+                clock = SystemClock::elapsedRealtime,
+                legacyPairing = object : AttendedPairingCoordinator.LegacyPairing {
+                    override fun pair(
+                        pin: String,
+                        requestId: String,
+                        expectedCertificateSha256: ByteArray,
+                    ): PairState = pairingManager.pairAttended(
+                        http.getServerInfo(true),
+                        pin,
+                        requestId,
+                        expectedCertificateSha256,
+                    )
+
+                    override fun cancel() {
+                        http.cancelActivePairingCall()
+                    }
+
+                    override fun onPaired(certificate: java.security.cert.X509Certificate?) {
+                        val pairedCertificate = pairingManager.pairedCert ?: return
+                        binder.getComputer(host.uuid).serverCert = pairedCertificate
+                        binder.invalidateStateForComputer(host.uuid)
+                    }
+                },
+                listener = pairingViewModel::update,
+                auditListener = pairingViewModel::updateAudit,
+            )
+            pairingViewModel.start(coordinator, host.uuid) {
+                coordinator.start(
+                    capabilityPath = host.ligaseAttendedPairingPath,
+                    hostUniqueId = host.uuid,
+                    deviceName = attendedDeviceName(),
+                    clientCertificate = cryptoProvider.clientCertificate,
+                )
+            }
+        } catch (_: IOException) {
+            toast(R.string.pair_pc_offline)
+        }
+    }
+
+    private fun attendedDeviceName(): String {
+        val source = (Build.MODEL ?: "Android").trim().ifBlank { "Android" }
+        val end = source.offsetByCodePoints(0, source.codePointCount(0, source.length).coerceAtMost(80))
+        return source.substring(0, end)
+    }
+
     private fun wakeHost(host: ComputerDetails) {
         if (host.macAddress == null) {
             toast(R.string.wol_no_mac)
@@ -458,6 +582,7 @@ class LigaseActivity : AppCompatActivity() {
         stopAppListUpdates()
         disposeLibraryAssets()
         libraryHost = host
+        libraryAccessMode = host.ligaseClientAccessMode
         libraryRefreshCoordinator.cancel()
         libraryRefreshCoordinator.selectHost(host.uuid)
         pendingLibraryHostUuid = host.uuid
@@ -488,6 +613,7 @@ class LigaseActivity : AppCompatActivity() {
     private fun clearLibraryState() {
         stopAppListUpdates()
         libraryHost = null
+        libraryAccessMode = null
         libraryRefreshCoordinator.selectHost(null)
         pendingLibraryHostUuid = null
         libraryItems.clear()
@@ -555,6 +681,14 @@ class LigaseActivity : AppCompatActivity() {
     private fun handleSelectedHostCapabilities(host: ComputerDetails) {
         if (host.state != ComputerDetails.State.ONLINE) return
         if (
+            host.pairState == PairState.PAIRED &&
+            host.ligaseClientAccessMode != "operate" &&
+            currentPage == LigasePage.INPUT
+        ) {
+            currentPage = LigasePage.HOME
+            startAppListUpdates()
+        }
+        if (
             host.ligaseSyncVersion != LigaseSyncRepository.SUPPORTED_SYNC_VERSION ||
             host.ligaseSyncPath.isNullOrBlank()
         ) {
@@ -569,7 +703,12 @@ class LigaseActivity : AppCompatActivity() {
             libraryHdrAvailable = false
             return
         }
-        if (librarySyncSnapshot == null) {
+        if (
+            LibrarySyncAutoLoadPolicy.shouldFetch(
+                hasSnapshot = librarySyncSnapshot != null,
+                status = libraryStatus,
+            )
+        ) {
             fetchLibrarySync(force = false)
         }
     }
@@ -629,7 +768,12 @@ class LigaseActivity : AppCompatActivity() {
                         libraryItems.clear()
                         librarySyncSnapshot = null
                         libraryLoading = false
-                        libraryStatus = LigaseLibraryStatus.SYNC_ERROR
+                        libraryStatus =
+                            if (error is HostHttpResponseException && error.errorCode == 403) {
+                                LigaseLibraryStatus.PERMISSION_ERROR
+                            } else {
+                                LigaseLibraryStatus.SYNC_ERROR
+                            }
                         libraryHdrAvailable = false
                     }
                 }
@@ -669,6 +813,11 @@ class LigaseActivity : AppCompatActivity() {
 
     private fun handleSyncWriteFailure(host: ComputerDetails, error: Throwable) {
         if (libraryHost?.uuid != host.uuid) return
+        if (error is HostHttpResponseException && error.errorCode == 403) {
+            toast(R.string.ligase_observe_mode_action_blocked)
+            managerBinder?.invalidateStateForComputer(host.uuid)
+            return
+        }
         if (error is HostHttpResponseException && !error.responseBody.isNullOrBlank()) {
             LimeLog.warning("Ligase sync write error response: ${error.responseBody}")
         }
@@ -705,6 +854,7 @@ class LigaseActivity : AppCompatActivity() {
 
     private fun changeLibrarySortMode(sortMode: HostSortMode) {
         val host = libraryHost ?: return
+        if (!requireOperate(host)) return
         val snapshot = librarySyncSnapshot ?: return
         Thread {
             try {
@@ -733,6 +883,7 @@ class LigaseActivity : AppCompatActivity() {
 
     private fun launchLibraryItem(item: LigaseLibraryItem) {
         val host = libraryHost ?: return
+        if (!requireOperate(host)) return
         val snapshot = librarySyncSnapshot ?: return
         val app = item.launchApp ?: return
         val appUuid = item.hostAppUuid ?: return
@@ -771,6 +922,7 @@ class LigaseActivity : AppCompatActivity() {
                 mode = inputMode,
                 selectedTouchLayoutId = selectedTouchLayoutId,
                 availableTouchLayoutIds = touchLayouts.mapTo(mutableSetOf()) { it.id },
+                overlayMode = touchOverlayMode,
             ) == null
         ) {
             toast(R.string.ligase_touch_layout_reselect_before_stream)
@@ -814,6 +966,7 @@ class LigaseActivity : AppCompatActivity() {
 
     private fun showLibraryItemSettings(item: LigaseLibraryItem) {
         val host = libraryHost ?: return
+        if (!requireOperate(host)) return
         val snapshot = librarySyncSnapshot ?: return
         val appUuid = item.hostAppUuid ?: return
         val override = snapshot.streaming.overrideFor(appUuid)
@@ -829,6 +982,7 @@ class LigaseActivity : AppCompatActivity() {
 
     private fun showGlobalResolutionSettings() {
         val host = libraryHost ?: return
+        if (!requireOperate(host)) return
         val snapshot = librarySyncSnapshot ?: return
         showResolutionEditor(
             title = getString(R.string.ligase_global_resolution),
@@ -998,6 +1152,13 @@ class LigaseActivity : AppCompatActivity() {
         LigaseAddHostDialog.show(this, ::addHost)
     }
 
+    private fun requireOperate(host: ComputerDetails): Boolean {
+        if (host.ligaseClientAccessMode == "operate") return true
+        toast(R.string.ligase_observe_mode_action_blocked)
+        managerBinder?.invalidateStateForComputer(host.uuid)
+        return false
+    }
+
     private fun addHost(endpoint: LigaseEndpoint) {
         val binder = managerBinder
         if (binder == null) {
@@ -1042,6 +1203,13 @@ class LigaseActivity : AppCompatActivity() {
         UiHelper.showDecoderCrashDialog(this)
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (BuildConfig.DEBUG && intent.action == ACTION_RECREATE_FOR_TEST) {
+            recreate()
+        }
+    }
+
     override fun onPause() {
         foreground = false
         inputDeviceRepository.stop()
@@ -1073,6 +1241,8 @@ class LigaseActivity : AppCompatActivity() {
     }
 
     companion object {
+        internal const val ACTION_RECREATE_FOR_TEST =
+            "com.litchicore.ligase.action.RECREATE_FOR_TEST"
         private const val STATE_PAGE = "ligase_page"
         private const val STATE_LIBRARY_HOST_UUID = "ligase_library_host_uuid"
         private const val EXIT_INTERVAL_MS = 2_000L

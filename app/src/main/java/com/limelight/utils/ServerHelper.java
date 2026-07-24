@@ -18,6 +18,8 @@ import com.limelight.ShortcutTrampoline;
 import com.limelight.binding.PlatformBinding;
 import com.limelight.computers.ComputerManagerService;
 import com.limelight.ligase.LigasePreferences;
+import com.limelight.ligase.InputDeviceMode;
+import com.limelight.ligase.input.LigaseTouchOverlayMode;
 import com.limelight.nvstream.http.ComputerDetails;
 import com.limelight.nvstream.http.HostHttpResponseException;
 import com.limelight.nvstream.http.NvApp;
@@ -125,10 +127,18 @@ public class ServerHelper {
         gameIntent.putExtra(Game.EXTRA_PC_NAME, computer.name);
         gameIntent.putExtra(Game.EXTRA_VDISPLAY, withVDisplay);
         gameIntent.putExtra(Game.EXTRA_SERVER_COMMANDS, (ArrayList<String>) computer.serverCommands);
-        gameIntent.putExtra(Game.EXTRA_LIGASE_INPUT_MODE,
-                LigasePreferences.getInputDeviceMode(parent).getStoredValue());
+        InputDeviceMode ligaseInputMode = LigasePreferences.getInputDeviceMode(parent);
+        gameIntent.putExtra(Game.EXTRA_LIGASE_INPUT_MODE, ligaseInputMode.getStoredValue());
+        LigaseTouchOverlayMode overlayMode =
+                LigasePreferences.getTouchOverlayMode(parent);
+        boolean touchMode = ligaseInputMode == InputDeviceMode.TOUCH;
+        gameIntent.putExtra(Game.EXTRA_LIGASE_VIRTUAL_GAMEPAD,
+                touchMode && overlayMode == LigaseTouchOverlayMode.VIRTUAL_GAMEPAD);
+        gameIntent.putExtra(Game.EXTRA_LIGASE_TOUCHKIT_KEYBOARD,
+                touchMode && overlayMode == LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD);
         String ligaseTouchLayoutId = LigasePreferences.getGlobalTouchLayoutId(parent);
-        if (ligaseTouchLayoutId != null) {
+        if (touchMode && overlayMode == LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD &&
+                ligaseTouchLayoutId != null) {
             gameIntent.putExtra(Game.EXTRA_LIGASE_TOUCH_LAYOUT_ID, ligaseTouchLayoutId);
         }
         if (hasLigaseSettings) {

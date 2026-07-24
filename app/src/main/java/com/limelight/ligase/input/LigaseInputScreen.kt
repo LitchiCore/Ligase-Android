@@ -54,10 +54,12 @@ fun LigaseInputPage(
     selectedMouseKey: String?,
     touchLayouts: List<LigaseTouchLayout>,
     selectedTouchLayoutId: String?,
+    touchOverlayMode: LigaseTouchOverlayMode,
     onInputSelected: (InputDeviceMode) -> Unit,
     onInputConfirmed: () -> Unit,
     onDeviceSelected: (LigaseInputCategory, String) -> Unit,
     onTouchLayoutSelected: (String) -> Unit,
+    onTouchOverlayModeChanged: (LigaseTouchOverlayMode) -> Unit,
 ) {
     if (onboarding) {
         OnboardingInputPage(
@@ -90,6 +92,7 @@ fun LigaseInputPage(
                     selectedMouseKey = selectedMouseKey,
                     touchLayouts = touchLayouts,
                     selectedTouchLayoutId = selectedTouchLayoutId,
+                    touchOverlayMode = touchOverlayMode,
                     onChange = { showModePicker = true },
                 )
             }
@@ -126,54 +129,65 @@ fun LigaseInputPage(
                     )
                 }
                 InputDeviceMode.TOUCH -> {
-                    item { InputSectionTitle(R.string.ligase_global_touch_layout) }
-                    if (
-                        selectedTouchLayoutId != null &&
-                        touchLayouts.none { it.id == selectedTouchLayoutId }
-                    ) {
-                        item {
-                            InputNoticeCard(
-                                text = stringResource(
-                                    R.string.ligase_touch_layout_missing,
-                                    selectedTouchLayoutId,
-                                ),
-                                error = true,
-                            )
-                        }
-                    }
-                    if (touchLayouts.isEmpty()) {
-                        item {
-                            InputNoticeCard(
-                                text = stringResource(R.string.ligase_no_touch_layout),
-                                error = true,
-                            )
-                        }
-                    } else {
-                        items(
-                            count = touchLayouts.size,
-                            key = { touchLayouts[it].id },
-                        ) { index ->
-                            val layout = touchLayouts[index]
-                            TouchLayoutCard(
-                                layout = layout,
-                                selected = layout.id == selectedTouchLayoutId,
-                                onClick = { onTouchLayoutSelected(layout.id) },
-                            )
-                        }
-                    }
+                    item { InputSectionTitle(R.string.ligase_touch_overlays) }
                     item {
-                        Text(
-                            text = stringResource(R.string.ligase_global_touch_layout_summary),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        TouchOverlaySelector(
+                            mode = touchOverlayMode,
+                            onChanged = onTouchOverlayModeChanged,
                         )
-                        Spacer(Modifier.height(4.dp))
-                        OutlinedButton(
-                            onClick = {},
-                            enabled = false,
-                            modifier = Modifier.fillMaxWidth(),
+                    }
+                    if (touchOverlayMode == LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD) {
+                        item { InputSectionTitle(R.string.ligase_global_touch_layout) }
+                        if (
+                            selectedTouchLayoutId != null &&
+                            touchLayouts.none { it.id == selectedTouchLayoutId }
                         ) {
-                            Text(stringResource(R.string.ligase_layout_edit_future))
+                            item {
+                                InputNoticeCard(
+                                    text = stringResource(
+                                        R.string.ligase_touch_layout_missing,
+                                        selectedTouchLayoutId,
+                                    ),
+                                    error = true,
+                                )
+                            }
+                        }
+                        if (touchLayouts.isEmpty()) {
+                            item {
+                                InputNoticeCard(
+                                    text = stringResource(R.string.ligase_no_touch_layout),
+                                    error = true,
+                                )
+                            }
+                        } else {
+                            items(
+                                count = touchLayouts.size,
+                                key = { touchLayouts[it].id },
+                            ) { index ->
+                                val layout = touchLayouts[index]
+                                TouchLayoutCard(
+                                    layout = layout,
+                                    selected = layout.id == selectedTouchLayoutId,
+                                    onClick = { onTouchLayoutSelected(layout.id) },
+                                )
+                            }
+                        }
+                        item {
+                            Text(
+                                text = stringResource(
+                                    R.string.ligase_global_touch_layout_summary,
+                                ),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            OutlinedButton(
+                                onClick = {},
+                                enabled = false,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(stringResource(R.string.ligase_layout_edit_future))
+                            }
                         }
                     }
                 }
@@ -314,6 +328,7 @@ private fun CurrentInputCard(
     selectedMouseKey: String?,
     touchLayouts: List<LigaseTouchLayout>,
     selectedTouchLayoutId: String?,
+    touchOverlayMode: LigaseTouchOverlayMode,
     onChange: () -> Unit,
 ) {
     val detail = when (mode) {
@@ -327,10 +342,12 @@ private fun CurrentInputCard(
             selectedKeyboardKey,
             selectedMouseKey,
         )
-        InputDeviceMode.TOUCH -> touchLayouts
-            .firstOrNull { it.id == selectedTouchLayoutId }
-            ?.displayName
-            ?: stringResource(R.string.ligase_layout_reselect_required)
+        InputDeviceMode.TOUCH -> touchOverlaySummary(
+            mode = touchOverlayMode,
+            layoutName = touchLayouts
+                .firstOrNull { it.id == selectedTouchLayoutId }
+                ?.displayName,
+        )
     }
     Card(
         shape = RoundedCornerShape(24.dp),
@@ -367,12 +384,112 @@ private fun CurrentInputCard(
             }
             Spacer(Modifier.height(10.dp))
             Text(
-                text = stringResource(inputModeBehavior(mode)),
+                text = if (mode == InputDeviceMode.TOUCH) {
+                    stringResource(
+                        when {
+                            touchOverlayMode == LigaseTouchOverlayMode.VIRTUAL_GAMEPAD ->
+                                R.string.ligase_touch_behavior_gamepad
+                            touchOverlayMode == LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD ->
+                                R.string.ligase_touch_behavior_keyboard
+                            else -> R.string.ligase_touch_behavior_gestures
+                        },
+                    )
+                } else {
+                    stringResource(inputModeBehavior(mode))
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
+}
+
+@Composable
+private fun TouchOverlaySelector(
+    mode: LigaseTouchOverlayMode,
+    onChanged: (LigaseTouchOverlayMode) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            text = stringResource(R.string.ligase_touch_overlays_summary),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        TouchOverlayOptionCard(
+            title = R.string.ligase_virtual_keyboard,
+            summary = R.string.ligase_virtual_keyboard_option_summary,
+            selected = mode == LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD,
+            onClick = { onChanged(LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD) },
+        )
+        TouchOverlayOptionCard(
+            title = R.string.ligase_virtual_gamepad,
+            summary = R.string.ligase_virtual_gamepad_option_summary,
+            selected = mode == LigaseTouchOverlayMode.VIRTUAL_GAMEPAD,
+            onClick = { onChanged(LigaseTouchOverlayMode.VIRTUAL_GAMEPAD) },
+        )
+        TouchOverlayOptionCard(
+            title = R.string.ligase_no_screen_controls,
+            summary = R.string.ligase_no_screen_controls_summary,
+            selected = mode == LigaseTouchOverlayMode.GESTURES_ONLY,
+            onClick = { onChanged(LigaseTouchOverlayMode.GESTURES_ONLY) },
+        )
+    }
+}
+
+@Composable
+private fun TouchOverlayOptionCard(
+    @StringRes title: Int,
+    @StringRes summary: Int,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (selected) {
+                LigaseSemanticTheme.colors.selected
+            } else {
+                MaterialTheme.colorScheme.surface
+            },
+        ),
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = stringResource(summary),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            RadioButton(selected = selected, onClick = null)
+        }
+    }
+}
+
+@Composable
+private fun touchOverlaySummary(
+    mode: LigaseTouchOverlayMode,
+    layoutName: String?,
+): String = when {
+    mode == LigaseTouchOverlayMode.VIRTUAL_GAMEPAD ->
+        stringResource(R.string.ligase_virtual_gamepad)
+    mode == LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD ->
+        stringResource(
+            R.string.ligase_touch_keyboard_summary,
+            layoutName ?: stringResource(R.string.ligase_layout_reselect_required),
+        )
+    else -> stringResource(R.string.ligase_touch_overlays_none_summary)
 }
 
 private fun androidx.compose.foundation.lazy.LazyListScope.deviceItems(

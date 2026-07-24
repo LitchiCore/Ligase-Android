@@ -276,6 +276,8 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
     public static final String EXTRA_DISPLAY_ID = "DisplayID";
     public static final String EXTRA_LIGASE_INPUT_MODE = "LigaseInputMode";
     public static final String EXTRA_LIGASE_TOUCH_LAYOUT_ID = "LigaseTouchLayoutId";
+    public static final String EXTRA_LIGASE_VIRTUAL_GAMEPAD = "LigaseVirtualGamepad";
+    public static final String EXTRA_LIGASE_TOUCHKIT_KEYBOARD = "LigaseTouchKitKeyboard";
     public static final String EXTRA_LIGASE_WIDTH = "LigaseWidth";
     public static final String EXTRA_LIGASE_HEIGHT = "LigaseHeight";
     public static final String EXTRA_LIGASE_HOST_HDR_SUPPORTED = "LigaseHostHdrSupported";
@@ -387,7 +389,15 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
         String ligaseInputMode = getIntent().getStringExtra(EXTRA_LIGASE_INPUT_MODE);
         String ligaseTouchLayoutId =
                 getIntent().getStringExtra(EXTRA_LIGASE_TOUCH_LAYOUT_ID);
-        if ("touch".equals(ligaseInputMode) &&
+        Boolean ligaseShowTouchControls =
+                LigaseInputLaunchPolicy.showTouchControls(ligaseInputMode);
+        boolean ligaseVirtualGamepad = ligaseShowTouchControls != null &&
+                ligaseShowTouchControls &&
+                getIntent().getBooleanExtra(EXTRA_LIGASE_VIRTUAL_GAMEPAD, true);
+        boolean ligaseTouchKitKeyboard = ligaseShowTouchControls != null &&
+                ligaseShowTouchControls &&
+                getIntent().getBooleanExtra(EXTRA_LIGASE_TOUCHKIT_KEYBOARD, true);
+        if (ligaseTouchKitKeyboard &&
                 (ligaseTouchLayoutId == null ||
                         !TouchKitLayoutNames.contains(this, ligaseTouchLayoutId))) {
             Toast.makeText(this, R.string.ligase_touch_layout_reselect_before_stream,
@@ -395,11 +405,9 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
             finish();
             return;
         }
-        Boolean ligaseShowTouchControls =
-                LigaseInputLaunchPolicy.showTouchControls(ligaseInputMode);
         if (ligaseShowTouchControls != null) {
-            prefConfig.onscreenController = ligaseShowTouchControls;
-            prefConfig.touchkitAdjustableOverlay = ligaseShowTouchControls;
+            prefConfig.onscreenController = ligaseVirtualGamepad;
+            prefConfig.touchkitAdjustableOverlay = ligaseTouchKitKeyboard;
         }
         tombstonePrefs = Game.this.getSharedPreferences("DecoderTombstone", 0);
 

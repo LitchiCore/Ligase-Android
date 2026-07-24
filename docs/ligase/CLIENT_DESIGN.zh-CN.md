@@ -54,9 +54,11 @@
 - 当前尚未接入 `layout-contract-v1` 的游戏级 identity/variant，因此所有 Ligase 触屏
   启动使用显式全局 layout ID。未来 2C 接入后，精确游戏 variant 优先，全局布局仅作
   未绑定回退；本阶段不迁移或删除旧 TouchKit game store。
-- Ligase 启动 Intent 显式携带输入模式和全局 layout ID。`Game` 的产品启动策略为：
-  触屏开启虚拟控制和 TouchKit overlay；手柄、键盘鼠标均关闭触控覆盖。Ligase 产品
-  启动绕开旧的 numeric appid/unknown_pc 布局回退，旧非 Ligase 入口暂时保持原行为。
+- Ligase 启动 Intent 显式携带输入模式、全局 layout ID 和屏幕控件选择。触屏用户
+  在“虚拟键盘（TouchKit）/虚拟手柄/不显示屏幕控件”中三选一，产品 UI 不允许
+  两层叠加。虚拟键盘模式才要求稳定 layout ID；其他模式保留原选择但不加载布局。
+  实体手柄、键盘鼠标模式会强制关闭触控覆盖。Ligase 产品启动绕开旧的 numeric
+  appid/unknown_pc 布局回退，旧非 Ligase 入口暂时保持原行为。
 - 布局大厅将在 catalog 可用后作为独立页面实现；当前输入页不显示空壳大厅入口，
   也不提前实现搜索、下载、编辑或游戏级应用。
 
@@ -91,7 +93,8 @@
 - Android 只写排序和串流分辨率。应用的新增与删除只由 Host 管理。
 - 写入遇到 revision 冲突时重新拉取完整快照，提示用户重新操作，不自动重放旧写入。
 - NvHTTP 对非成功响应保留结构化错误体，便于 Sync 写入诊断；日志只能记录契约错误
-  JSON，不能记录客户端证书、私钥、TLS 密钥或配对秘密。
+  JSON 和不含 query/response body 的安全路径摘要。`/launch` 的 `rikey` 等 query
+  参数、客户端证书、私钥、TLS 密钥或配对秘密均不得进入日志。
 - UI 不直接呈现 Sync v1、404、409、revision 等实现细节；失败状态提供升级 Host、
   检查 Host/网络或重试等下一步。
 
@@ -103,12 +106,23 @@
   不上传、不改变 Host revision；有效可见性为 Host 已发布且不在本机隐藏集合中。
 - `desktop` 和 `virtualDesktop` 首版均不可隐藏。“已隐藏游戏”只能恢复本机隐藏，
   不能覆盖 Host 全局隐藏。Android 仍不能写游戏集合或 Host publication。
-- attended-pairing v1 已完成跨端安全审议，但尚未实现。实现必须使用独立
+- attended-pairing v1 已在 Android 形成独立
   `AttendedPairingRepository` / `AttendedPairingCoordinator`，按 Host 冻结契约执行
   X25519、HKDF-SHA-256、ChaCha20-Poly1305、RFC 8785 JCS、DER 证书绑定、
   双端 `XXXX-XXXX` 安全码、120 秒单调时钟超时及 fail-closed 清理。
-- 普通配对 UI 最终不显示 legacy PIN；旧 PIN 仅在 attended pairing 完成手机/平板
-  allow、reject、timeout、replay、restart 和 re-pair 验收前保留为高级兼容路径。
+- `LigaseAttendedPairingVersion == 1` 且 path 存在时，普通配对 UI 只显示设备名、
+  安全短码、等待电脑批准及取消，不显示 legacy PIN、管理端口或管理账号。Host
+  缺少 capability 时才提供带明确风险说明的“高级兼容配对”，不会静默回退。
+- Coordinator 以 `SystemClock.elapsedRealtime()` 建立最多 120 秒本地 deadline，
+  最多每秒轮询一次；普通失败与所有终态停止 held pair、轮询并清理秘密，不自动
+  重放。用户取消先 DELETE，再只用暂存 bearer 做一次短超时 authenticated status
+  probe，随后无条件清理。
+- 配对后的 HTTPS `serverinfo.LigaseClientAccessMode` 是本客户端权限唯一产品投影。
+  `operate` 允许启动、Sync 写、结束会话和输入；`observe` 只读。未知自定义值按
+  observe，公共 HTTP 中字段缺失不被误判为权限。运行时 403 刷新权限并提示用户，
+  不自动重放写入。
+- 119-case fixture 与 schema 从 Host 权威提交逐字复制，资源 SHA 固定写入 JVM
+  测试；JCS 与 strict JSON 不由 Gson 承担。
 
 ## 保留的 GameStream 传输 ABI
 
@@ -283,4 +297,5 @@ HTTPS Sync v1、UUID-only applist merge、physical desktop launch、bracketed IP
 RTSP authority、控制/视频/音频/输入流、首帧硬解码，以及应用内确认结束会话均
 通过。Host 复核结束后 `currentgame=0 / SUNSHINE_SERVER_FREE` 且连接与 UDP
 串流端口已释放。验收实例、自动 PIN 通道和凭据仅属于测试基础设施，不构成产品
-配对 UI；attended pairing 仍按上文 readiness 门推进。
+配对 UI；新 attended pairing 的真机 allow/reject/timeout/cancel/rebuild 与
+operate/observe 联合验收记录见 `ATTENDED_PAIRING.zh-CN.md`。

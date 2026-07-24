@@ -185,6 +185,29 @@ public class PairingManager {
     }
     
     public PairState pair(String serverInfo, String pin, String passphrase) throws IOException, XmlPullParserException {
+        return pair(serverInfo, pin, passphrase, null, null);
+    }
+
+    public PairState pairAttended(
+            String serverInfo,
+            String pin,
+            String requestId,
+            byte[] expectedCertificateSha256)
+            throws IOException, XmlPullParserException {
+        if (requestId == null || expectedCertificateSha256 == null ||
+                expectedCertificateSha256.length != 32) {
+            throw new IllegalArgumentException("Invalid attended pairing binding");
+        }
+        return pair(serverInfo, pin, null, requestId, expectedCertificateSha256);
+    }
+
+    private PairState pair(
+            String serverInfo,
+            String pin,
+            String passphrase,
+            String attendedRequestId,
+            byte[] expectedCertificateSha256)
+            throws IOException, XmlPullParserException {
         PairingHashAlgorithm hashAlgo;
 
         int serverMajorVersion = http.getServerMajorVersion(serverInfo);
@@ -205,9 +228,17 @@ public class PairingManager {
         byte[] aesKey = generateAesKey(hashAlgo, saltPin(salt, pin));
 
         String saltStr = bytesToHex(salt);
+        byte[] randomChallenge = null;
+        byte[] clientSecret = null;
+        byte[] serverSecret = null;
+        byte[] clientPairingSecret = null;
 
+        try {
         String pairingArguments = "phrase=getservercert&salt="+
                 saltStr+"&clientcert="+bytesToHex(pemCertBytes);
+        if (attendedRequestId != null) {
+            pairingArguments += "&ligasepairingrequestid=" + attendedRequestId;
+        }
 
         if (passphrase != null) {
             try {
@@ -242,11 +273,28 @@ public class PairingManager {
             return PairState.ALREADY_IN_PROGRESS;
         }
 
+        if (expectedCertificateSha256 != null) {
+            final byte[] actualFingerprint;
+            try {
+                actualFingerprint = MessageDigest.getInstance("SHA-256").digest(serverCert.getEncoded());
+            }
+            catch (NoSuchAlgorithmException | CertificateEncodingException error) {
+                throw new IOException("Unable to verify Host certificate", error);
+            }
+            boolean certificateMatches =
+                    MessageDigest.isEqual(actualFingerprint, expectedCertificateSha256);
+            Arrays.fill(actualFingerprint, (byte) 0);
+            if (!certificateMatches) {
+                http.unpair();
+                return PairState.FAILED;
+            }
+        }
+
         // Require this cert for TLS to this host
         http.setServerCert(serverCert);
         
         // Generate a random challenge and encrypt it with our AES key
-        byte[] randomChallenge = generateRandomBytes(16);
+        randomChallenge = generateRandomBytes(16);
         byte[] encryptedChallenge = encryptAes(randomChallenge, aesKey);
         
         // Send the encrypted challenge to the server
@@ -264,7 +312,7 @@ public class PairingManager {
         byte[] serverChallenge = Arrays.copyOfRange(decServerChallengeResponse, hashAlgo.getHashLength(), hashAlgo.getHashLength() + 16);
         
         // Using another 16 bytes secret, compute a challenge response hash using the secret, our cert sig, and the challenge
-        byte[] clientSecret = generateRandomBytes(16);
+        clientSecret = generateRandomBytes(16);
         byte[] challengeRespHash = hashAlgo.hashData(concatBytes(concatBytes(serverChallenge, cert.getSignature()), clientSecret));
         byte[] challengeRespEncrypted = encryptAes(challengeRespHash, aesKey);
         String secretResp = http.executePairingCommand("serverchallengeresp="+bytesToHex(challengeRespEncrypted), true);
@@ -275,7 +323,7 @@ public class PairingManager {
         
         // Get the server's signed secret
         byte[] serverSecretResp = hexToBytes(NvHTTP.getXmlString(secretResp, "pairingsecret", true));
-        byte[] serverSecret = Arrays.copyOfRange(serverSecretResp, 0, 16);
+        serverSecret = Arrays.copyOfRange(serverSecretResp, 0, 16);
         byte[] serverSignature = Arrays.copyOfRange(serverSecretResp, 16, serverSecretResp.length);
 
         // Ensure the authenticity of the data
@@ -298,7 +346,7 @@ public class PairingManager {
         }
         
         // Send the server our signed secret
-        byte[] clientPairingSecret = concatBytes(clientSecret, signData(clientSecret, pk));
+        clientPairingSecret = concatBytes(clientSecret, signData(clientSecret, pk));
         String clientSecretResp = http.executePairingCommand("clientpairingsecret="+bytesToHex(clientPairingSecret), true);
         if (!NvHTTP.getXmlString(clientSecretResp, "paired", true).equals("1")) {
             http.unpair();
@@ -313,6 +361,15 @@ public class PairingManager {
         }
 
         return PairState.PAIRED;
+        }
+        finally {
+            Arrays.fill(salt, (byte) 0);
+            Arrays.fill(aesKey, (byte) 0);
+            if (randomChallenge != null) Arrays.fill(randomChallenge, (byte) 0);
+            if (clientSecret != null) Arrays.fill(clientSecret, (byte) 0);
+            if (serverSecret != null) Arrays.fill(serverSecret, (byte) 0);
+            if (clientPairingSecret != null) Arrays.fill(clientPairingSecret, (byte) 0);
+        }
     }
     
     private interface PairingHashAlgorithm {

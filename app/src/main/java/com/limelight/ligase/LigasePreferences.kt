@@ -8,6 +8,7 @@ import androidx.core.view.WindowCompat
 import androidx.preference.PreferenceManager
 import com.limelight.ligase.library.HostSortMode
 import com.limelight.ligase.library.LibraryLayoutMode
+import com.limelight.ligase.input.LigaseTouchOverlayMode
 
 enum class InputDeviceMode(val storedValue: String) {
     GAMEPAD("gamepad"),
@@ -50,6 +51,9 @@ object LigasePreferences {
     private const val KEY_LIBRARY_LAYOUT = "library_layout"
     private const val KEY_LANGUAGE = "list_languages"
     private const val KEY_GLOBAL_TOUCH_LAYOUT = "global_touch_layout"
+    private const val KEY_TOUCH_VIRTUAL_GAMEPAD = "touch_virtual_gamepad"
+    private const val KEY_TOUCHKIT_KEYBOARD = "touch_touchkit_keyboard"
+    private const val KEY_TOUCH_OVERLAY_MODE = "touch_overlay_mode"
     private const val KEY_GAMEPAD_DEVICE = "input_device:gamepad"
     private const val KEY_KEYBOARD_DEVICE = "input_device:keyboard"
     private const val KEY_MOUSE_DEVICE = "input_device:mouse"
@@ -79,6 +83,32 @@ object LigasePreferences {
     @JvmStatic
     fun setGlobalTouchLayoutId(context: Context, layoutId: String) {
         preferences(context).edit().putString(KEY_GLOBAL_TOUCH_LAYOUT, layoutId).apply()
+    }
+
+    @JvmStatic
+    fun getTouchOverlayMode(context: Context): LigaseTouchOverlayMode {
+        val prefs = preferences(context)
+        LigaseTouchOverlayMode.fromStoredValue(
+            prefs.getString(KEY_TOUCH_OVERLAY_MODE, null),
+        )?.let { return it }
+        // The short-lived two-toggle build allowed both layers. Migrate that
+        // ambiguous state to TouchKit keyboard so no update can stack them.
+        return when {
+            prefs.getBoolean(KEY_TOUCHKIT_KEYBOARD, true) ->
+                LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD
+            prefs.getBoolean(KEY_TOUCH_VIRTUAL_GAMEPAD, true) ->
+                LigaseTouchOverlayMode.VIRTUAL_GAMEPAD
+            else -> LigaseTouchOverlayMode.GESTURES_ONLY
+        }
+    }
+
+    @JvmStatic
+    fun setTouchOverlayMode(context: Context, mode: LigaseTouchOverlayMode) {
+        preferences(context).edit()
+            .putString(KEY_TOUCH_OVERLAY_MODE, mode.storedValue)
+            .remove(KEY_TOUCH_VIRTUAL_GAMEPAD)
+            .remove(KEY_TOUCHKIT_KEYBOARD)
+            .apply()
     }
 
     @JvmStatic

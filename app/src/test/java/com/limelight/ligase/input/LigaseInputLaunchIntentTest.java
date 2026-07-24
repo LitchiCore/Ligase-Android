@@ -1,6 +1,8 @@
 package com.limelight.ligase.input;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -11,6 +13,7 @@ import com.limelight.Game;
 import com.limelight.computers.ComputerManagerService;
 import com.limelight.ligase.InputDeviceMode;
 import com.limelight.ligase.LigasePreferences;
+import com.limelight.ligase.input.LigaseTouchOverlayMode;
 import com.limelight.nvstream.http.ComputerDetails;
 import com.limelight.nvstream.http.NvApp;
 import com.limelight.utils.ServerHelper;
@@ -29,6 +32,8 @@ public class LigaseInputLaunchIntentTest {
         Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
         LigasePreferences.setInputDeviceMode(activity, InputDeviceMode.TOUCH);
         LigasePreferences.setGlobalTouchLayoutId(activity, "OSC_Keyboard_2");
+        LigasePreferences.setTouchOverlayMode(activity,
+                LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD);
         ComputerManagerService.ComputerManagerBinder binder =
                 mock(ComputerManagerService.ComputerManagerBinder.class);
         when(binder.getUniqueId()).thenReturn("android-client-id");
@@ -47,6 +52,8 @@ public class LigaseInputLaunchIntentTest {
         assertEquals("touch", intent.getStringExtra(Game.EXTRA_LIGASE_INPUT_MODE));
         assertEquals("OSC_Keyboard_2",
                 intent.getStringExtra(Game.EXTRA_LIGASE_TOUCH_LAYOUT_ID));
+        assertFalse(intent.getBooleanExtra(Game.EXTRA_LIGASE_VIRTUAL_GAMEPAD, true));
+        assertTrue(intent.getBooleanExtra(Game.EXTRA_LIGASE_TOUCHKIT_KEYBOARD, false));
     }
 
     @Test
@@ -66,6 +73,28 @@ public class LigaseInputLaunchIntentTest {
 
         assertEquals("keyboard_mouse",
                 intent.getStringExtra(Game.EXTRA_LIGASE_INPUT_MODE));
+        assertFalse(intent.getBooleanExtra(Game.EXTRA_LIGASE_VIRTUAL_GAMEPAD, true));
+        assertFalse(intent.getBooleanExtra(Game.EXTRA_LIGASE_TOUCHKIT_KEYBOARD, true));
+    }
+
+    @Test
+    public void legacyStackedLayersMigrateToSingleKeyboardChoice() {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        activity.getSharedPreferences("ligase_product_preferences", Activity.MODE_PRIVATE)
+                .edit()
+                .putBoolean("touch_virtual_gamepad", true)
+                .putBoolean("touch_touchkit_keyboard", true)
+                .apply();
+
+        assertEquals(
+                LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD,
+                LigasePreferences.getTouchOverlayMode(activity));
+        LigasePreferences.setTouchOverlayMode(
+                activity,
+                LigaseTouchOverlayMode.VIRTUAL_GAMEPAD);
+        assertEquals(
+                LigaseTouchOverlayMode.VIRTUAL_GAMEPAD,
+                LigasePreferences.getTouchOverlayMode(activity));
     }
 
     private static ComputerDetails computer() {

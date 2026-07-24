@@ -62,6 +62,7 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import okhttp3.Call;
 
 
 public class NvHTTP {
@@ -90,6 +91,8 @@ public class NvHTTP {
     private X509TrustManager trustManager;
     private X509KeyManager keyManager;
     private X509Certificate serverCert;
+    private volatile Call activePairingCall;
+    private volatile Call activeAttendedPairingCall;
 
     void setServerCert(X509Certificate serverCert) {
         this.serverCert = serverCert;
@@ -454,6 +457,10 @@ public class NvHTTP {
         details.ligaseSyncPath = getXmlString(serverInfo, "LigaseSyncPath", false);
         details.ligaseHdrEncodingSupported =
                 getXmlBoolean(serverInfo, "LigaseHdrEncodingSupported", false);
+        details.ligaseAttendedPairingVersion = getLigaseAttendedPairingVersion(serverInfo);
+        details.ligaseAttendedPairingPath =
+                getXmlString(serverInfo, "LigaseAttendedPairingPath", false);
+        details.ligaseClientAccessMode = getLigaseClientAccessMode(serverInfo);
 
         // The MJOLNIR codename was used by GFE but never by any third-party server
         details.nvidiaServer = getXmlString(serverInfo, "state", true).contains("MJOLNIR");
@@ -484,6 +491,106 @@ public class NvHTTP {
                     value.equals("1") || value.equalsIgnoreCase("true");
         } catch (IOException | XmlPullParserException ignored) {
             return defaultValue;
+        }
+    }
+
+    private static int getXmlInt(String xml, String tag, int defaultValue) {
+        try {
+            String value = getXmlString(xml, tag, false);
+            return value == null ? defaultValue : Integer.parseInt(value);
+        } catch (IOException | XmlPullParserException | NumberFormatException ignored) {
+            return defaultValue;
+        }
+    }
+
+    public static int getLigaseAttendedPairingVersion(String serverInfo) {
+        return getXmlInt(serverInfo, "LigaseAttendedPairingVersion", 0);
+    }
+
+    public static String getLigaseClientAccessMode(String serverInfo) {
+        try {
+            String value = getXmlString(serverInfo, "LigaseClientAccessMode", false);
+            if ("operate".equals(value) || "observe".equals(value)) {
+                return value;
+            }
+            return value == null ? null : "observe";
+        } catch (IOException | XmlPullParserException ignored) {
+            return null;
+        }
+    }
+
+    public static final class AttendedHttpResponse {
+        public final int statusCode;
+        public final byte[] body;
+
+        AttendedHttpResponse(int statusCode, byte[] body) {
+            this.statusCode = statusCode;
+            this.body = body;
+        }
+    }
+
+    public AttendedHttpResponse executeAttendedPairingRequest(
+            String path,
+            String method,
+            byte[] jsonBody,
+            String bearerToken,
+            int callTimeoutMillis) throws IOException {
+        if (path == null || !path.startsWith("/ligase/v1/pairing/requests")) {
+            throw new IllegalArgumentException("Invalid attended pairing path");
+        }
+        HttpUrl url = baseUrlHttp.newBuilder()
+                .addPathSegments(path.substring(1))
+                .build();
+        Request.Builder builder = new Request.Builder().url(url);
+        if (bearerToken != null) {
+            builder.header("Authorization", "Bearer " + bearerToken);
+        }
+        RequestBody body = jsonBody == null ? null :
+                RequestBody.create(jsonBody, MediaType.parse("application/json"));
+        switch (method) {
+            case "GET":
+                builder.get();
+                break;
+            case "POST":
+                builder.post(body);
+                break;
+            case "PUT":
+                builder.put(body);
+                break;
+            case "DELETE":
+                builder.delete();
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported method");
+        }
+        OkHttpClient client = httpClientLongConnectTimeout.newBuilder()
+                .callTimeout(callTimeoutMillis, TimeUnit.MILLISECONDS)
+                .build();
+        Call call = client.newCall(builder.build());
+        activeAttendedPairingCall = call;
+        try (Response response = call.execute()) {
+            ResponseBody responseBody = response.body();
+            return new AttendedHttpResponse(
+                    response.code(),
+                    responseBody == null ? new byte[0] : responseBody.bytes());
+        } finally {
+            if (activeAttendedPairingCall == call) {
+                activeAttendedPairingCall = null;
+            }
+        }
+    }
+
+    public void cancelActivePairingCall() {
+        Call call = activePairingCall;
+        if (call != null) {
+            call.cancel();
+        }
+    }
+
+    public void cancelActiveAttendedPairingCall() {
+        Call call = activeAttendedPairingCall;
+        if (call != null) {
+            call.cancel();
         }
     }
 
@@ -549,7 +656,19 @@ public class NvHTTP {
         if (requestBody == null) request = _builder.get().build();
         else request = _builder.post(requestBody).build();
 
-        Response response = performAndroidTlsHack(client).newCall(request).execute();
+        Call call = performAndroidTlsHack(client).newCall(request);
+        if ("pair".equals(path)) {
+            activePairingCall = call;
+        }
+        Response response;
+        try {
+            response = call.execute();
+        }
+        finally {
+            if ("pair".equals(path) && activePairingCall == call) {
+                activePairingCall = null;
+            }
+        }
 
         ResponseBody body = response.body();
         
@@ -591,18 +710,30 @@ public class NvHTTP {
             resp.close();
 
             if (verbose && !path.equals("serverinfo")) {
-                LimeLog.info(getCompleteUrl(baseUrl, path, query)+" -> "+respString);
+                // Query strings may contain stream keys, pairing material, or bearer tokens.
+                // Response bodies may contain certificates or session details. Never log either.
+                LimeLog.info(getSafeLogTarget(baseUrl, path)+" -> response received");
             }
 
             return respString;
         } catch (IOException e) {
             if (verbose && !path.equals("serverinfo")) {
-                LimeLog.warning(getCompleteUrl(baseUrl, path, query)+" -> "+e.getMessage());
-                e.printStackTrace();
+                LimeLog.warning(
+                        getSafeLogTarget(baseUrl, path)+" -> "+
+                                e.getClass().getSimpleName());
             }
             
             throw e;
         }
+    }
+
+    static String getSafeLogTarget(HttpUrl baseUrl, String path) {
+        return baseUrl.newBuilder()
+                .query(null)
+                .fragment(null)
+                .addPathSegment(path)
+                .build()
+                .toString();
     }
 
     public String getServerVersion(String serverInfo) throws XmlPullParserException, IOException {

@@ -26,6 +26,17 @@ data class LigaseTouchLayout(
     val displayName: String,
 )
 
+enum class LigaseTouchOverlayMode(val storedValue: String) {
+    TOUCHKIT_KEYBOARD("touchkitKeyboard"),
+    VIRTUAL_GAMEPAD("virtualGamepad"),
+    GESTURES_ONLY("gesturesOnly");
+
+    companion object {
+        fun fromStoredValue(value: String?): LigaseTouchOverlayMode? =
+            entries.firstOrNull { it.storedValue == value }
+    }
+}
+
 enum class LigaseInputSelectionStatus {
     UNSELECTED,
     CONNECTED,
