@@ -4,19 +4,24 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -33,15 +38,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -50,7 +56,12 @@ import com.limelight.ligase.LigasePageScaffold
 import com.limelight.ligase.feature.layout.domain.LayoutControlKind
 import com.limelight.ligase.feature.layout.domain.LayoutEditorElement
 import com.limelight.ligase.feature.layout.domain.LayoutEditorSessionState
+import com.limelight.ligase.feature.layout.presentation.LayoutCanvasSize
+import com.limelight.ligase.feature.layout.presentation.LayoutCanvasViewportState
+import com.limelight.ligase.feature.layout.presentation.fitLayoutCanvas
+import com.limelight.ligase.feature.layout.presentation.showCanvasElementLabel
 import kotlin.math.max
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,7 +105,9 @@ fun LayoutEditorScreen(
                         onMove = onMove,
                         onResize = onResize,
                         onDelete = onDelete,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(0.66f)
+                            .fillMaxHeight(),
                     )
                     EditorTools(
                         state = state,
@@ -104,12 +117,17 @@ fun LayoutEditorScreen(
                         onAdd = onAdd,
                         onSave = onSave,
                         onCancel = requestBack,
-                        modifier = Modifier.widthIn(max = 340.dp),
+                        scrollable = true,
+                        modifier = Modifier
+                            .weight(0.34f)
+                            .fillMaxHeight(),
                     )
                 }
             } else {
                 Column(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     LayoutCanvas(
@@ -119,7 +137,10 @@ fun LayoutEditorScreen(
                         onMove = onMove,
                         onResize = onResize,
                         onDelete = onDelete,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 280.dp, max = 560.dp)
+                            .aspectRatio(state.canvasAspectRatio.coerceIn(0.75f, 2.4f)),
                     )
                     EditorTools(
                         state = state,
@@ -129,6 +150,7 @@ fun LayoutEditorScreen(
                         onAdd = onAdd,
                         onSave = onSave,
                         onCancel = requestBack,
+                        scrollable = false,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -170,38 +192,77 @@ private fun LayoutCanvas(
     onDelete: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var canvasSize by remember { mutableStateOf(IntSize.Zero) }
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(
-                MaterialTheme.colorScheme.surfaceContainerHighest,
-                RoundedCornerShape(24.dp),
-            )
-            .border(
-                1.dp,
-                MaterialTheme.colorScheme.outlineVariant,
-                RoundedCornerShape(24.dp),
-            )
-            .onSizeChanged { canvasSize = it },
-    ) {
-        if (state.elements.isEmpty()) {
-            Text(
-                text = stringResource(R.string.ligase_layout_canvas_empty),
-                modifier = Modifier.align(Alignment.Center),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        state.elements.forEach { element ->
-            LayoutElement(
-                element = element,
-                canvasSize = canvasSize,
-                selected = selectedElementId == element.elementId,
-                onSelected = { onSelected(element.elementId) },
-                onMove = onMove,
-                onResize = onResize,
-                onDelete = onDelete,
-            )
+    var viewport by remember(state.draftId) { mutableStateOf(LayoutCanvasViewportState()) }
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val fitted = fitLayoutCanvas(
+            available = LayoutCanvasSize(maxWidth.value, maxHeight.value),
+            referenceAspectRatio = state.canvasAspectRatio,
+        )
+        var canvasSize by remember { mutableStateOf(IntSize.Zero) }
+        Box(
+            modifier = Modifier
+                .size(fitted.width.dp, fitted.height.dp)
+                .align(Alignment.Center)
+                .background(
+                    MaterialTheme.colorScheme.surfaceContainerHighest,
+                    RoundedCornerShape(24.dp),
+                )
+                .border(
+                    1.dp,
+                    MaterialTheme.colorScheme.outlineVariant,
+                    RoundedCornerShape(24.dp),
+                )
+                .pointerInput(canvasSize, viewport) {
+                    detectTransformGestures { _, pan, zoom, _ ->
+                        viewport = viewport.transformed(
+                            zoomChange = zoom,
+                            panChangeX = pan.x,
+                            panChangeY = pan.y,
+                            frame = LayoutCanvasSize(
+                                canvasSize.width.toFloat(),
+                                canvasSize.height.toFloat(),
+                            ),
+                        )
+                    }
+                }
+                .onSizeChanged { canvasSize = it },
+        ) {
+            if (state.elements.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.ligase_layout_canvas_empty),
+                    modifier = Modifier.align(Alignment.Center),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            state.elements.forEach { element ->
+                LayoutElement(
+                    element = element,
+                    canvasSize = canvasSize,
+                    viewport = viewport,
+                    selected = selectedElementId == element.elementId,
+                    onSelected = { onSelected(element.elementId) },
+                    onMove = onMove,
+                    onResize = onResize,
+                    onDelete = onDelete,
+                )
+            }
+            OutlinedButton(
+                onClick = { viewport = viewport.reset() },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(10.dp),
+            ) {
+                Text(
+                    if (viewport.zoom == LayoutCanvasViewportState.MIN_ZOOM) {
+                        stringResource(R.string.ligase_layout_fit_canvas)
+                    } else {
+                        stringResource(
+                            R.string.ligase_layout_reset_zoom,
+                            (viewport.zoom * 100).roundToInt(),
+                        )
+                    },
+                )
+            }
         }
     }
 }
@@ -210,6 +271,7 @@ private fun LayoutCanvas(
 private fun LayoutElement(
     element: LayoutEditorElement,
     canvasSize: IntSize,
+    viewport: LayoutCanvasViewportState,
     selected: Boolean,
     onSelected: () -> Unit,
     onMove: (String, Float, Float) -> Unit,
@@ -217,13 +279,13 @@ private fun LayoutElement(
     onDelete: (String) -> Unit,
 ) {
     val density = LocalDensity.current
-    val xDp = with(density) { (element.x * canvasSize.width).toDp() }
-    val yDp = with(density) { (element.y * canvasSize.height).toDp() }
     val widthDp = with(density) {
-        max(44f, element.width * canvasSize.width).toDp()
+        max(if (selected) 80f else 8f, element.width * canvasSize.width * viewport.zoom)
+            .toDp()
     }
     val heightDp = with(density) {
-        max(44f, element.height * canvasSize.height).toDp()
+        max(if (selected) 52f else 8f, element.height * canvasSize.height * viewport.zoom)
+            .toDp()
     }
     val canMutate = element.kind != LayoutControlKind.UNKNOWN
     val step = 0.02f
@@ -235,18 +297,24 @@ private fun LayoutElement(
     val smallerLabel = stringResource(R.string.ligase_layout_action_smaller)
     val largerLabel = stringResource(R.string.ligase_layout_action_larger)
     val deleteLabel = stringResource(R.string.ligase_layout_action_delete)
+    val kindLabel = controlKindLabel(element.kind)
     Box(
         modifier = Modifier
             .zIndex(if (selected) 2f else 1f)
-            .offset(x = xDp, y = yDp)
+            .offset {
+                IntOffset(
+                    viewport.screenX(element.x, canvasSize.width.toFloat()).roundToInt(),
+                    viewport.screenY(element.y, canvasSize.height.toFloat()).roundToInt(),
+                )
+            }
             .size(widthDp, heightDp)
             .background(
                 if (selected) {
                     MaterialTheme.colorScheme.primaryContainer
                 } else {
-                    MaterialTheme.colorScheme.surface
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.34f)
                 },
-                RoundedCornerShape(14.dp),
+                RoundedCornerShape(if (selected) 12.dp else 4.dp),
             )
             .border(
                 if (selected) 2.dp else 1.dp,
@@ -255,9 +323,10 @@ private fun LayoutElement(
                 } else {
                     MaterialTheme.colorScheme.outline
                 },
-                RoundedCornerShape(14.dp),
+                RoundedCornerShape(if (selected) 12.dp else 4.dp),
             )
             .semantics {
+                contentDescription = "$kindLabel, ${element.elementId}"
                 customActions = if (canMutate) {
                     buildList {
                         add(CustomAccessibilityAction(selectLabel) {
@@ -323,7 +392,7 @@ private fun LayoutElement(
                     emptyList()
                 }
             }
-            .pointerInput(element.elementId, canMutate, canvasSize) {
+            .pointerInput(element.elementId, canMutate, canvasSize, viewport.zoom) {
                 if (!canMutate || canvasSize == IntSize.Zero) return@pointerInput
                 var currentX = element.x
                 var currentY = element.y
@@ -335,9 +404,21 @@ private fun LayoutElement(
                     },
                 ) { change, dragAmount ->
                     change.consume()
-                    currentX = (currentX + dragAmount.x / canvasSize.width)
+                    currentX = (
+                        currentX +
+                            viewport.normalizedDeltaX(
+                                dragAmount.x,
+                                canvasSize.width.toFloat(),
+                            )
+                        )
                         .coerceIn(0f, 1f - element.width)
-                    currentY = (currentY + dragAmount.y / canvasSize.height)
+                    currentY = (
+                        currentY +
+                            viewport.normalizedDeltaY(
+                                dragAmount.y,
+                                canvasSize.height.toFloat(),
+                            )
+                        )
                         .coerceIn(0f, 1f - element.height)
                     onMove(
                         element.elementId,
@@ -348,16 +429,27 @@ private fun LayoutElement(
             },
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = controlKindLabel(element.kind),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = if (element.kind == LayoutControlKind.UNKNOWN) {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            },
-        )
+        if (showCanvasElementLabel(selected)) {
+            Text(
+                text = kindLabel,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = if (element.kind == LayoutControlKind.UNKNOWN) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+            )
+            Box(
+                Modifier
+                    .align(Alignment.BottomEnd)
+                    .size(10.dp)
+                    .background(
+                        MaterialTheme.colorScheme.primary,
+                        RoundedCornerShape(topStart = 6.dp),
+                    ),
+            )
+        }
     }
 }
 
@@ -370,11 +462,16 @@ private fun EditorTools(
     onAdd: (LayoutControlKind) -> Unit,
     onSave: () -> Unit,
     onCancel: () -> Unit,
+    scrollable: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val selected = state.elements.firstOrNull { it.elementId == selectedElementId }
     Card(
-        modifier = modifier,
+        modifier = if (scrollable) {
+            modifier.verticalScroll(rememberScrollState())
+        } else {
+            modifier
+        },
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -405,6 +502,11 @@ private fun EditorTools(
                         controlKindLabel(element.kind),
                     ),
                     fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = element.elementId,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (element.kind == LayoutControlKind.UNKNOWN) {
                     Text(

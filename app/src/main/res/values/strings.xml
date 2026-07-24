@@ -1057,6 +1057,8 @@
     <string name="ligase_layout_empty_title">No local layouts</string>
     <string name="ligase_layout_empty_message">No usable TouchKit layouts were found on this device. Restore the built-in assets, then try again.</string>
     <string name="ligase_layout_canvas_empty">Add a control to begin editing this copy.</string>
+    <string name="ligase_layout_fit_canvas">Fit canvas</string>
+    <string name="ligase_layout_reset_zoom">Reset · %1$d%%</string>
     <string name="ligase_layout_add_control">Add control</string>
     <string name="ligase_layout_selected_control">Selected: %1$s</string>
     <string name="ligase_layout_unknown_read_only">This legacy control is preserved but cannot be changed by this editor.</string>

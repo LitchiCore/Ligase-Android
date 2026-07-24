@@ -1043,6 +1043,8 @@
     <string name="ligase_layout_empty_title">暂无本机布局</string>
     <string name="ligase_layout_empty_message">这台设备上没有找到可用的 TouchKit 布局。请恢复内建资源后重试。</string>
     <string name="ligase_layout_canvas_empty">添加一个控件，开始编辑这个副本。</string>
+    <string name="ligase_layout_fit_canvas">适应画布</string>
+    <string name="ligase_layout_reset_zoom">复位 · %1$d%%</string>
     <string name="ligase_layout_add_control">新增控件</string>
     <string name="ligase_layout_selected_control">已选择：%1$s</string>
     <string name="ligase_layout_unknown_read_only">这个旧版控件会被完整保留，但当前编辑器不能修改它。</string>

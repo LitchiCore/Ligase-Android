@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -36,6 +37,7 @@ import com.limelight.ligase.feature.layout.domain.LayoutCatalogItem
 import com.limelight.ligase.feature.layout.domain.LayoutCatalogSource
 import com.limelight.ligase.feature.layout.domain.LayoutCatalogUiState
 import com.limelight.ligase.feature.layout.domain.LayoutEditorError
+import com.limelight.ligase.feature.layout.presentation.layoutHallColumns
 
 @Composable
 fun LayoutHallScreen(
@@ -67,8 +69,9 @@ fun LayoutHallScreen(
                     )
                 }
                 wide -> {
+                    val columns = layoutHallColumns(maxWidth.value)
                     LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
+                        columns = GridCells.Fixed(columns),
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(24.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -87,6 +90,7 @@ fun LayoutHallScreen(
                                 onPreview = { onPreview(layout.layoutId) },
                                 onEdit = { onEdit(layout.layoutId) },
                                 onCreateCopy = { onCreateCopy(layout.layoutId) },
+                                modifier = Modifier.widthIn(max = 560.dp),
                             )
                         }
                     }
@@ -112,6 +116,7 @@ fun LayoutHallScreen(
                                 onPreview = { onPreview(layout.layoutId) },
                                 onEdit = { onEdit(layout.layoutId) },
                                 onCreateCopy = { onCreateCopy(layout.layoutId) },
+                                modifier = Modifier.fillMaxWidth(),
                             )
                         }
                     }
@@ -147,9 +152,10 @@ private fun LayoutCatalogCard(
     onPreview: () -> Unit,
     onEdit: () -> Unit,
     onCreateCopy: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onSelect),
         shape = RoundedCornerShape(24.dp),
