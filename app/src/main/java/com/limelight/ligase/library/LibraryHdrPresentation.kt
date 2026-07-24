@@ -2,6 +2,7 @@ package com.limelight.ligase.library
 
 import androidx.annotation.StringRes
 import com.limelight.R
+import com.limelight.ligase.feature.library.domain.LibraryHdrReason
 
 @StringRes
 internal fun LibraryHdrReason.messageResource(): Int =

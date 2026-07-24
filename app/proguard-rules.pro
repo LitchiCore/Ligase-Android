@@ -13,7 +13,7 @@
 -keep class com.limelight.utils.KeyConfigHelper$Shortcut {*;}
 
 # Ligase Sync v1 DTOs are instantiated and populated reflectively by Gson.
--keep class com.limelight.ligase.library.*Dto { *; }
+-keep class com.limelight.ligase.feature.library.data.dto.** { *; }
 
 # Keep TensorFlow Lite GPU delegate classes that R8 might incorrectly remove
 -keep class org.tensorflow.lite.gpu.** { *; }

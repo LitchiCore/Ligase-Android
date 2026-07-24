@@ -1,4 +1,4 @@
-package com.limelight.ligase.library
+package com.limelight.ligase.feature.library.domain
 
 enum class LibraryHdrReason {
     AVAILABLE,

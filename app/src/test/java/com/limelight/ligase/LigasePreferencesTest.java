@@ -9,8 +9,8 @@ import android.content.Context;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.preference.PreferenceManager;
 
-import com.limelight.ligase.library.HostSortMode;
-import com.limelight.ligase.library.LibraryLayoutMode;
+import com.limelight.ligase.feature.library.domain.HostSortMode;
+import com.limelight.ligase.feature.library.domain.LibraryLayoutMode;
 import com.limelight.ligase.input.LigaseInputCategory;
 
 import org.junit.Before;

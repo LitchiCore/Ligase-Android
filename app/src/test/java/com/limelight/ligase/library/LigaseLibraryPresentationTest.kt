@@ -1,5 +1,7 @@
 package com.limelight.ligase.library
 
+import com.limelight.ligase.feature.library.domain.LigaseLibraryStatus
+
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

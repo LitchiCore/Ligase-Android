@@ -6,8 +6,8 @@ import android.content.res.Configuration
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.view.WindowCompat
 import androidx.preference.PreferenceManager
-import com.limelight.ligase.library.HostSortMode
-import com.limelight.ligase.library.LibraryLayoutMode
+import com.limelight.ligase.feature.library.domain.HostSortMode
+import com.limelight.ligase.feature.library.domain.LibraryLayoutMode
 import com.limelight.ligase.input.LigaseTouchOverlayMode
 
 enum class InputDeviceMode(val storedValue: String) {

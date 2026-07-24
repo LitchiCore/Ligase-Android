@@ -1,4 +1,4 @@
-package com.limelight.ligase.library
+package com.limelight.ligase.feature.library.domain
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

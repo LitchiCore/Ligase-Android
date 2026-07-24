@@ -1,5 +1,6 @@
 package com.limelight.ligase.library
 
+import com.limelight.ligase.feature.library.domain.LigaseLibraryItem
 import java.util.Locale
 
 data class ManualLibraryOrderEntry(

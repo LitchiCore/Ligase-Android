@@ -1,5 +1,8 @@
 package com.limelight.ligase.library
 
+import com.limelight.ligase.feature.library.domain.LibrarySyncAutoLoadPolicy
+import com.limelight.ligase.feature.library.domain.LigaseLibraryStatus
+
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test

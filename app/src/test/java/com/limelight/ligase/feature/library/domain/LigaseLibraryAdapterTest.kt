@@ -1,4 +1,13 @@
-package com.limelight.ligase.library
+package com.limelight.ligase.feature.library.domain
+
+import com.limelight.ligase.feature.library.data.dto.HostLibraryItemDto
+import com.limelight.ligase.feature.library.data.dto.LigaseAppStreamingDto
+import com.limelight.ligase.feature.library.data.dto.LigaseCapabilitiesDto
+import com.limelight.ligase.feature.library.data.dto.LigaseLibrarySyncDto
+import com.limelight.ligase.feature.library.data.dto.LigaseResolutionDto
+import com.limelight.ligase.feature.library.data.dto.LigaseStreamingSyncDto
+import com.limelight.ligase.feature.library.data.dto.LigaseSyncSnapshotDto
+import com.limelight.ligase.feature.library.data.repository.LigaseSyncRepository
 
 import com.limelight.nvstream.http.NvApp
 import org.junit.Assert.assertEquals

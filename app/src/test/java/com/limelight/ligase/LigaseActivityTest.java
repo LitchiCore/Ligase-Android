@@ -14,7 +14,7 @@ import android.widget.EditText;
 
 import androidx.test.core.app.ApplicationProvider;
 
-import com.limelight.ligase.library.LigaseResolutionDto;
+import com.limelight.ligase.feature.library.data.dto.LigaseResolutionDto;
 
 import org.junit.Before;
 import org.junit.Test;
