@@ -47,7 +47,7 @@ class LigaseLibraryAdapterTest {
     }
 
     @Test
-    fun `system entries remain first and fixed while ordinary games are sorted`() {
+    fun `system entries remain first while local display mode sorts host items`() {
         val snapshot = syncSnapshot(
             item("A0000000-0000-0000-0000-000000000001", HostLibraryKind.STEAM, "Zeta"),
             item(LigaseLibraryAdapter.VIRTUAL_DESKTOP_UUID, HostLibraryKind.VIRTUAL_DESKTOP, "Virtual"),
@@ -64,7 +64,7 @@ class LigaseLibraryAdapterTest {
             ),
         )
 
-        val sorted = LigaseLibraryAdapter.visibleItems(
+        val visible = LigaseLibraryAdapter.visibleItems(
             items,
             query = "",
             sortMode = HostSortMode.NAME_DESCENDING,
@@ -72,7 +72,69 @@ class LigaseLibraryAdapterTest {
 
         assertEquals(
             listOf("监控桌面", "虚拟桌面", "Zeta", "Alpha"),
-            sorted.map(LigaseLibraryItem::name),
+            visible.map(LigaseLibraryItem::name),
+        )
+    }
+
+    @Test
+    fun `search filters host items before applying local display sort`() {
+        val snapshot = syncSnapshot(
+            item("A0000000-0000-0000-0000-000000000001", HostLibraryKind.STEAM, "Zeta Game"),
+            item("A0000000-0000-0000-0000-000000000002", HostLibraryKind.EXECUTABLE, "Alpha Tool"),
+            item("A0000000-0000-0000-0000-000000000003", HostLibraryKind.STEAM, "Alpha Game"),
+        )
+        val items = LigaseLibraryAdapter.fromSyncSnapshot(snapshot, emptyList())
+
+        val visible = LigaseLibraryAdapter.visibleItems(
+            items,
+            query = "game",
+            sortMode = HostSortMode.NAME_ASCENDING,
+        )
+
+        assertEquals(
+            listOf("Alpha Game", "Zeta Game"),
+            visible.map(LigaseLibraryItem::name),
+        )
+    }
+
+    @Test
+    fun `time sort uses timestamps supplied by host sync`() {
+        val snapshot = syncSnapshot(
+            item("A0000000-0000-0000-0000-000000000001", HostLibraryKind.STEAM, "Older")
+                .copy(addedAt = "2026-07-20T04:30:00Z"),
+            item("A0000000-0000-0000-0000-000000000002", HostLibraryKind.STEAM, "Newest")
+                .copy(addedAt = "2026-07-24T04:30:00Z"),
+        )
+        val items = LigaseLibraryAdapter.fromSyncSnapshot(snapshot, emptyList())
+
+        val visible = LigaseLibraryAdapter.visibleItems(
+            items,
+            query = "",
+            sortMode = HostSortMode.ADDED_NEWEST,
+        )
+
+        assertEquals(listOf("Newest", "Older"), visible.map(LigaseLibraryItem::name))
+    }
+
+    @Test
+    fun `equal host timestamps use canonical uuid as stable tie break`() {
+        val uuidB = "B0000000-0000-0000-0000-000000000002"
+        val uuidA = "A0000000-0000-0000-0000-000000000001"
+        val snapshot = syncSnapshot(
+            item(uuidB, HostLibraryKind.STEAM, "Same"),
+            item(uuidA, HostLibraryKind.STEAM, "Same"),
+        )
+        val items = LigaseLibraryAdapter.fromSyncSnapshot(snapshot, emptyList())
+
+        val visible = LigaseLibraryAdapter.visibleItems(
+            items,
+            query = "",
+            sortMode = HostSortMode.ADDED_NEWEST,
+        )
+
+        assertEquals(
+            listOf("uuid:$uuidA", "uuid:$uuidB"),
+            visible.map { it.key.stableValue },
         )
     }
 

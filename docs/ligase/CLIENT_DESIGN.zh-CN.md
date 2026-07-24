@@ -18,7 +18,8 @@
 - 手机使用底部导航，横屏和平板由 Material 3 adaptive navigation 自动切换为左侧导航。
 - 手机底栏模式下，游戏库、输入和设置的可滚动内容统一预留底栏安全区；平板左栏
   模式不添加该底部留白。
-- 游戏库支持搜索、稳定排序值以及用户可选的列表/竖向海报布局。
+- 游戏库支持搜索、本机显示排序以及用户可选的列表/竖向海报布局。名称、添加时间和
+  最近游玩时间只取自 Host Sync；本机排序仅改变当前客户端的展示，不写回 Host。
 - 首页游戏库支持下拉刷新当前电脑。刷新复用现有 server state、Sync v1 与 applist
   UUID-only 合并链；刷新期间保留当前内容、滚动位置、电脑和导航，失败时保留旧内容并
   给出可重试提示。同一电脑刷新 single-flight，切换电脑后旧结果不得回写。手势过程
@@ -90,7 +91,8 @@
   单游戏分辨率和 Host HDR 编码能力的唯一产品权威。
 - 同步请求使用 `serverinfo.HttpsPort`、已配对客户端身份、证书固定与现有 NvHTTP
   TLS 行为；不能从 HTTP 端口推导 HTTPS 端口。
-- Android 只写排序和串流分辨率。应用的新增与删除只由 Host 管理。
+- Android 只写串流分辨率。应用的新增、删除与 Host canonical order 只由 Host 管理；
+  Android 的排序菜单属于按 Host 元数据生成的本机显示偏好。
 - 写入遇到 revision 冲突时重新拉取完整快照，提示用户重新操作，不自动重放旧写入。
 - NvHTTP 对非成功响应保留结构化错误体，便于 Sync 写入诊断；日志只能记录契约错误
   JSON 和不含 query/response body 的安全路径摘要。`/launch` 的 `rikey` 等 query
@@ -226,7 +228,7 @@ IPv4、IPv6 或 `link-local%接口`；协议、路径、query、fragment 和 use
 
 ## 排序、分辨率与 HDR
 
-排序机器值固定为：
+Sync v1 仍兼容读取并校验以下 `sortMode` 机器值：
 
 - `nameAscending`
 - `nameDescending`
@@ -234,8 +236,16 @@ IPv4、IPv6 或 `link-local%接口`；协议、路径、query、fragment 和 use
 - `addedOldest`
 - `lastPlayedNewest`
 
-Host 的 `revision` 和 `sortMode` 为权威；本地偏好只作为同步完成前的适配状态。
-客户端提交 `baseRevision + sortMode`。
+Host 的 `revision`、字段内容与 `items[]` 是数据权威。Android 按电脑保存本机显示排序
+偏好，但不调用 library sort POST。名称和时间比较只使用 Sync 字段；相同或缺失时间
+使用名称与 canonical UUID 作稳定 tie-break。若 Host 未提供任何 `lastPlayedAt`，
+“最近游玩”选项禁用并明确提示暂无 Host 记录，禁止使用 Android 启动历史补猜。
+下拉刷新成功后对最新 Sync 表重新应用本机显示排序，失败时保留上次内容及显示顺序。
+
+未来“手动排序”属于独立的共享 Host canonical order：Android 进入明确的拖拽编辑态，
+仅按 canonical app UUID 提交完整顺序和 `baseRevision`，409 后重拉并要求用户重新
+排列，禁止自动重放。该模式在 Host DTO/路由冻结并下发前不展示、不猜接口；名称与
+时间排序始终保持纯本机偏好。
 
 有效分辨率优先使用单游戏覆盖，否则继承全局分辨率。该结果会在 Ligase 启动入口
 覆盖旧本地分辨率偏好并传入现有 `Game`，Host 在 `/launch` 再次执行同一规则。
@@ -283,11 +293,11 @@ ARM64 APK：
 手机检查底部导航和内容不遮挡；平板横屏检查左侧导航与自适应游戏网格。
 
 若在线 Host 尚未部署 Sync v1，只能验收“不兼容、升级、重试”状态，不能声称
-游戏库同步、排序/分辨率写回、冲突恢复或 HDR 已端到端通过。部署新核心后还需
+游戏库同步、分辨率写回、冲突恢复或 HDR 已端到端通过。部署新核心后还需
 逐项完成真实双端联合验收。
 
 2026-07-23 已在 V2353A 对隔离 Host `10.168.1.191:49989` 完成真实联合验收：
-Sync GET、UUID-only merge、排序、全局/单游戏分辨率、恢复全局继承、409 重拉且
+Sync GET、UUID-only merge、当时版本的排序写入、全局/单游戏分辨率、恢复全局继承、409 重拉且
 不重放、HDR 分层以及携带 `appuuid + appid` 的 1600×900 physical desktop launch
 均通过。
 

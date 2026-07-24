@@ -260,7 +260,9 @@ fun LigaseLibraryPage(
                         count = visibleItems.size,
                         sortMode = sortMode,
                         layoutMode = layoutMode,
-                        canChangeSort = canOperate,
+                        canSortByLastPlayed = items.any {
+                            !it.isSystem && !it.lastPlayedAt.isNullOrBlank()
+                        },
                         onSortModeChanged = onSortModeChanged,
                         onLayoutModeChanged = onLayoutModeChanged,
                     )
@@ -597,7 +599,7 @@ private fun GamesSectionHeader(
     count: Int,
     sortMode: HostSortMode,
     layoutMode: LibraryLayoutMode,
-    canChangeSort: Boolean,
+    canSortByLastPlayed: Boolean,
     onSortModeChanged: (HostSortMode) -> Unit,
     onLayoutModeChanged: (LibraryLayoutMode) -> Unit,
 ) {
@@ -622,7 +624,7 @@ private fun GamesSectionHeader(
         }
         Box {
             Surface(
-                modifier = Modifier.clickable(enabled = canChangeSort) { expanded = true },
+                modifier = Modifier.clickable { expanded = true },
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 shape = RoundedCornerShape(14.dp),
             ) {
@@ -637,7 +639,7 @@ private fun GamesSectionHeader(
                     )
                     Spacer(Modifier.width(7.dp))
                     Text(
-                        text = sortModeLabel(sortMode),
+                        text = sortModeLabel(sortMode, canSortByLastPlayed),
                         style = MaterialTheme.typography.labelLarge,
                     )
                 }
@@ -648,8 +650,9 @@ private fun GamesSectionHeader(
             ) {
                 HostSortMode.entries.forEach { mode ->
                     DropdownMenuItem(
-                        text = { Text(sortModeLabel(mode)) },
-                        enabled = canChangeSort,
+                        text = { Text(sortModeLabel(mode, canSortByLastPlayed)) },
+                        enabled = mode != HostSortMode.LAST_PLAYED_NEWEST ||
+                            canSortByLastPlayed,
                         onClick = {
                             expanded = false
                             onSortModeChanged(mode)
@@ -1046,11 +1049,19 @@ private fun kindLabel(kind: HostLibraryKind): String = when (kind) {
 }
 
 @Composable
-private fun sortModeLabel(mode: HostSortMode): String = when (mode) {
+private fun sortModeLabel(
+    mode: HostSortMode,
+    canSortByLastPlayed: Boolean,
+): String = when (mode) {
     HostSortMode.NAME_ASCENDING -> stringResource(R.string.ligase_sort_name_ascending)
     HostSortMode.NAME_DESCENDING -> stringResource(R.string.ligase_sort_name_descending)
     HostSortMode.ADDED_NEWEST -> stringResource(R.string.ligase_sort_added_newest)
     HostSortMode.ADDED_OLDEST -> stringResource(R.string.ligase_sort_added_oldest)
-    HostSortMode.LAST_PLAYED_NEWEST ->
-        stringResource(R.string.ligase_sort_last_played_newest)
+    HostSortMode.LAST_PLAYED_NEWEST -> stringResource(
+        if (canSortByLastPlayed) {
+            R.string.ligase_sort_last_played_newest
+        } else {
+            R.string.ligase_sort_last_played_unavailable
+        },
+    )
 }

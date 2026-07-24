@@ -75,11 +75,6 @@ data class HostLibraryItemDto(
     val system: Boolean,
 )
 
-data class HostSortPreferenceWriteDto(
-    val baseRevision: Long,
-    val sortMode: String,
-)
-
 data class LigaseSyncSnapshotDto(
     val schemaVersion: Int,
     val capabilities: LigaseCapabilitiesDto,

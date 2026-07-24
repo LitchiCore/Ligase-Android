@@ -76,7 +76,7 @@ public class LigasePreferencesTest {
     }
 
     @Test
-    public void librarySortIsHostScopedAndPersistsStableMachineValue() {
+    public void libraryDisplaySortIsLocalAndHostScoped() {
         assertEquals(HostSortMode.NAME_ASCENDING,
                 LigasePreferences.getLibrarySortMode(context, "host-a"));
 

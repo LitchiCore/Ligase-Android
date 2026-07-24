@@ -18,27 +18,6 @@ class LigaseSyncRepository(
         return snapshot
     }
 
-    fun updateSort(
-        http: NvHTTP,
-        baseRevision: Long,
-        sortMode: HostSortMode,
-    ): LigaseLibrarySyncDto {
-        val updated = gson.fromJson(
-            http.postLigaseJson(
-                LIBRARY_SORT_PATH,
-                gson.toJson(
-                    HostSortPreferenceWriteDto(
-                        baseRevision = baseRevision,
-                        sortMode = sortMode.wireValue,
-                    ),
-                ),
-            ),
-            LigaseLibrarySyncDto::class.java,
-        ) ?: throw IOException("Ligase sort update returned an empty response")
-        validateLibrary(updated)
-        return updated
-    }
-
     fun updateGlobalResolution(
         http: NvHTTP,
         baseRevision: Long,
@@ -125,7 +104,6 @@ class LigaseSyncRepository(
     companion object {
         const val SUPPORTED_SYNC_VERSION = 1
         const val SUPPORTED_SCHEMA_VERSION = 1
-        const val LIBRARY_SORT_PATH = "/ligase/v1/library/sort"
         const val STREAMING_PATH = "/ligase/v1/streaming"
 
         fun isRevisionConflict(error: Throwable): Boolean =

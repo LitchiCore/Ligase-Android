@@ -946,6 +946,7 @@
     <string name="ligase_sort_added_newest">最近添加</string>
     <string name="ligase_sort_added_oldest">最早添加</string>
     <string name="ligase_sort_last_played_newest">最近游玩</string>
+    <string name="ligase_sort_last_played_unavailable">最近游玩（Host 暂无记录）</string>
     <string name="ligase_settings_language_title">语言</string>
     <string name="ligase_language_system">跟随系统</string>
     <string name="ligase_language_chinese">中文</string>

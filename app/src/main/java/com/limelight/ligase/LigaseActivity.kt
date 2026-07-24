@@ -746,11 +746,9 @@ class LigaseActivity : AppCompatActivity() {
                     librarySyncSnapshot = snapshot
                     libraryTransportApps = transportApps
                     lastLibraryRawAppList = rawAppList
-                    librarySortMode = HostSortMode.fromWireValue(snapshot.library.sortMode)
                     libraryHdrAvailable =
                         snapshot.capabilities.hdrEncodingSupported && displayHdrSupported
                     libraryStatus = LigaseLibraryStatus.READY
-                    LigasePreferences.setLibrarySortMode(this, host.uuid, librarySortMode)
                     rebuildLibraryItems()
                     startAppListUpdates()
                     if (request.preservesContent) {
@@ -854,26 +852,8 @@ class LigaseActivity : AppCompatActivity() {
 
     private fun changeLibrarySortMode(sortMode: HostSortMode) {
         val host = libraryHost ?: return
-        if (!requireOperate(host)) return
-        val snapshot = librarySyncSnapshot ?: return
-        Thread {
-            try {
-                val updated = syncRepository.updateSort(
-                    createLigaseHttp(host),
-                    snapshot.library.revision,
-                    sortMode,
-                )
-                runOnUiThread {
-                    if (libraryHost?.uuid != host.uuid) return@runOnUiThread
-                    librarySyncSnapshot = snapshot.copy(library = updated)
-                    librarySortMode = HostSortMode.fromWireValue(updated.sortMode)
-                    LigasePreferences.setLibrarySortMode(this, host.uuid, librarySortMode)
-                    rebuildLibraryItems()
-                }
-            } catch (error: Exception) {
-                runOnUiThread { handleSyncWriteFailure(host, error) }
-            }
-        }.start()
+        librarySortMode = sortMode
+        LigasePreferences.setLibrarySortMode(this, host.uuid, sortMode)
     }
 
     private fun changeLibraryLayoutMode(layoutMode: LibraryLayoutMode) {

@@ -960,6 +960,7 @@
     <string name="ligase_sort_added_newest">Recently added</string>
     <string name="ligase_sort_added_oldest">Oldest added</string>
     <string name="ligase_sort_last_played_newest">Recently played</string>
+    <string name="ligase_sort_last_played_unavailable">Recently played (no Host history)</string>
     <string name="ligase_settings_language_title">Language</string>
     <string name="ligase_language_system">System</string>
     <string name="ligase_language_chinese">中文</string>
