@@ -305,8 +305,12 @@ HDR 分层处理：
   connectivity、initialLoading、refreshing 和 typed error；旧电脑首页产品页面已删除，
   避免与“游戏库即首页”长期并存。
 - `LibrarySessionViewModel` 与纯 `LibrarySessionStore` 已从 `LigaseActivity` 拆出唯一
-  library 状态源；Activity 仍负责电脑连接桥接、网络线程、启动和传统 View 弹窗，
-  后续按触达范围继续小步提取，不复制第二套状态源或改写稳定配对/串流链。
+  library 状态源；`LibraryHostCoordinator` 负责所选 Host 的 refresh ticket、
+  last-success 快照接受、applist poller 与 asset loader 生命周期，
+  `LegacyGameStreamLibraryTransport` 集中封装 `ComputerManagerService`、`NvHTTP`、
+  `NvApp` 和 `CachedAppAssetLoader` 的旧 GameStream Java ABI。Activity 只组合
+  生命周期、导航、产品反馈、启动和传统 View 弹窗；data/domain 不反向依赖
+  Activity 或 Compose，也不复制第二套状态源或改写稳定配对/串流链。
 - Gson 反射读取的 Sync DTO 必须保留精确 R8 keep 规则；minified debug APK 也是
   必测产物。传统 Material Dialog 的 positive button 必须在 `show()` 后绑定，避免
   按钮只关闭弹窗而未触发添加电脑或分辨率写入；对应行为需有回归测试。

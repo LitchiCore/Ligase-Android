@@ -4,7 +4,6 @@ import android.app.Service
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.graphics.BitmapFactory
 import android.content.ServiceConnection
 import android.media.MediaCodecInfo
 import android.media.MediaCodecList
@@ -41,8 +40,7 @@ import com.limelight.computers.ComputerManagerListener
 import com.limelight.computers.ComputerManagerService
 import com.limelight.grid.assets.CachedAppAssetLoader
 import com.limelight.grid.assets.DiskAssetLoader
-import com.limelight.grid.assets.MemoryAssetLoader
-import com.limelight.grid.assets.NetworkAssetLoader
+import com.limelight.ligase.feature.library.application.LibraryHostCoordinator
 import com.limelight.ligase.feature.library.data.dto.LigaseResolutionDto
 import com.limelight.ligase.feature.library.data.dto.LigaseSyncSnapshotDto
 import com.limelight.ligase.feature.library.data.repository.LigaseSyncRepository
@@ -51,11 +49,10 @@ import com.limelight.ligase.feature.library.domain.LibraryHdrState
 import com.limelight.ligase.feature.library.domain.LibraryHdrStateResolver
 import com.limelight.ligase.feature.library.domain.LibraryLayoutMode
 import com.limelight.ligase.feature.library.domain.LibrarySyncAutoLoadPolicy
-import com.limelight.ligase.feature.library.domain.LigaseLibraryAdapter
 import com.limelight.ligase.feature.library.domain.LigaseLibraryItem
+import com.limelight.ligase.feature.library.infrastructure.LegacyGameStreamLibraryTransport
 import com.limelight.ligase.feature.layout.editor.LayoutWorkspaceViewModel
 import com.limelight.ligase.library.LibraryConnectivity
-import com.limelight.ligase.library.LibraryContentSnapshot
 import com.limelight.ligase.library.LibrarySessionError
 import com.limelight.ligase.library.LibrarySessionViewModel
 import com.limelight.ligase.library.LibraryOperationGate
@@ -89,7 +86,6 @@ import com.limelight.utils.UiHelper
 import org.xmlpull.v1.XmlPullParserException
 import java.io.FileNotFoundException
 import java.io.IOException
-import java.io.StringReader
 import java.net.UnknownHostException
 
 class LigaseActivity : AppCompatActivity() {
@@ -122,10 +118,10 @@ class LigaseActivity : AppCompatActivity() {
     private lateinit var touchLayoutRepository: LigaseTouchLayoutRepository
     private lateinit var pairingViewModel: AttendedPairingViewModel
     private lateinit var librarySessionViewModel: LibrarySessionViewModel
+    private lateinit var libraryHostCoordinator: LibraryHostCoordinator
     private lateinit var layoutWorkspaceViewModel: LayoutWorkspaceViewModel
 
     private var managerBinder: ComputerManagerService.ComputerManagerBinder? = null
-    private var appListPoller: ComputerManagerService.ApplistPoller? = null
     private var serviceBound = false
     private var polling = false
     private var foreground = false
@@ -151,7 +147,9 @@ class LigaseActivity : AppCompatActivity() {
         override fun onServiceDisconnected(name: ComponentName?) {
             managerBinder = null
             polling = false
-            appListPoller = null
+            if (::libraryHostCoordinator.isInitialized) {
+                libraryHostCoordinator.stopAppListUpdates()
+            }
             libraryHost?.let {
                 librarySessionViewModel.updateConnectivity(
                     it.uuid,
@@ -200,6 +198,22 @@ class LigaseActivity : AppCompatActivity() {
         pendingLibraryHostUuid = savedInstanceState?.getString(STATE_LIBRARY_HOST_UUID)
         pairingViewModel = ViewModelProvider(this)[AttendedPairingViewModel::class.java]
         librarySessionViewModel = ViewModelProvider(this)[LibrarySessionViewModel::class.java]
+        libraryHostCoordinator = LibraryHostCoordinator(
+            session = librarySessionViewModel,
+            repository = syncRepository,
+            transport = LegacyGameStreamLibraryTransport(this) { managerBinder },
+            hdrState = ::currentHdrState,
+            postToMain = { action -> runOnUiThread(action) },
+            onAssetLoaderChanged = { loader -> libraryAssetLoader = loader },
+            onRefreshAccepted = { preservedContent ->
+                startAppListUpdates()
+                if (preservedContent) toast(R.string.ligase_refresh_success)
+            },
+            onRefreshFailed = { preservedContent, error ->
+                LimeLog.warning("Ligase library sync failed: $error")
+                if (preservedContent) toast(R.string.ligase_refresh_failed)
+            },
+        )
         layoutWorkspaceViewModel = ViewModelProvider(this)[LayoutWorkspaceViewModel::class.java]
 
         setContent {
@@ -430,10 +444,7 @@ class LigaseActivity : AppCompatActivity() {
                     libraryHost = details
                     libraryAccessMode = details.ligaseClientAccessMode
                     libraryRunningAppId = details.runningGameId
-                    librarySessionViewModel.updateConnectivity(
-                        details.uuid,
-                        details.libraryConnectivity(),
-                    )
+                    libraryHostCoordinator.updateConnectivity(details)
                     if (details.state != ComputerDetails.State.ONLINE) {
                         stopAppListUpdates()
                     }
@@ -661,28 +672,12 @@ class LigaseActivity : AppCompatActivity() {
 
     private fun openLibrary(host: ComputerDetails) {
         stopAppListUpdates()
-        val hostChanged = librarySessionViewModel.selectHost(host.uuid, host.name)
-        if (hostChanged) {
-            disposeLibraryAssets()
-        }
+        libraryHostCoordinator.selectHost(host)
         libraryHost = host
         libraryAccessMode = host.ligaseClientAccessMode
-        librarySessionViewModel.updateConnectivity(host.uuid, host.libraryConnectivity())
         pendingLibraryHostUuid = host.uuid
         libraryRunningAppId = host.runningGameId
         librarySortMode = LigasePreferences.getLibrarySortMode(this, host.uuid)
-        if (libraryAssetLoader == null) {
-            libraryAssetLoader = managerBinder?.let { binder ->
-                CachedAppAssetLoader(
-                    host,
-                    1.0,
-                    NetworkAssetLoader(this, binder.uniqueId),
-                    MemoryAssetLoader(),
-                    DiskAssetLoader(this),
-                    BitmapFactory.decodeResource(resources, R.drawable.no_app_image),
-                )
-            }
-        }
         startComputerUpdates()
         handleSelectedHostCapabilities(host)
     }
@@ -691,21 +686,19 @@ class LigaseActivity : AppCompatActivity() {
         stopAppListUpdates()
         libraryHost = null
         libraryAccessMode = null
-        librarySessionViewModel.clearHost()
+        libraryHostCoordinator.clearHost()
         pendingLibraryHostUuid = null
-        disposeLibraryAssets()
     }
 
     private fun startAppListUpdates() {
-        val binder = managerBinder ?: return
+        if (managerBinder == null) return
         val host = libraryHost ?: return
         if (
             !foreground ||
             currentPage != LigasePage.HOME ||
-            librarySessionViewModel.state.content == null ||
-            appListPoller != null
+            librarySessionViewModel.state.content == null
         ) return
-        appListPoller = binder.createAppListPoller(host).also { it.start() }
+        libraryHostCoordinator.startAppListUpdates(host, allowed = true)
     }
 
     private fun selectDefaultHostIfNeeded() {
@@ -736,19 +729,19 @@ class LigaseActivity : AppCompatActivity() {
     }
 
     private fun stopAppListUpdates() {
-        appListPoller?.stop()
-        appListPoller = null
+        if (::libraryHostCoordinator.isInitialized) {
+            libraryHostCoordinator.stopAppListUpdates()
+        }
     }
 
     private fun disposeLibraryAssets() {
-        libraryAssetLoader?.cancelForegroundLoads()
-        libraryAssetLoader?.cancelBackgroundLoads()
-        libraryAssetLoader?.freeCacheMemory()
-        libraryAssetLoader = null
+        if (::libraryHostCoordinator.isInitialized) {
+            libraryHostCoordinator.dispose()
+        }
     }
 
     private fun handleSelectedHostCapabilities(host: ComputerDetails) {
-        librarySessionViewModel.updateConnectivity(host.uuid, host.libraryConnectivity())
+        libraryHostCoordinator.updateConnectivity(host)
         if (host.state != ComputerDetails.State.ONLINE) return
         if (
             host.pairState == PairState.PAIRED &&
@@ -779,58 +772,7 @@ class LigaseActivity : AppCompatActivity() {
 
     private fun fetchLibrarySync(force: Boolean) {
         val host = libraryHost ?: return
-        val path = host.ligaseSyncPath
-        if (
-            host.ligaseSyncVersion != LigaseSyncRepository.SUPPORTED_SYNC_VERSION ||
-            path.isNullOrBlank()
-        ) {
-            librarySessionViewModel.markIncompatible(host.uuid)
-            return
-        }
-        if (!force && librarySessionViewModel.state.content != null) return
-        val request = librarySessionViewModel.beginRefresh(host.uuid) ?: return
-
-        Thread {
-            try {
-                val http = createLigaseHttp(host)
-                val snapshot = syncRepository.fetch(http, path)
-                val rawAppList = http.appListRaw
-                val transportApps = NvHTTP.getAppListByReader(StringReader(rawAppList))
-                val hdrState = currentHdrState(snapshot.capabilities.hdrEncodingSupported)
-                val content = LibraryContentSnapshot(
-                    sync = snapshot,
-                    transportApps = transportApps.toList(),
-                    rawAppList = rawAppList,
-                    items = LigaseLibraryAdapter.fromSyncSnapshot(snapshot, transportApps),
-                    hdr = hdrState,
-                )
-                runOnUiThread {
-                    if (!librarySessionViewModel.acceptSuccess(request, content)) {
-                        return@runOnUiThread
-                    }
-                    startAppListUpdates()
-                    if (request.preservesContent) {
-                        toast(R.string.ligase_refresh_success)
-                    }
-                }
-            } catch (error: Exception) {
-                LimeLog.warning("Ligase library sync failed: $error")
-                runOnUiThread {
-                    val stateError =
-                        if (error is HostHttpResponseException && error.errorCode == 403) {
-                            LibrarySessionError.PERMISSION_DENIED
-                        } else {
-                            LibrarySessionError.SYNC_FAILED
-                        }
-                    if (!librarySessionViewModel.acceptFailure(request, stateError)) {
-                        return@runOnUiThread
-                    }
-                    if (request.preservesContent) {
-                        toast(R.string.ligase_refresh_failed)
-                    }
-                }
-            }
-        }.start()
+        libraryHostCoordinator.fetch(host, force)
     }
 
     private fun retryLibrarySync() {
@@ -841,17 +783,6 @@ class LigaseActivity : AppCompatActivity() {
         }
         managerBinder?.invalidateStateForComputer(host.uuid)
         fetchLibrarySync(force = true)
-    }
-
-    private fun createLigaseHttp(host: ComputerDetails): NvHTTP {
-        val binder = managerBinder ?: throw IOException("Computer manager is unavailable")
-        return NvHTTP(
-            ServerHelper.getCurrentAddressFromComputer(host),
-            host.httpsPort,
-            binder.uniqueId,
-            host.serverCert,
-            PlatformBinding.getCryptoProvider(this),
-        )
     }
 
     private fun handleSyncWriteFailure(host: ComputerDetails, error: Throwable) {
@@ -931,29 +862,9 @@ class LigaseActivity : AppCompatActivity() {
         }
     }
 
-    private fun ComputerDetails.libraryConnectivity(): LibraryConnectivity = when (state) {
-        ComputerDetails.State.ONLINE -> LibraryConnectivity.ONLINE
-        ComputerDetails.State.OFFLINE -> LibraryConnectivity.OFFLINE
-        ComputerDetails.State.UNKNOWN -> LibraryConnectivity.CHECKING
-    }
-
     private fun updateLibraryFromRaw(rawAppList: String?) {
         val host = libraryHost ?: return
-        val content = librarySessionViewModel.state.content ?: return
-        if (rawAppList == null || rawAppList == content.rawAppList) return
-        try {
-            val transportApps = NvHTTP.getAppListByReader(StringReader(rawAppList))
-            librarySessionViewModel.updateAppList(
-                host.uuid,
-                rawAppList,
-                transportApps,
-                LigaseLibraryAdapter.fromSyncSnapshot(content.sync, transportApps),
-            )
-        } catch (_: XmlPullParserException) {
-            librarySessionViewModel.markAppListFailure(host.uuid)
-        } catch (_: IOException) {
-            librarySessionViewModel.markAppListFailure(host.uuid)
-        }
+        libraryHostCoordinator.updateAppList(host, rawAppList)
     }
 
     private fun changeLibrarySortMode(sortMode: HostSortMode) {
@@ -977,7 +888,10 @@ class LigaseActivity : AppCompatActivity() {
                 snapshot = snapshot,
                 orderedAppUuids = orderedAppUuids,
                 writer = { request ->
-                    syncRepository.updateManualOrder(createLigaseHttp(host), request)
+                    syncRepository.updateManualOrder(
+                        libraryHostCoordinator.createHttp(host),
+                        request,
+                    )
                 },
             )
             runOnUiThread {
@@ -1225,7 +1139,7 @@ class LigaseActivity : AppCompatActivity() {
         Thread {
             try {
                 val updated = syncRepository.updateGlobalResolution(
-                    createLigaseHttp(host),
+                    libraryHostCoordinator.createHttp(host),
                     snapshot.streaming.revision,
                     resolution,
                 )
@@ -1257,7 +1171,7 @@ class LigaseActivity : AppCompatActivity() {
         Thread {
             try {
                 val updated = syncRepository.updateAppResolution(
-                    createLigaseHttp(host),
+                    libraryHostCoordinator.createHttp(host),
                     snapshot.streaming.revision,
                     appUuid,
                     resolution,
