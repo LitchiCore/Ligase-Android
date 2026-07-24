@@ -41,6 +41,8 @@ import com.limelight.computers.ComputerManagerService
 import com.limelight.grid.assets.CachedAppAssetLoader
 import com.limelight.grid.assets.DiskAssetLoader
 import com.limelight.ligase.feature.library.application.LibraryHostCoordinator
+import com.limelight.ligase.feature.library.application.LibraryStreamingSettingsCoordinator
+import com.limelight.ligase.feature.library.application.LibraryStreamingSettingsResult
 import com.limelight.ligase.feature.library.data.dto.LigaseResolutionDto
 import com.limelight.ligase.feature.library.data.dto.LigaseSyncSnapshotDto
 import com.limelight.ligase.feature.library.data.repository.LigaseSyncRepository
@@ -74,7 +76,6 @@ import com.limelight.ligase.pairing.AttendedPairingViewModel
 import com.limelight.ligase.pairing.LigaseAccessUiPolicy
 import com.limelight.ligase.pairing.LigaseClientAccessMode
 import com.limelight.nvstream.http.ComputerDetails
-import com.limelight.nvstream.http.HostHttpResponseException
 import com.limelight.nvstream.http.NvHTTP
 import com.limelight.nvstream.http.PairingManager
 import com.limelight.nvstream.http.PairingManager.PairState
@@ -119,6 +120,8 @@ class LigaseActivity : AppCompatActivity() {
     private lateinit var pairingViewModel: AttendedPairingViewModel
     private lateinit var librarySessionViewModel: LibrarySessionViewModel
     private lateinit var libraryHostCoordinator: LibraryHostCoordinator
+    private lateinit var libraryStreamingSettingsCoordinator:
+        LibraryStreamingSettingsCoordinator
     private lateinit var layoutWorkspaceViewModel: LayoutWorkspaceViewModel
 
     private var managerBinder: ComputerManagerService.ComputerManagerBinder? = null
@@ -212,6 +215,36 @@ class LigaseActivity : AppCompatActivity() {
             onRefreshFailed = { preservedContent, error ->
                 LimeLog.warning("Ligase library sync failed: $error")
                 if (preservedContent) toast(R.string.ligase_refresh_failed)
+            },
+        )
+        libraryStreamingSettingsCoordinator = LibraryStreamingSettingsCoordinator(
+            session = librarySessionViewModel,
+            repository = syncRepository,
+            httpFactory = libraryHostCoordinator::createHttp,
+            postToMain = { action -> runOnUiThread(action) },
+            onRevisionConflict = {
+                fetchLibrarySync(force = true)
+            },
+            onPermissionDenied = { host ->
+                managerBinder?.invalidateStateForComputer(host.uuid)
+            },
+            onResult = { _, result ->
+                when (result) {
+                    is LibraryStreamingSettingsResult.Success ->
+                        toast(R.string.ligase_sync_saved)
+                    LibraryStreamingSettingsResult.RevisionConflict -> {
+                        toast(R.string.ligase_sync_revision_conflict)
+                    }
+                    LibraryStreamingSettingsResult.PermissionDenied -> {
+                        toast(R.string.ligase_observe_mode_action_blocked)
+                    }
+                    is LibraryStreamingSettingsResult.Failed -> {
+                        LimeLog.warning(
+                            "Ligase streaming settings write failed: ${result.error}",
+                        )
+                        toast(R.string.ligase_sync_write_failed)
+                    }
+                }
             },
         )
         layoutWorkspaceViewModel = ViewModelProvider(this)[LayoutWorkspaceViewModel::class.java]
@@ -785,24 +818,6 @@ class LigaseActivity : AppCompatActivity() {
         fetchLibrarySync(force = true)
     }
 
-    private fun handleSyncWriteFailure(host: ComputerDetails, error: Throwable) {
-        if (libraryHost?.uuid != host.uuid) return
-        if (error is HostHttpResponseException && error.errorCode == 403) {
-            toast(R.string.ligase_observe_mode_action_blocked)
-            managerBinder?.invalidateStateForComputer(host.uuid)
-            return
-        }
-        if (error is HostHttpResponseException && !error.responseBody.isNullOrBlank()) {
-            LimeLog.warning("Ligase sync write error response: ${error.responseBody}")
-        }
-        if (LigaseSyncRepository.isRevisionConflict(error)) {
-            toast(R.string.ligase_sync_revision_conflict)
-            fetchLibrarySync(force = true)
-        } else {
-            toast(R.string.ligase_sync_write_failed)
-        }
-    }
-
     private fun currentHdrState(hostEncodingSupported: Boolean?): LibraryHdrState =
         LibraryHdrStateResolver.resolve(
             hostEncodingSupported = hostEncodingSupported,
@@ -1136,26 +1151,7 @@ class LigaseActivity : AppCompatActivity() {
         snapshot: LigaseSyncSnapshotDto,
         resolution: LigaseResolutionDto,
     ) {
-        Thread {
-            try {
-                val updated = syncRepository.updateGlobalResolution(
-                    libraryHostCoordinator.createHttp(host),
-                    snapshot.streaming.revision,
-                    resolution,
-                )
-                LimeLog.info(
-                    "Ligase global resolution saved at streaming revision ${updated.revision}",
-                )
-                runOnUiThread {
-                    if (libraryHost?.uuid != host.uuid) return@runOnUiThread
-                    librarySessionViewModel.updateStreaming(host.uuid, updated)
-                    toast(R.string.ligase_sync_saved)
-                }
-            } catch (error: Exception) {
-                LimeLog.warning("Ligase global resolution write failed: $error")
-                runOnUiThread { handleSyncWriteFailure(host, error) }
-            }
-        }.start()
+        libraryStreamingSettingsCoordinator.updateGlobal(host, snapshot, resolution)
     }
 
     private fun updateAppResolution(
@@ -1164,31 +1160,12 @@ class LigaseActivity : AppCompatActivity() {
         appUuid: String,
         resolution: LigaseResolutionDto?,
     ) {
-        LimeLog.info(
-            "Ligase app resolution write queued for $appUuid at base revision " +
-                snapshot.streaming.revision,
+        libraryStreamingSettingsCoordinator.updateApp(
+            host,
+            snapshot,
+            appUuid,
+            resolution,
         )
-        Thread {
-            try {
-                val updated = syncRepository.updateAppResolution(
-                    libraryHostCoordinator.createHttp(host),
-                    snapshot.streaming.revision,
-                    appUuid,
-                    resolution,
-                )
-                LimeLog.info(
-                    "Ligase app resolution saved at streaming revision ${updated.revision}",
-                )
-                runOnUiThread {
-                    if (libraryHost?.uuid != host.uuid) return@runOnUiThread
-                    librarySessionViewModel.updateStreaming(host.uuid, updated)
-                    toast(R.string.ligase_sync_saved)
-                }
-            } catch (error: Exception) {
-                LimeLog.warning("Ligase app resolution write failed: $error")
-                runOnUiThread { handleSyncWriteFailure(host, error) }
-            }
-        }.start()
     }
 
     private fun showAddHostDialog() {
