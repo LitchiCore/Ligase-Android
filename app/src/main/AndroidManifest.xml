@@ -107,6 +107,11 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".TouchKitLayoutPreviewActivity"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:theme="@style/LigaseTheme" />
+        <activity
             android:name=".PcView"
             android:exported="false"
             android:resizeableActivity="true"

@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -34,6 +35,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -71,6 +73,13 @@ import com.limelight.ligase.feature.library.domain.LibraryHdrState
 import com.limelight.ligase.feature.library.domain.LibraryLayoutMode
 import com.limelight.ligase.feature.library.domain.LigaseLibraryStatus
 import com.limelight.ligase.feature.library.domain.LigaseLibraryItem
+import com.limelight.ligase.feature.layout.domain.LayoutCatalogUiState
+import com.limelight.ligase.feature.layout.domain.LayoutControlKind
+import com.limelight.ligase.feature.layout.domain.LayoutEditorSessionState
+import com.limelight.ligase.feature.layout.presentation.LayoutSaveNavigation
+import com.limelight.ligase.feature.layout.presentation.layoutSaveNavigation
+import com.limelight.ligase.feature.layout.ui.LayoutEditorScreen
+import com.limelight.ligase.feature.layout.ui.LayoutHallScreen
 import com.limelight.ligase.library.LigaseLibraryPage
 import com.limelight.ligase.library.LibraryConnectivity
 import com.limelight.ligase.library.ManualLibraryOrderDraft
@@ -93,6 +102,12 @@ enum class LigasePage(
     HOME(R.string.ligase_nav_home, R.drawable.ic_computer),
     INPUT(R.string.ligase_nav_input, R.drawable.ic_ligase_gamepad),
     SETTINGS(R.string.ligase_nav_settings, R.drawable.ic_settings),
+}
+
+private enum class LigaseLayoutRoute {
+    MAIN,
+    HALL,
+    EDITOR,
 }
 
 @Composable
@@ -130,6 +145,8 @@ fun LigaseRoot(
     libraryCanOperate: Boolean,
     libraryCanConfigureInput: Boolean,
     manualSortState: ManualLibrarySortActionState,
+    layoutCatalogState: LayoutCatalogUiState,
+    layoutEditorState: LayoutEditorSessionState,
     pairingState: AttendedPairingUiState,
     onPageSelected: (LigasePage) -> Unit,
     onInputSelected: (InputDeviceMode) -> Unit,
@@ -149,6 +166,17 @@ fun LigaseRoot(
     onLibraryConfigure: (LigaseLibraryItem) -> Unit,
     onLibraryRetrySync: () -> Unit,
     onManualOrderSubmit: (List<String>) -> Unit,
+    onLayoutCatalogRefresh: () -> Unit,
+    onLayoutSelect: (String) -> Unit,
+    onLayoutPreview: (String) -> Unit,
+    onLayoutCreateCopy: (String) -> Unit,
+    onLayoutOpenEditor: (String) -> Unit,
+    onLayoutMove: (String, Float, Float) -> Unit,
+    onLayoutResize: (String, Float, Float) -> Unit,
+    onLayoutDelete: (String) -> Unit,
+    onLayoutAdd: (LayoutControlKind) -> Unit,
+    onLayoutSave: () -> Unit,
+    onLayoutDiscard: () -> Unit,
     onGlobalResolutionClick: () -> Unit,
     onPairingCancel: () -> Unit,
     onPairingDismiss: () -> Unit,
@@ -189,6 +217,51 @@ fun LigaseRoot(
                 }
                 val semanticColors = LigaseSemanticTheme.colors
                 val libraryOnline = libraryConnectivity == LibraryConnectivity.ONLINE
+                var layoutRoute by rememberSaveable {
+                    mutableStateOf(LigaseLayoutRoute.MAIN)
+                }
+                var pendingEditorOpen by rememberSaveable { mutableStateOf(false) }
+                var pendingLayoutSave by rememberSaveable { mutableStateOf(false) }
+                LaunchedEffect(
+                    layoutEditorState.draftId,
+                    layoutEditorState.error,
+                    pendingEditorOpen,
+                ) {
+                    if (pendingEditorOpen && layoutEditorState.draftId != null) {
+                        layoutRoute = LigaseLayoutRoute.EDITOR
+                        pendingEditorOpen = false
+                    } else if (
+                        pendingEditorOpen &&
+                        layoutEditorState.error != null
+                    ) {
+                        layoutRoute = LigaseLayoutRoute.HALL
+                        pendingEditorOpen = false
+                    }
+                }
+                LaunchedEffect(
+                    pendingLayoutSave,
+                    layoutEditorState.saving,
+                    layoutEditorState.dirty,
+                    layoutEditorState.error,
+                ) {
+                    when (
+                        layoutSaveNavigation(
+                            pendingSave = pendingLayoutSave,
+                            saving = layoutEditorState.saving,
+                            dirty = layoutEditorState.dirty,
+                            hasError = layoutEditorState.error != null,
+                        )
+                    ) {
+                        LayoutSaveNavigation.HALL -> {
+                            pendingLayoutSave = false
+                            layoutRoute = LigaseLayoutRoute.HALL
+                        }
+                        LayoutSaveNavigation.STAY_EDITOR -> {
+                            pendingLayoutSave = false
+                        }
+                        LayoutSaveNavigation.WAIT -> Unit
+                    }
+                }
                 var manualOrderDraft by remember(libraryHost?.uuid) {
                     mutableStateOf<ManualLibraryOrderDraft?>(null)
                 }
@@ -236,6 +309,16 @@ fun LigaseRoot(
                 ) {
                     LazyGridState()
                 }
+                val inputListState = rememberSaveable(
+                    saver = LazyListState.Saver,
+                ) {
+                    LazyListState()
+                }
+                val navigateToMainPage: (LigasePage) -> Unit = { page ->
+                    pendingEditorOpen = false
+                    layoutRoute = LigaseLayoutRoute.MAIN
+                    onPageSelected(page)
+                }
                 val navigationItemColors = NavigationSuiteDefaults.itemColors(
                     navigationBarItemColors = NavigationBarItemDefaults.colors(
                         selectedIconColor = semanticColors.textPrimary,
@@ -256,7 +339,7 @@ fun LigaseRoot(
                         disabledTextColor = semanticColors.disabled,
                     ),
                 )
-                val pageContent: @Composable () -> Unit = {
+                val mainPageContent: @Composable () -> Unit = {
                     AnimatedContent(
                         targetState = currentPage,
                         transitionSpec = { fadeIn() togetherWith fadeOut() },
@@ -339,6 +422,30 @@ fun LigaseRoot(
                                 onDeviceSelected = onInputDeviceSelected,
                                 onTouchLayoutSelected = onTouchLayoutSelected,
                                 onTouchOverlayModeChanged = onTouchOverlayModeChanged,
+                                listState = inputListState,
+                                selectedTouchLayoutEditable = layoutCatalogState.items
+                                    .firstOrNull {
+                                        it.layoutId == selectedTouchLayoutId
+                                    }
+                                    ?.editable == true,
+                                onBrowseLayouts = {
+                                    onLayoutCatalogRefresh()
+                                    layoutRoute = LigaseLayoutRoute.HALL
+                                },
+                                onEditTouchLayout = {
+                                    selectedTouchLayoutId?.let { layoutId ->
+                                        val editable = layoutCatalogState.items
+                                            .firstOrNull { it.layoutId == layoutId }
+                                            ?.editable == true
+                                        if (editable) {
+                                            onLayoutOpenEditor(layoutId)
+                                        } else {
+                                            onLayoutCreateCopy(layoutId)
+                                        }
+                                        pendingEditorOpen = true
+                                        layoutRoute = LigaseLayoutRoute.HALL
+                                    }
+                                },
                             )
                             LigasePage.SETTINGS -> SettingsPage(
                                 selectedInput = selectedInput ?: InputDeviceMode.TOUCH,
@@ -347,7 +454,9 @@ fun LigaseRoot(
                                 globalResolution = libraryGlobalResolution,
                                 hdrState = libraryHdrState,
                                 canOperate = libraryCanOperate && libraryOnline,
-                                onOpenInput = { onPageSelected(LigasePage.INPUT) },
+                                onOpenInput = {
+                                    navigateToMainPage(LigasePage.INPUT)
+                                },
                                 onThemeSelected = onThemeSelected,
                                 onLanguageSelected = onLanguageSelected,
                                 onGlobalResolutionClick = onGlobalResolutionClick,
@@ -356,12 +465,46 @@ fun LigaseRoot(
                         }
                     }
                 }
+                val pageContent: @Composable () -> Unit = {
+                    when (layoutRoute) {
+                        LigaseLayoutRoute.MAIN -> mainPageContent()
+                        LigaseLayoutRoute.HALL -> LayoutHallScreen(
+                            state = layoutCatalogState,
+                            actionError = layoutEditorState.error,
+                            onBack = { layoutRoute = LigaseLayoutRoute.MAIN },
+                            onRefresh = onLayoutCatalogRefresh,
+                            onSelect = onLayoutSelect,
+                            onPreview = onLayoutPreview,
+                            onEdit = { layoutId ->
+                                onLayoutOpenEditor(layoutId)
+                                pendingEditorOpen = true
+                            },
+                            onCreateCopy = { layoutId ->
+                                onLayoutCreateCopy(layoutId)
+                                pendingEditorOpen = true
+                            },
+                        )
+                        LigaseLayoutRoute.EDITOR -> LayoutEditorScreen(
+                            state = layoutEditorState,
+                            onBack = { layoutRoute = LigaseLayoutRoute.HALL },
+                            onMove = onLayoutMove,
+                            onResize = onLayoutResize,
+                            onDelete = onLayoutDelete,
+                            onAdd = onLayoutAdd,
+                            onSave = {
+                                pendingLayoutSave = true
+                                onLayoutSave()
+                            },
+                            onDiscard = onLayoutDiscard,
+                        )
+                    }
+                }
                 if (navigationType == NavigationSuiteType.NavigationRail) {
                     Row(modifier = Modifier.fillMaxSize()) {
                         LigaseLandscapeSidebar(
                             currentPage = currentPage,
                             inputEnabled = libraryCanConfigureInput && libraryOnline,
-                            onPageSelected = onPageSelected,
+                            onPageSelected = navigateToMainPage,
                         )
                         Box(modifier = Modifier.weight(1f)) {
                             pageContent()
@@ -377,7 +520,7 @@ fun LigaseRoot(
                                         libraryCanConfigureInput && libraryOnline
                                 item(
                                     selected = currentPage == destination,
-                                    onClick = { onPageSelected(destination) },
+                                    onClick = { navigateToMainPage(destination) },
                                     enabled = enabled,
                                     colors = navigationItemColors,
                                     icon = {
@@ -505,11 +648,24 @@ private fun manualSortErrorMessage(error: ManualLibrarySortError?): Int? =
 @Composable
 internal fun LigasePageScaffold(
     title: String,
+    onBack: (() -> Unit)? = null,
     content: @Composable (Modifier) -> Unit,
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
+                navigationIcon = {
+                    if (onBack != null) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_ligase_back),
+                                contentDescription = stringResource(
+                                    R.string.ligase_back,
+                                ),
+                            )
+                        }
+                    }
+                },
                 title = {
                     Text(
                         text = title,

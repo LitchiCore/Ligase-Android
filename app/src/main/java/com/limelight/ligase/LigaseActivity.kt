@@ -35,6 +35,7 @@ import com.google.android.material.textfield.TextInputLayout
 import com.limelight.BuildConfig
 import com.limelight.LimeLog
 import com.limelight.R
+import com.limelight.TouchKitLayoutPreviewActivity
 import com.limelight.binding.PlatformBinding
 import com.limelight.computers.ComputerManagerListener
 import com.limelight.computers.ComputerManagerService
@@ -52,6 +53,7 @@ import com.limelight.ligase.feature.library.domain.LibraryLayoutMode
 import com.limelight.ligase.feature.library.domain.LibrarySyncAutoLoadPolicy
 import com.limelight.ligase.feature.library.domain.LigaseLibraryAdapter
 import com.limelight.ligase.feature.library.domain.LigaseLibraryItem
+import com.limelight.ligase.feature.layout.editor.LayoutWorkspaceViewModel
 import com.limelight.ligase.library.LibraryConnectivity
 import com.limelight.ligase.library.LibraryContentSnapshot
 import com.limelight.ligase.library.LibrarySessionError
@@ -120,6 +122,7 @@ class LigaseActivity : AppCompatActivity() {
     private lateinit var touchLayoutRepository: LigaseTouchLayoutRepository
     private lateinit var pairingViewModel: AttendedPairingViewModel
     private lateinit var librarySessionViewModel: LibrarySessionViewModel
+    private lateinit var layoutWorkspaceViewModel: LayoutWorkspaceViewModel
 
     private var managerBinder: ComputerManagerService.ComputerManagerBinder? = null
     private var appListPoller: ComputerManagerService.ApplistPoller? = null
@@ -197,6 +200,7 @@ class LigaseActivity : AppCompatActivity() {
         pendingLibraryHostUuid = savedInstanceState?.getString(STATE_LIBRARY_HOST_UUID)
         pairingViewModel = ViewModelProvider(this)[AttendedPairingViewModel::class.java]
         librarySessionViewModel = ViewModelProvider(this)[LibrarySessionViewModel::class.java]
+        layoutWorkspaceViewModel = ViewModelProvider(this)[LayoutWorkspaceViewModel::class.java]
 
         setContent {
             val libraryState = librarySessionViewModel.state
@@ -256,6 +260,8 @@ class LigaseActivity : AppCompatActivity() {
                         )
                     },
                 manualSortState = librarySessionViewModel.manualSortState,
+                layoutCatalogState = layoutWorkspaceViewModel.catalogState,
+                layoutEditorState = layoutWorkspaceViewModel.editorState,
                 pairingState = pairingViewModel.state,
                 onPageSelected = ::selectPage,
                 onInputSelected = ::selectInput,
@@ -277,6 +283,33 @@ class LigaseActivity : AppCompatActivity() {
                 onLibraryConfigure = ::showLibraryItemSettings,
                 onLibraryRetrySync = ::retryLibrarySync,
                 onManualOrderSubmit = ::submitManualLibraryOrder,
+                onLayoutCatalogRefresh = {
+                    layoutWorkspaceViewModel.refreshCatalog()
+                    reloadTouchLayouts()
+                },
+                onLayoutSelect = { layoutId ->
+                    if (layoutWorkspaceViewModel.selectGlobal(layoutId)) {
+                        selectedTouchLayoutId = layoutId
+                        reloadTouchLayouts()
+                    }
+                },
+                onLayoutCreateCopy = { layoutWorkspaceViewModel.createEditableCopy(it) },
+                onLayoutOpenEditor = { layoutWorkspaceViewModel.openEditor(it) },
+                onLayoutPreview = { layoutId ->
+                    startActivity(TouchKitLayoutPreviewActivity.createIntent(this, layoutId))
+                },
+                onLayoutMove = { id, x, y -> layoutWorkspaceViewModel.moveElement(id, x, y) },
+                onLayoutResize = { id, width, height ->
+                    layoutWorkspaceViewModel.resizeElement(id, width, height)
+                },
+                onLayoutDelete = { layoutWorkspaceViewModel.deleteElement(it) },
+                onLayoutAdd = { layoutWorkspaceViewModel.addElement(it) },
+                onLayoutSave = {
+                    if (layoutWorkspaceViewModel.saveDraft() != null) {
+                        reloadTouchLayouts()
+                    }
+                },
+                onLayoutDiscard = layoutWorkspaceViewModel::discardDraft,
                 onGlobalResolutionClick = ::showGlobalResolutionSettings,
                 onPairingCancel = pairingViewModel::cancel,
                 onPairingDismiss = pairingViewModel::dismissStopped,

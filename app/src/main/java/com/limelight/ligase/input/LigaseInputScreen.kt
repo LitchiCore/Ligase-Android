@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -60,6 +62,10 @@ fun LigaseInputPage(
     onDeviceSelected: (LigaseInputCategory, String) -> Unit,
     onTouchLayoutSelected: (String) -> Unit,
     onTouchOverlayModeChanged: (LigaseTouchOverlayMode) -> Unit,
+    listState: LazyListState? = null,
+    selectedTouchLayoutEditable: Boolean = false,
+    onBrowseLayouts: () -> Unit = {},
+    onEditTouchLayout: () -> Unit = {},
 ) {
     if (onboarding) {
         OnboardingInputPage(
@@ -72,8 +78,10 @@ fun LigaseInputPage(
 
     var showModePicker by remember { mutableStateOf(false) }
     val mode = selectedInput ?: InputDeviceMode.TOUCH
+    val effectiveListState = listState ?: rememberLazyListState()
     LigasePageScaffold(stringResource(R.string.ligase_nav_input)) { pageModifier ->
         LazyColumn(
+            state = effectiveListState,
             modifier = pageModifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 start = 20.dp,
@@ -182,11 +190,25 @@ fun LigaseInputPage(
                             )
                             Spacer(Modifier.height(4.dp))
                             OutlinedButton(
-                                onClick = {},
-                                enabled = false,
+                                onClick = onBrowseLayouts,
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
-                                Text(stringResource(R.string.ligase_layout_edit_future))
+                                Text(stringResource(R.string.ligase_layout_browse))
+                            }
+                            OutlinedButton(
+                                onClick = onEditTouchLayout,
+                                enabled = selectedTouchLayoutId != null,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(
+                                    stringResource(
+                                        if (selectedTouchLayoutEditable) {
+                                            R.string.ligase_layout_edit_current
+                                        } else {
+                                            R.string.ligase_layout_copy_current
+                                        },
+                                    ),
+                                )
                             }
                         }
                     }

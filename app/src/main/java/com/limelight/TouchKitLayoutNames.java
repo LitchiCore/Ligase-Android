@@ -100,6 +100,41 @@ public final class TouchKitLayoutNames {
         return id;
     }
 
+    /**
+     * Registers a caller-generated stable layout ID after its preference file is complete.
+     * This keeps partially written copies invisible to the catalog.
+     */
+    public static boolean addWithStableId(Context context, String layoutId, String displayName) {
+        if (layoutId == null || !layoutId.matches(
+                "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")) {
+            return false;
+        }
+        List<String> values = new ArrayList<>(Arrays.asList(getValues(context)));
+        if (values.contains(layoutId)) {
+            return false;
+        }
+        String normalizedName = displayName == null ? "" : displayName.trim();
+        if (normalizedName.isEmpty()) {
+            return false;
+        }
+        SharedPreferences names = context.getSharedPreferences(NAME_STORE, Context.MODE_PRIVATE);
+        if (!names.edit().putString(layoutId, normalizedName).commit()) {
+            return false;
+        }
+        values.add(layoutId);
+        JSONArray array = new JSONArray();
+        for (String value : values) {
+            array.put(value);
+        }
+        boolean registered = context.getSharedPreferences(
+                REGISTRY_STORE, Context.MODE_PRIVATE).edit()
+                .putString(REGISTRY_KEY, array.toString()).commit();
+        if (!registered) {
+            names.edit().remove(layoutId).commit();
+        }
+        return registered;
+    }
+
     public static boolean delete(Context context, String layoutId) {
         List<String> values = new ArrayList<>(Arrays.asList(getValues(context)));
         if (values.size() <= 1 || !values.remove(layoutId)) {

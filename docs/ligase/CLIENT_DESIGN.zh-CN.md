@@ -70,8 +70,27 @@
   两层叠加。虚拟键盘模式才要求稳定 layout ID；其他模式保留原选择但不加载布局。
   实体手柄、键盘鼠标模式会强制关闭触控覆盖。Ligase 产品启动绕开旧的 numeric
   appid/unknown_pc 布局回退，旧非 Ligase 入口暂时保持原行为。
-- 布局大厅将在 catalog 可用后作为独立页面实现；当前输入页不显示空壳大厅入口，
-  也不提前实现搜索、下载、编辑或游戏级应用。
+- 输入页的触屏分支提供“布局大厅”和“编辑当前布局”入口。布局大厅是 Ligase 壳层内
+  的独立子页面，只展示本机真实可用的内建布局与用户副本；当前不提供 Host 下载、
+  社区搜索或游戏级绑定。
+- 大厅可用独立 `TouchKitLayoutPreviewActivity` 打开真实 TouchKit 横屏黑色全屏预览。
+  预览复用生产 renderer，但使用只读 preferences context、关闭输入 dispatch，并禁用
+  所有控件交互；它不进入旧 `TouchKitLayoutEditorActivity` 的编辑模式，也不保存、
+  删除、添加控件或改变全局布局。返回后仍停留原大厅和滚动位置。
+- 内建 TouchKit 布局保持只读。编辑内建布局时必须先 copy-on-write 为新的本机副本；
+  新副本使用 canonical lowercase UUID D 作为稳定 `layoutId`，初始 `revision=1`，
+  并生成稳定的 canonical `variantId`。内建的 `OSC_Keyboard` 等旧标识只作为本机
+  `legacySourceReference`，不得提升为未来跨端 layout identity。
+- 编辑器首版支持选择、移动、缩放和删除可识别控件，并允许新增键盘按键、鼠标按键、
+  模拟摇杆、方向键和软键盘入口。旧动态类型 4/5/6/7/9 及未知 JSON 字段会原样保留，
+  但以只读未知控件展示；不能证明无损时拒绝破坏性修改，不按类型名猜测。
+- 保存使用完整 SharedPreferences 事务写入；新副本只有在内容提交成功后才注册进
+  catalog，注册失败时清理不可见的孤立文件。取消编辑只丢弃内存草稿，不修改来源布局；
+  设为全局布局必须由用户在大厅明确选择，保存副本不会静默切换全局选择。
+- 本机 SharedPreferences map、TouchKit metadata key 和动态 descriptor 目前都不是
+  跨端 content schema。Android 只承诺继续兼容现有 formatVersion 2 运行时；在控件
+  4/5/6/7/9 的完整 payload、base/dynamic/deleted 合并语义、数值边界、canonical JSON、
+  扩展字段和 runtime compatibility 共同冻结前，Host 不应持久化或分发这些 bytes。
 
 ## 跨端视觉颜色契约
 
