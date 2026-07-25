@@ -10,6 +10,8 @@ import androidx.lifecycle.ViewModel
 class AttendedPairingViewModel : ViewModel() {
     private val mainHandler = Handler(Looper.getMainLooper())
     private var coordinator: AttendedPairingCoordinator? = null
+    private var nextGeneration = 0L
+    private var activeGeneration = 0L
     var targetHostUuid: String? = null
         private set
 
@@ -19,25 +21,45 @@ class AttendedPairingViewModel : ViewModel() {
     internal var lastAudit: AttendedPairingAudit? = null
         private set
 
-    internal fun update(newState: AttendedPairingUiState) {
+    internal class Binding internal constructor(
+        internal val generation: Long,
+        val stateListener: (AttendedPairingUiState) -> Unit,
+        val auditListener: (AttendedPairingAudit) -> Unit,
+    )
+
+    internal fun createBinding(): Binding {
+        val generation = ++nextGeneration
+        return Binding(
+            generation = generation,
+            stateListener = { update(generation, it) },
+            auditListener = { updateAudit(generation, it) },
+        )
+    }
+
+    private fun update(generation: Long, newState: AttendedPairingUiState) {
         if (Looper.myLooper() == Looper.getMainLooper()) {
-            state = newState
+            if (generation == activeGeneration) state = newState
         } else {
-            mainHandler.post { state = newState }
+            mainHandler.post {
+                if (generation == activeGeneration) state = newState
+            }
         }
     }
 
-    internal fun updateAudit(audit: AttendedPairingAudit) {
+    private fun updateAudit(generation: Long, audit: AttendedPairingAudit) {
         if (Looper.myLooper() == Looper.getMainLooper()) {
-            lastAudit = audit
+            if (generation == activeGeneration) lastAudit = audit
         } else {
-            mainHandler.post { lastAudit = audit }
+            mainHandler.post {
+                if (generation == activeGeneration) lastAudit = audit
+            }
         }
     }
 
     internal fun start(
         newCoordinator: AttendedPairingCoordinator,
         hostUuid: String,
+        binding: Binding,
         start: () -> Unit,
     ) {
         if (state is AttendedPairingUiState.Creating ||
@@ -49,6 +71,7 @@ class AttendedPairingViewModel : ViewModel() {
         }
         coordinator?.close()
         coordinator = newCoordinator
+        activeGeneration = binding.generation
         targetHostUuid = hostUuid
         lastAudit = null
         start()
@@ -68,6 +91,7 @@ class AttendedPairingViewModel : ViewModel() {
     }
 
     override fun onCleared() {
+        activeGeneration = ++nextGeneration
         coordinator?.close()
         coordinator = null
     }

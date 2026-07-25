@@ -96,10 +96,41 @@ internal data class AttendedPairingMaterial(
 sealed interface AttendedPairingUiState {
     data object Idle : AttendedPairingUiState
     data object Creating : AttendedPairingUiState
-    data class Waiting(val deviceName: String, val safetyCode: String) : AttendedPairingUiState
-    data class Finishing(val safetyCode: String) : AttendedPairingUiState
+    data class Waiting(
+        val deviceName: String,
+        val safetyCode: String,
+        val countdown: PairingCountdown = PairingCountdown.full(),
+    ) : AttendedPairingUiState
+    data class Finishing(
+        val safetyCode: String,
+        val countdown: PairingCountdown = PairingCountdown.full(),
+    ) : AttendedPairingUiState
     data object Completed : AttendedPairingUiState
     data class Stopped(val reason: StopReason) : AttendedPairingUiState
+}
+
+class PairingCountdown private constructor(
+    val remainingSeconds: Int,
+) {
+    init {
+        require(remainingSeconds in 0..PAIRING_TIMEOUT_SECONDS)
+    }
+
+    override fun equals(other: Any?): Boolean =
+        other is PairingCountdown && remainingSeconds == other.remainingSeconds
+
+    override fun hashCode(): Int = remainingSeconds
+
+    override fun toString(): String = "PairingCountdown(redacted)"
+
+    companion object {
+        private const val PAIRING_TIMEOUT_SECONDS = 120
+
+        fun of(remainingSeconds: Int): PairingCountdown =
+            PairingCountdown(remainingSeconds)
+
+        fun full(): PairingCountdown = PairingCountdown(PAIRING_TIMEOUT_SECONDS)
+    }
 }
 
 enum class StopReason { REJECTED, CANCELLED, EXPIRED, FAILED, NETWORK, PROTOCOL, UNKNOWN }

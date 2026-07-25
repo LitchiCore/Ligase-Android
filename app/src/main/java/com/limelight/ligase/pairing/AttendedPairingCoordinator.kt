@@ -88,7 +88,13 @@ internal class AttendedPairingCoordinator(
                     cleanup()
                     return@execute
                 }
-                emit(AttendedPairingUiState.Waiting(deviceName, material.safetyCode))
+                emit(
+                    AttendedPairingUiState.Waiting(
+                        deviceName,
+                        material.safetyCode,
+                        monotonicCountdown(),
+                    ),
+                )
 
                 val expectedFingerprint =
                     AttendedPairingJson.decodeBase64Url(response.hostCertificateSha256, 32)
@@ -177,16 +183,20 @@ internal class AttendedPairingCoordinator(
             }
             return
         }
+        refreshCountdown()
         val localPath = path ?: return
         val localId = requestId ?: return
         val localToken = token?.concatToString() ?: return
         try {
-            when (val status = repository.status(localPath, localId, localToken).state) {
+            val status = repository.status(localPath, localId, localToken).state
+            if (terminal.get()) return
+            when (status) {
                 AttendedStatus.State.PENDING -> Unit
                 AttendedStatus.State.APPROVED ->
                     emit(
                         AttendedPairingUiState.Finishing(
-                            (listenerState() as? AttendedPairingUiState.Waiting)?.safetyCode ?: "",
+                            currentSafetyCode(),
+                            monotonicCountdown(),
                         ),
                     )
                 AttendedStatus.State.PAIRED -> Unit
@@ -208,6 +218,38 @@ internal class AttendedPairingCoordinator(
 
     private var lastState: AttendedPairingUiState = AttendedPairingUiState.Idle
     private fun listenerState() = lastState
+
+    private fun currentSafetyCode(): String = when (val state = listenerState()) {
+        is AttendedPairingUiState.Waiting -> state.safetyCode
+        is AttendedPairingUiState.Finishing -> state.safetyCode
+        else -> ""
+    }
+
+    private fun monotonicCountdown(): PairingCountdown {
+        val remainingMs = (deadline - clock()).coerceAtLeast(0L)
+        val calculatedSeconds = (
+            remainingMs / 1_000L +
+                if (remainingMs % 1_000L == 0L) 0L else 1L
+            ).coerceIn(0L, 120L)
+        val priorSeconds = when (val state = listenerState()) {
+            is AttendedPairingUiState.Waiting -> state.countdown.remainingSeconds
+            is AttendedPairingUiState.Finishing -> state.countdown.remainingSeconds
+            else -> 120
+        }
+        val seconds = minOf(calculatedSeconds.toInt(), priorSeconds)
+        return PairingCountdown.of(seconds)
+    }
+
+    private fun refreshCountdown() {
+        val countdown = monotonicCountdown()
+        when (val state = listenerState()) {
+            is AttendedPairingUiState.Waiting ->
+                if (countdown != state.countdown) emit(state.copy(countdown = countdown))
+            is AttendedPairingUiState.Finishing ->
+                if (countdown != state.countdown) emit(state.copy(countdown = countdown))
+            else -> Unit
+        }
+    }
 
     private fun finishTerminal(reason: StopReason) {
         if (!terminal.compareAndSet(false, true)) return

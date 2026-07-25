@@ -43,8 +43,9 @@ class HostPairingCoordinator(
     @Throws(IOException::class)
     fun startAttended(host: ComputerDetails, deviceName: String) {
         check(modeFor(host) == HostPairingMode.ATTENDED)
-        val coordinator = transport.createAttended(host, attendedViewModel)
-        attendedViewModel.start(coordinator, host.uuid) {
+        val binding = attendedViewModel.createBinding()
+        val coordinator = transport.createAttended(host, binding)
+        attendedViewModel.start(coordinator, host.uuid, binding) {
             coordinator.start(
                 capabilityPath = checkNotNull(host.ligaseAttendedPairingPath),
                 hostUniqueId = host.uuid,

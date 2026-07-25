@@ -81,7 +81,7 @@ open class LegacyPairingTransport private constructor(
 
     internal open fun createAttended(
         host: ComputerDetails,
-        viewModel: AttendedPairingViewModel,
+        binding: AttendedPairingViewModel.Binding,
     ): AttendedPairingCoordinator {
         val session = createSession(host)
         return AttendedPairingCoordinator(
@@ -108,8 +108,8 @@ open class LegacyPairingTransport private constructor(
                     persistPairedCertificate(host, session.pairingManager)
                 }
             },
-            listener = viewModel::update,
-            auditListener = viewModel::updateAudit,
+            listener = binding.stateListener,
+            auditListener = binding.auditListener,
         )
     }
 

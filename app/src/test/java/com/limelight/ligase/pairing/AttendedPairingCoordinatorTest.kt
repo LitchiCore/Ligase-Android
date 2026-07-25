@@ -2,6 +2,7 @@ package com.limelight.ligase.pairing
 
 import com.limelight.nvstream.http.PairingManager
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.Mockito
@@ -75,16 +76,92 @@ class AttendedPairingCoordinatorTest {
         val now = AtomicLong(0)
         val transport = FakeTransport(AttendedStatus.State.PENDING)
         val stopped = CountDownLatch(1)
+        val expiredCount = AtomicInteger()
         val coordinator = coordinator(transport, now::get, BlockingLegacyPairing()) {
             if (it is AttendedPairingUiState.Waiting) now.set(121_000)
             if (it is AttendedPairingUiState.Stopped && it.reason == StopReason.EXPIRED) {
+                expiredCount.incrementAndGet()
                 stopped.countDown()
             }
         }
         coordinator.start(PATH, HOST_ID, "Phone", certificate())
         assertTrue(stopped.await(5, TimeUnit.SECONDS))
         assertEquals(1, transport.createCount.get())
+        assertEquals(1, expiredCount.get())
+        assertEquals(0, transport.statusCount.get())
         coordinator.close()
+    }
+
+    @Test
+    fun countdownStartsImmediatelyAndOnlyMovesDownForSameDeadline() {
+        val now = AtomicLong(0)
+        val transport = FakeTransport(AttendedStatus.State.PENDING)
+        val countdowns = CopyOnWriteArrayList<Int>()
+        val twoTicks = CountDownLatch(2)
+        lateinit var coordinator: AttendedPairingCoordinator
+        coordinator = coordinator(transport, now::get, BlockingLegacyPairing()) {
+            if (it is AttendedPairingUiState.Waiting) {
+                countdowns += it.countdown.remainingSeconds
+                twoTicks.countDown()
+                if (countdowns.size == 1) now.set(1_000)
+            }
+        }
+
+        coordinator.start(PATH, HOST_ID, "Phone", certificate())
+
+        assertTrue(twoTicks.await(5, TimeUnit.SECONDS))
+        assertEquals(listOf(120, 119), countdowns.take(2))
+        assertTrue(countdowns.zipWithNext().all { (before, after) -> after <= before })
+        coordinator.close()
+    }
+
+    @Test
+    fun approvedStateKeepsTheSameMonotonicCountdown() {
+        val now = AtomicLong(0)
+        val transport = FakeTransport(AttendedStatus.State.APPROVED)
+        val finishing = CountDownLatch(1)
+        val states = CopyOnWriteArrayList<AttendedPairingUiState>()
+        val coordinator = coordinator(transport, now::get, BlockingLegacyPairing()) {
+            states += it
+            if (it is AttendedPairingUiState.Waiting) now.compareAndSet(0, 1_000)
+            if (it is AttendedPairingUiState.Finishing) finishing.countDown()
+        }
+
+        coordinator.start(PATH, HOST_ID, "Phone", certificate())
+
+        assertTrue(finishing.await(5, TimeUnit.SECONDS))
+        val waiting = states.filterIsInstance<AttendedPairingUiState.Waiting>().last()
+        val approved = states.filterIsInstance<AttendedPairingUiState.Finishing>().last()
+        assertEquals(119, waiting.countdown.remainingSeconds)
+        assertEquals(waiting.countdown, approved.countdown)
+        coordinator.close()
+    }
+
+    @Test
+    fun terminalStateCancelsCountdownPublisher() {
+        val transport = FakeTransport(AttendedStatus.State.REJECTED)
+        val states = CopyOnWriteArrayList<AttendedPairingUiState>()
+        val stopped = CountDownLatch(1)
+        val coordinator = coordinator(transport, { 0L }, BlockingLegacyPairing()) {
+            states += it
+            if (it is AttendedPairingUiState.Stopped) stopped.countDown()
+        }
+
+        coordinator.start(PATH, HOST_ID, "Phone", certificate())
+
+        assertTrue(stopped.await(5, TimeUnit.SECONDS))
+        val terminalCount = states.size
+        Thread.sleep(1_100)
+        assertEquals(terminalCount, states.size)
+        coordinator.close()
+    }
+
+    @Test
+    fun countdownValueIsBoundedAndRedactedFromToString() {
+        assertEquals(0, PairingCountdown.of(0).remainingSeconds)
+        assertEquals(120, PairingCountdown.of(120).remainingSeconds)
+        assertEquals("PairingCountdown(redacted)", PairingCountdown.of(73).toString())
+        assertFalse(PairingCountdown.of(73).toString().contains("73"))
     }
 
     @Test
