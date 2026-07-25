@@ -1032,6 +1032,7 @@
     <string name="ligase_pair_confirm_on_host">Confirm on your computer</string>
     <string name="ligase_pair_finishing">Finishing the secure connection…</string>
     <string name="ligase_pair_sas_help">Make sure the security code on your computer is exactly the same, then allow the connection there.</string>
+    <string name="ligase_pair_time_remaining">Remaining: %1$d seconds</string>
     <string name="ligase_pair_cancel">Cancel connection</string>
     <string name="ligase_pair_legacy_title">Advanced compatibility pairing</string>
     <string name="ligase_pair_legacy_summary">This computer does not support Ligase secure confirmation. Continue with a PIN only for an older Host.</string>

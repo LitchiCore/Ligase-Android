@@ -29,9 +29,15 @@ data class AttendedPairingPresentation(
     @param:StringRes val message: Int? = null,
     val deviceName: String? = null,
     val safetyCode: PairingSafetyCode? = null,
+    val remainingSeconds: Int? = null,
     val cancelEnabled: Boolean = false,
     val dismissEnabled: Boolean = false,
-)
+) {
+    override fun toString(): String =
+        "AttendedPairingPresentation(" +
+            "kind=$kind, title=$title, message=$message, deviceName=$deviceName, " +
+            "cancelEnabled=$cancelEnabled, dismissEnabled=$dismissEnabled)"
+}
 
 fun attendedPairingPresentation(
     state: AttendedPairingUiState,
@@ -53,6 +59,7 @@ fun attendedPairingPresentation(
         message = R.string.ligase_pair_sas_help,
         deviceName = state.deviceName,
         safetyCode = PairingSafetyCode.displayed(state.safetyCode),
+        remainingSeconds = state.countdown.remainingSeconds,
         cancelEnabled = true,
     )
 
@@ -61,6 +68,7 @@ fun attendedPairingPresentation(
         title = R.string.ligase_pair_approved,
         message = R.string.ligase_pair_finishing,
         safetyCode = PairingSafetyCode.displayed(state.safetyCode),
+        remainingSeconds = state.countdown.remainingSeconds,
         cancelEnabled = true,
     )
 

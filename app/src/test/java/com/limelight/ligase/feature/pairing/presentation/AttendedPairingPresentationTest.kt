@@ -2,6 +2,7 @@ package com.limelight.ligase.feature.pairing.presentation
 
 import com.limelight.R
 import com.limelight.ligase.pairing.AttendedPairingUiState
+import com.limelight.ligase.pairing.PairingCountdown
 import com.limelight.ligase.pairing.StopReason
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -18,6 +19,7 @@ class AttendedPairingPresentationTest {
             assertFalse(presentation.cancelEnabled)
             assertFalse(presentation.dismissEnabled)
             assertNull(presentation.safetyCode)
+            assertNull(presentation.remainingSeconds)
         }
     }
 
@@ -25,8 +27,12 @@ class AttendedPairingPresentationTest {
     fun activeStatesKeepCancelAvailable() {
         val states = listOf(
             AttendedPairingUiState.Creating,
-            AttendedPairingUiState.Waiting("Phone", "ABCD-EFGH"),
-            AttendedPairingUiState.Finishing("ABCD-EFGH"),
+            AttendedPairingUiState.Waiting(
+                "Phone",
+                "ABCD-EFGH",
+                PairingCountdown.of(120),
+            ),
+            AttendedPairingUiState.Finishing("ABCD-EFGH", PairingCountdown.of(119)),
         )
 
         states.forEach { state ->
@@ -34,6 +40,38 @@ class AttendedPairingPresentationTest {
             assertTrue(presentation.cancelEnabled)
             assertFalse(presentation.dismissEnabled)
         }
+    }
+
+    @Test
+    fun countdownIsProjectedAtTypedBoundariesWithoutLocalTime() {
+        listOf(0, 1, 120).forEach { seconds ->
+            val waiting = attendedPairingPresentation(
+                AttendedPairingUiState.Waiting(
+                    "Phone",
+                    "ABCD-EFGH",
+                    PairingCountdown.of(seconds),
+                ),
+            )
+            val finishing = attendedPairingPresentation(
+                AttendedPairingUiState.Finishing(
+                    "ABCD-EFGH",
+                    PairingCountdown.of(seconds),
+                ),
+            )
+
+            assertEquals(seconds, waiting.remainingSeconds)
+            assertEquals(seconds, finishing.remainingSeconds)
+            assertFalse(waiting.toString().contains("remainingSeconds"))
+            assertFalse(finishing.toString().contains("remainingSeconds"))
+        }
+        assertNull(
+            attendedPairingPresentation(AttendedPairingUiState.Creating).remainingSeconds,
+        )
+        assertNull(
+            attendedPairingPresentation(
+                AttendedPairingUiState.Stopped(StopReason.EXPIRED),
+            ).remainingSeconds,
+        )
     }
 
     @Test
@@ -63,7 +101,7 @@ class AttendedPairingPresentationTest {
     fun safetyCodeIsNeverIncludedInPresentationString() {
         val code = "ABCD-EFGH"
         val presentation = attendedPairingPresentation(
-            AttendedPairingUiState.Waiting("Phone", code),
+            AttendedPairingUiState.Waiting("Phone", code, PairingCountdown.of(120)),
         )
 
         assertEquals(code, presentation.safetyCode?.revealForDisplay())

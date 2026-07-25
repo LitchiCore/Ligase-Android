@@ -1018,6 +1018,7 @@
     <string name="ligase_pair_confirm_on_host">请在电脑确认</string>
     <string name="ligase_pair_finishing">正在完成安全连接…</string>
     <string name="ligase_pair_sas_help">确认电脑上显示的安全短码完全相同，然后在电脑上允许连接。</string>
+    <string name="ligase_pair_time_remaining">剩余 %1$d 秒</string>
     <string name="ligase_pair_cancel">取消连接</string>
     <string name="ligase_pair_legacy_title">高级兼容配对</string>
     <string name="ligase_pair_legacy_summary">这台电脑不支持 Ligase 安全确认流程。仅在旧版 Host 上继续使用 PIN。</string>

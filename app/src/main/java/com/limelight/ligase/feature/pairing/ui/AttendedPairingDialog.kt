@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -88,6 +89,16 @@ private fun PairingCodeDialog(
                     stringResource(requireNotNull(presentation.message)),
                     textAlign = TextAlign.Center,
                 )
+                presentation.remainingSeconds?.let { remainingSeconds ->
+                    Text(
+                        stringResource(
+                            R.string.ligase_pair_time_remaining,
+                            remainingSeconds,
+                        ),
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
             }
         },
         confirmButton = {},
