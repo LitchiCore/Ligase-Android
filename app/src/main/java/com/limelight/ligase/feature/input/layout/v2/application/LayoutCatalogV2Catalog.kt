@@ -5,7 +5,7 @@ import com.limelight.ligase.feature.input.layout.v2.domain.*
 import com.limelight.ligase.layout.LayoutContractV1Validator
 import com.limelight.ligase.layout.LayoutDescriptorV1
 
-class LayoutCatalogV2Source(
+internal class LayoutCatalogV2Source(
     val descriptor: LayoutDescriptorV1,
     val origin: LayoutLocalOrigin,
     val workspace: LayoutWorkspaceState,
@@ -26,11 +26,11 @@ class LayoutCatalogV2Catalog(
         private set
     private var sources: List<LayoutCatalogV2Source> = emptyList()
     private var context: LayoutCatalogV2Context? = null
-    private var entries: Map<String, Entry> = emptyMap()
+    private var entries: Map<EntryKey, Entry> = emptyMap()
 
-    fun refresh(
+    internal fun refresh(
         sources: List<LayoutCatalogV2Source>,
-        context: LayoutCatalogV2Context,
+        context: LayoutCatalogV2Context?,
     ): LayoutCatalogV2UiState {
         this.sources = sources.toList()
         this.context = context
@@ -82,13 +82,23 @@ class LayoutCatalogV2Catalog(
         ) {
             return preferenceFailure(LayoutPreferredVariantWriteCode.INVALID_IDENTITY)
         }
-        val entry = entries[layoutId]
-            ?: return preferenceFailure(LayoutPreferredVariantWriteCode.CONTENT_NOT_READY)
-        if (entry.descriptor.revision != revision) {
-            return preferenceFailure(LayoutPreferredVariantWriteCode.STALE_REVISION)
-        }
+        val entry = entries[EntryKey(layoutId, revision)] ?: return preferenceFailure(
+            if (entries.keys.any { it.layoutId == layoutId }) {
+                LayoutPreferredVariantWriteCode.STALE_REVISION
+            } else {
+                LayoutPreferredVariantWriteCode.CONTENT_NOT_READY
+            },
+            layoutId,
+            revision,
+            variantId,
+        )
         val activeContext = context
-            ?: return preferenceFailure(LayoutPreferredVariantWriteCode.CONTENT_NOT_READY)
+            ?: return preferenceFailure(
+                LayoutPreferredVariantWriteCode.CONTEXT_UNAVAILABLE,
+                layoutId,
+                revision,
+                variantId,
+            )
         val decision = LayoutPreferenceV2Action.select(
             entry.descriptor,
             entry.content,
@@ -113,7 +123,12 @@ class LayoutCatalogV2Catalog(
             )
         }
         if (!preferenceRepository.write(layoutId, revision, variantId)) {
-            return preferenceFailure(LayoutPreferredVariantWriteCode.WRITE_FAILED)
+            return preferenceFailure(
+                LayoutPreferredVariantWriteCode.WRITE_FAILED,
+                layoutId,
+                revision,
+                variantId,
+            )
         }
         rebuild(LayoutPreferenceActionState.Saved(layoutId, revision, variantId))
         return LayoutPreferredVariantWriteResult(LayoutPreferredVariantWriteCode.SAVED)
@@ -123,6 +138,12 @@ class LayoutCatalogV2Catalog(
         if (LayoutContractV1Validator.normalizeUuid(layoutId) != layoutId) {
             return preferenceFailure(LayoutPreferredVariantWriteCode.INVALID_IDENTITY)
         }
+        if (context == null) {
+            return preferenceFailure(
+                LayoutPreferredVariantWriteCode.CONTEXT_UNAVAILABLE,
+                layoutId,
+            )
+        }
         if (!preferenceRepository.clear(layoutId)) {
             return preferenceFailure(LayoutPreferredVariantWriteCode.WRITE_FAILED)
         }
@@ -131,11 +152,9 @@ class LayoutCatalogV2Catalog(
     }
 
     private fun rebuild(action: LayoutPreferenceActionState): LayoutCatalogV2UiState {
-        val activeContext = context ?: return publish(
-            LayoutCatalogV2UiState(preferenceAction = action),
-        )
+        val activeContext = context
         val issues = mutableListOf<LayoutCatalogV2Issue>()
-        val nextEntries = linkedMapOf<String, Entry>()
+        val nextEntries = linkedMapOf<EntryKey, Entry>()
         val items = sources.mapNotNull { source ->
             val descriptor = source.descriptor
             if (LayoutContractV1Validator.validateDescriptor(descriptor) != null) {
@@ -163,7 +182,7 @@ class LayoutCatalogV2Catalog(
                     null
                 }
             }
-            if (preferred != null && loaded.content != null) {
+            if (preferred != null && loaded.content != null && activeContext != null) {
                 val decision = LayoutPreferenceV2Action.select(
                     descriptor,
                     loaded.content,
@@ -187,7 +206,8 @@ class LayoutCatalogV2Catalog(
                 preferred,
             ) as? LayoutCatalogV2ProjectionResult.Projected ?: return@mapNotNull null
             val item = projection.item
-            nextEntries[descriptor.layoutId] = Entry(descriptor, loaded.content, loaded.local)
+            nextEntries[EntryKey(descriptor.layoutId, descriptor.revision)] =
+                Entry(descriptor, loaded.content, loaded.local)
             uiItem(item, loaded.content)
         }.sortedWith(compareBy({ it.layoutId }, { it.revision }))
         entries = nextEntries.toMap()
@@ -301,8 +321,20 @@ class LayoutCatalogV2Catalog(
 
     private fun preferenceFailure(
         code: LayoutPreferredVariantWriteCode,
+        layoutId: String? = null,
+        revision: Long? = null,
+        variantId: String? = null,
     ): LayoutPreferredVariantWriteResult {
-        publish(state.copy(preferenceAction = LayoutPreferenceActionState.Failed(code)))
+        publish(
+            state.copy(
+                preferenceAction = LayoutPreferenceActionState.Failed(
+                    code,
+                    layoutId,
+                    revision,
+                    variantId,
+                ),
+            ),
+        )
         return LayoutPreferredVariantWriteResult(code)
     }
 
@@ -325,4 +357,6 @@ class LayoutCatalogV2Catalog(
         val content: VerifiedTouchLayoutV2Content?,
         val local: LayoutCatalogV2LocalState,
     )
+
+    private data class EntryKey(val layoutId: String, val revision: Long)
 }

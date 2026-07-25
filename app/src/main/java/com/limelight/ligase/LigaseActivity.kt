@@ -37,7 +37,9 @@ import com.limelight.ligase.feature.host.infrastructure.LegacyComputerRegistryTr
 import com.limelight.ligase.feature.input.application.InputSelectionCoordinator
 import com.limelight.ligase.feature.input.application.InputSelectionState
 import com.limelight.ligase.feature.input.layout.v2.application.LayoutCatalogV2Catalog
+import com.limelight.ligase.feature.input.layout.v2.application.LayoutCatalogV2SourceRegistry
 import com.limelight.ligase.feature.input.layout.v2.data.LayoutCatalogV2LocalRepository
+import com.limelight.ligase.feature.input.layout.v2.data.LayoutCatalogV2PackagedSource
 import com.limelight.ligase.feature.input.layout.v2.data.LayoutPreferredVariantV2Repository
 import com.limelight.ligase.feature.input.layout.v2.domain.LayoutCatalogV2UiState
 import com.limelight.ligase.feature.library.application.LibraryHostCoordinator
@@ -127,6 +129,7 @@ class LigaseActivity : AppCompatActivity() {
         LibraryStreamingSettingsCoordinator
     private lateinit var layoutWorkspaceViewModel: LayoutWorkspaceViewModel
     private lateinit var layoutCatalogV2Catalog: LayoutCatalogV2Catalog
+    private lateinit var layoutCatalogV2SourceRegistry: LayoutCatalogV2SourceRegistry
     private var layoutCatalogV2State by mutableStateOf(LayoutCatalogV2UiState())
 
     private var managerBinder: ComputerManagerService.ComputerManagerBinder? = null
@@ -280,7 +283,12 @@ class LigaseActivity : AppCompatActivity() {
         layoutCatalogV2Catalog = LayoutCatalogV2Catalog(
             LayoutCatalogV2LocalRepository(this),
             LayoutPreferredVariantV2Repository(this),
+        )
+        layoutCatalogV2SourceRegistry = LayoutCatalogV2SourceRegistry(
+            layoutCatalogV2Catalog,
+            LayoutCatalogV2PackagedSource(this),
         ) { state -> layoutCatalogV2State = state }
+        layoutCatalogV2SourceRegistry.refresh()
 
         setContent {
             val libraryState = librarySessionViewModel.state
@@ -373,17 +381,17 @@ class LigaseActivity : AppCompatActivity() {
                     inputSelectionCoordinator.refreshLayouts()
                 },
                 onLayoutCatalogV2Refresh = {
-                    layoutCatalogV2State = layoutCatalogV2Catalog.state
+                    layoutCatalogV2SourceRegistry.refresh()
                 },
                 onLayoutVariantPreferred = { layoutId, revision, variantId ->
-                    layoutCatalogV2Catalog.selectPreferredVariant(
+                    layoutCatalogV2SourceRegistry.selectPreferredVariant(
                         layoutId,
                         revision,
                         variantId,
                     )
                 },
                 onLayoutVariantPreferenceCleared = { layoutId ->
-                    layoutCatalogV2Catalog.clearPreferredVariant(layoutId)
+                    layoutCatalogV2SourceRegistry.clearPreferredVariant(layoutId)
                 },
                 onLayoutSelect = { layoutId ->
                     if (layoutWorkspaceViewModel.selectGlobal(layoutId)) {
@@ -1063,6 +1071,9 @@ class LigaseActivity : AppCompatActivity() {
         }
         if (::libraryManualSortCoordinator.isInitialized) {
             libraryManualSortCoordinator.close()
+        }
+        if (::layoutCatalogV2SourceRegistry.isInitialized) {
+            layoutCatalogV2SourceRegistry.close()
         }
         stopAppListUpdates()
         disposeLibraryAssets()

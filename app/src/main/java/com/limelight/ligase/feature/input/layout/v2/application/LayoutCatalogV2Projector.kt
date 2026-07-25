@@ -38,7 +38,7 @@ object LayoutCatalogV2Projector {
         descriptor: LayoutDescriptorV1,
         content: VerifiedTouchLayoutV2Content?,
         local: LayoutCatalogV2LocalState,
-        context: LayoutCatalogV2Context,
+        context: LayoutCatalogV2Context?,
         preferredVariantId: String?,
     ): LayoutCatalogV2ProjectionResult {
         if (LayoutContractV1Validator.validateDescriptor(descriptor) != null) {
@@ -55,7 +55,7 @@ object LayoutCatalogV2Projector {
         descriptor: LayoutDescriptorV1,
         content: VerifiedTouchLayoutV2Content?,
         local: LayoutCatalogV2LocalState,
-        context: LayoutCatalogV2Context,
+        context: LayoutCatalogV2Context?,
         preferredVariantId: String?,
     ): LayoutCatalogV2Item {
         val publication = when (descriptor.publicationStatus) {
@@ -88,6 +88,23 @@ object LayoutCatalogV2Projector {
         }
 
         val descriptorById = touchDescriptor.variants.associateBy { it.variantId }
+        if (context == null) {
+            return base.copy(
+                variants = content.document.variants.map { variant ->
+                    LayoutCatalogV2VariantSummary(
+                        variantId = variant.variantId,
+                        descriptorEligible = false,
+                        eligible = false,
+                        ineligibilityReasons = emptySet(),
+                        compatibilityHints = emptySet(),
+                        contextState = LayoutCatalogV2ContextState.NO_VIDEO_VIEWPORT,
+                    )
+                },
+                selection = LayoutVariantSelection(
+                    LayoutVariantSelectionCode.WAITING_FOR_CONTEXT_VALIDATION,
+                ),
+            )
+        }
         val variants = content.document.variants.map { variant ->
             val authority = descriptorById.getValue(variant.variantId)
             val descriptorEligible =

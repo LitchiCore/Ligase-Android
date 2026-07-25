@@ -24,6 +24,8 @@ data class LayoutCatalogV2Context(
     val touchTargetDp: Int,
 )
 
+enum class LayoutCatalogV2ContextState { AVAILABLE, NO_VIDEO_VIEWPORT }
+
 enum class LayoutVariantCompatibilityHint {
     ASPECT_RATIO_BELOW_MINIMUM,
     ASPECT_RATIO_ABOVE_MAXIMUM,
@@ -50,6 +52,7 @@ data class LayoutCatalogV2VariantSummary(
     val eligible: Boolean,
     val ineligibilityReasons: Set<LayoutVariantIneligibilityReason>,
     val compatibilityHints: Set<LayoutVariantCompatibilityHint>,
+    val contextState: LayoutCatalogV2ContextState = LayoutCatalogV2ContextState.AVAILABLE,
 )
 
 data class LayoutCatalogV2DesignReferenceHint(
@@ -82,6 +85,7 @@ enum class LayoutVariantSelectionCode {
     NO_ELIGIBLE_VARIANT,
     CONTENT_NOT_READY,
     INVALID_ALIGNMENT,
+    WAITING_FOR_CONTEXT_VALIDATION,
 }
 
 data class LayoutVariantSelection(
@@ -147,6 +151,77 @@ enum class LayoutCatalogV2IssueCode {
     STORAGE_FAILURE,
 }
 
+data class LayoutCatalogLifecycle(
+    val initialLoading: Boolean = false,
+    val refreshing: Boolean = false,
+    val hasLoaded: Boolean = false,
+    val stale: Boolean = false,
+)
+
+enum class LayoutCatalogRefreshOutcome {
+    NOT_STARTED,
+    IN_PROGRESS,
+    SUCCESS,
+    PARTIAL_SUCCESS,
+    FAILED_NO_CACHE,
+    FAILED_USING_LAST_SUCCESS,
+}
+
+enum class LayoutCatalogEmptyReason {
+    NO_AUTHORIZED_SOURCES,
+    SOURCES_EMPTY,
+    ALL_ENTRIES_REJECTED,
+    REFRESH_FAILED_WITHOUT_CACHE,
+}
+
+enum class LayoutCatalogSourcePhase { UNAVAILABLE, LOADING, READY, PARTIAL, FAILED }
+
+enum class LayoutCatalogSourceIssueCode {
+    NO_VIDEO_VIEWPORT,
+    SOURCE_UNAVAILABLE,
+    HOST_DISCONNECTED,
+    HOST_AUTHORIZED_EMPTY,
+    HOST_SOURCE_FAILED,
+    PERMISSION_DENIED,
+    INVALID_MANIFEST,
+    INVALID_DESCRIPTOR,
+    CONTENT_REJECTED,
+    DUPLICATE_SOURCE_RECORD,
+    CROSS_SOURCE_DESCRIPTOR_CONFLICT,
+    LOCAL_ORIGIN_CONFLICT,
+}
+
+enum class LayoutHostCatalogState {
+    NOT_CONNECTED,
+    AUTHORIZED_LOADING,
+    AUTHORIZED_EMPTY,
+    AUTHORIZED_METADATA_READY,
+    PERMISSION_DENIED,
+    FAILED,
+}
+
+data class LayoutCatalogSourceSummary(
+    val origin: LayoutLocalOrigin,
+    val phase: LayoutCatalogSourcePhase,
+    val itemCount: Int,
+    val stale: Boolean,
+    val issueCode: LayoutCatalogSourceIssueCode? = null,
+)
+
+enum class LayoutStoredPreferenceValidity {
+    ABSENT,
+    VALID,
+    WAITING_FOR_CONTEXT_VALIDATION,
+    STALE,
+    INVALID,
+}
+
+data class LayoutCatalogRevisionSet(
+    val layoutId: String,
+    val revisions: List<Long>,
+    val storedPreferenceValidity: LayoutStoredPreferenceValidity,
+)
+
 sealed interface LayoutPreferenceActionState {
     data object Idle : LayoutPreferenceActionState
     data class Saved(
@@ -155,7 +230,12 @@ sealed interface LayoutPreferenceActionState {
         val variantId: String,
     ) : LayoutPreferenceActionState
     data class Cleared(val layoutId: String) : LayoutPreferenceActionState
-    data class Failed(val code: LayoutPreferredVariantWriteCode) :
+    data class Failed(
+        val code: LayoutPreferredVariantWriteCode,
+        val layoutId: String? = null,
+        val revision: Long? = null,
+        val variantId: String? = null,
+    ) :
         LayoutPreferenceActionState
 }
 
@@ -164,6 +244,12 @@ data class LayoutCatalogV2UiState(
     val items: List<LayoutCatalogV2UiItem> = emptyList(),
     val issues: List<LayoutCatalogV2Issue> = emptyList(),
     val preferenceAction: LayoutPreferenceActionState = LayoutPreferenceActionState.Idle,
+    val lifecycle: LayoutCatalogLifecycle = LayoutCatalogLifecycle(),
+    val refreshOutcome: LayoutCatalogRefreshOutcome = LayoutCatalogRefreshOutcome.NOT_STARTED,
+    val emptyReason: LayoutCatalogEmptyReason? = null,
+    val sourceSummaries: List<LayoutCatalogSourceSummary> = emptyList(),
+    val revisionSets: List<LayoutCatalogRevisionSet> = emptyList(),
+    val hostCatalogState: LayoutHostCatalogState = LayoutHostCatalogState.NOT_CONNECTED,
 )
 
 enum class LayoutPreferredVariantWriteCode {
@@ -175,6 +261,7 @@ enum class LayoutPreferredVariantWriteCode {
     INVALID_ALIGNMENT,
     UNKNOWN_VARIANT,
     INELIGIBLE_VARIANT,
+    CONTEXT_UNAVAILABLE,
     WRITE_FAILED,
 }
 
