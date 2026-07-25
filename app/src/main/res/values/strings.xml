@@ -1016,6 +1016,9 @@
     <string name="ligase_resolution_height">Height</string>
     <string name="ligase_resolution_invalid">Enter a valid positive width and height.</string>
     <string name="ligase_sync_saved">Saved to Ligase Host</string>
+    <string name="ligase_streaming_settings_host_changed">The selected computer changed. Open the setting again.</string>
+    <string name="ligase_streaming_settings_unavailable">Streaming settings are not available right now. Refresh and try again.</string>
+    <string name="ligase_streaming_settings_in_flight">This setting is already being saved. Please wait.</string>
     <string name="ligase_library_sync_missing">Launch mapping missing</string>
     <string name="ligase_computer_address">Computer address</string>
     <string name="ligase_computer_address_hint">Hostname, IPv4, or IPv6 address</string>

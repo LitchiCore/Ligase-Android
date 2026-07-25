@@ -1002,6 +1002,9 @@
     <string name="ligase_resolution_height">高度</string>
     <string name="ligase_resolution_invalid">请输入有效的正数宽度和高度。</string>
     <string name="ligase_sync_saved">已保存到 Ligase Host</string>
+    <string name="ligase_streaming_settings_host_changed">当前电脑已切换，请重新打开此设置。</string>
+    <string name="ligase_streaming_settings_unavailable">暂时无法读取串流设置，请刷新后重试。</string>
+    <string name="ligase_streaming_settings_in_flight">此设置正在保存，请稍候。</string>
     <string name="ligase_library_sync_missing">启动映射缺失</string>
     <string name="ligase_computer_address">电脑地址</string>
     <string name="ligase_computer_address_hint">支持主机名、IPv4 或 IPv6 地址</string>

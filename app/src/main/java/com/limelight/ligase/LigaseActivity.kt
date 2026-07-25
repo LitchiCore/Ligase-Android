@@ -9,15 +9,10 @@ import android.os.Bundle
 import android.os.Build
 import android.os.IBinder
 import android.os.SystemClock
-import android.view.View
-import android.widget.LinearLayout
-import android.widget.RadioButton
-import android.widget.RadioGroup
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.compose.runtime.getValue
@@ -27,8 +22,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.preference.PreferenceManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.textfield.TextInputEditText
-import com.google.android.material.textfield.TextInputLayout
 import com.limelight.BuildConfig
 import com.limelight.LimeLog
 import com.limelight.R
@@ -47,8 +40,6 @@ import com.limelight.ligase.feature.library.application.LibraryHostCoordinator
 import com.limelight.ligase.feature.library.application.LibraryManualSortCoordinator
 import com.limelight.ligase.feature.library.application.LibraryStreamingSettingsCoordinator
 import com.limelight.ligase.feature.library.application.LibraryStreamingSettingsResult
-import com.limelight.ligase.feature.library.data.dto.LigaseResolutionDto
-import com.limelight.ligase.feature.library.data.dto.LigaseSyncSnapshotDto
 import com.limelight.ligase.feature.library.data.repository.LigaseSyncRepository
 import com.limelight.ligase.feature.library.domain.HostSortMode
 import com.limelight.ligase.feature.library.domain.LibraryHdrState
@@ -59,6 +50,12 @@ import com.limelight.ligase.feature.library.domain.LigaseLibraryItem
 import com.limelight.ligase.feature.library.infrastructure.LegacyGameStreamLibraryTransport
 import com.limelight.ligase.feature.library.infrastructure.AndroidHdrCapabilities
 import com.limelight.ligase.feature.library.infrastructure.AndroidHdrCapabilityProbe
+import com.limelight.ligase.feature.library.ui.settings.StreamingResolutionDialogFragment
+import com.limelight.ligase.feature.library.ui.settings.StreamingResolutionEditResult
+import com.limelight.ligase.feature.library.ui.settings.StreamingResolutionEditorRequest
+import com.limelight.ligase.feature.library.ui.settings.StreamingResolutionSubmissionDecision
+import com.limelight.ligase.feature.library.ui.settings.StreamingResolutionTarget
+import com.limelight.ligase.feature.library.ui.settings.streamingResolutionSubmissionDecision
 import com.limelight.ligase.feature.layout.editor.LayoutWorkspaceViewModel
 import com.limelight.ligase.feature.pairing.application.HostPairingCoordinator
 import com.limelight.ligase.feature.pairing.application.HostPairingMode
@@ -90,6 +87,7 @@ import com.limelight.preferences.PreferenceConfiguration
 import com.limelight.preferences.StreamSettings
 import com.limelight.utils.UiHelper
 import java.io.IOException
+import java.util.Locale
 
 class LigaseActivity : AppCompatActivity() {
     private var currentPage by mutableStateOf(LigasePage.HOME)
@@ -258,6 +256,7 @@ class LigaseActivity : AppCompatActivity() {
                 }
             },
         )
+        registerStreamingResolutionResult()
         layoutWorkspaceViewModel = ViewModelProvider(this)[LayoutWorkspaceViewModel::class.java]
 
         setContent {
@@ -837,142 +836,104 @@ class LigaseActivity : AppCompatActivity() {
         val snapshot = librarySessionViewModel.state.content?.sync ?: return
         val appUuid = item.hostAppUuid ?: return
         val override = snapshot.streaming.overrideFor(appUuid)
-        showResolutionEditor(
-            title = item.name,
-            initial = override ?: snapshot.streaming.globalResolution,
-            allowUseGlobal = true,
-            useGlobal = override == null,
-        ) { resolution ->
-            updateAppResolution(host, snapshot, appUuid, resolution)
-        }
+        StreamingResolutionDialogFragment.show(
+            supportFragmentManager,
+            StreamingResolutionEditorRequest(
+                target = StreamingResolutionTarget.APP,
+                title = item.name,
+                hostKey = host.uuid.normalizedHostKey(),
+                baseRevision = snapshot.streaming.revision,
+                initialResolution = override ?: snapshot.streaming.globalResolution,
+                appUuid = appUuid,
+                useGlobal = override == null,
+            ),
+            themeMode,
+        )
     }
 
     private fun showGlobalResolutionSettings() {
         val host = libraryHost ?: return
         if (!requireOperate(host)) return
         val snapshot = librarySessionViewModel.state.content?.sync ?: return
-        showResolutionEditor(
-            title = getString(R.string.ligase_global_resolution),
-            initial = snapshot.streaming.globalResolution,
-            allowUseGlobal = false,
-            useGlobal = false,
-        ) { resolution ->
-            if (resolution != null) {
-                updateGlobalResolution(host, snapshot, resolution)
-            }
-        }
-    }
-
-    private fun showResolutionEditor(
-        title: String,
-        initial: LigaseResolutionDto,
-        allowUseGlobal: Boolean,
-        useGlobal: Boolean,
-        onSave: (LigaseResolutionDto?) -> Unit,
-    ) {
-        val density = resources.displayMetrics.density
-        val container = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            val horizontal = (24 * density).toInt()
-            setPadding(horizontal, 0, horizontal, 0)
-        }
-        val choiceGroup = RadioGroup(this).apply {
-            orientation = RadioGroup.VERTICAL
-            visibility = if (allowUseGlobal) View.VISIBLE else View.GONE
-        }
-        val globalChoice = RadioButton(this).apply {
-            id = View.generateViewId()
-            text = getString(R.string.ligase_resolution_use_global)
-        }
-        val customChoice = RadioButton(this).apply {
-            id = View.generateViewId()
-            text = getString(R.string.ligase_resolution_custom)
-        }
-        choiceGroup.addView(globalChoice)
-        choiceGroup.addView(customChoice)
-        container.addView(choiceGroup)
-
-        fun numberInput(label: Int, value: Int): Pair<TextInputLayout, TextInputEditText> {
-            val layout = TextInputLayout(this).apply {
-                hint = getString(label)
-            }
-            val input = TextInputEditText(layout.context).apply {
-                inputType = android.text.InputType.TYPE_CLASS_NUMBER
-                setSingleLine(true)
-                setText(value.toString())
-            }
-            layout.addView(input)
-            container.addView(layout)
-            return layout to input
-        }
-
-        val (widthLayout, widthInput) =
-            numberInput(R.string.ligase_resolution_width, initial.width)
-        val (heightLayout, heightInput) =
-            numberInput(R.string.ligase_resolution_height, initial.height)
-
-        fun updateInputState() {
-            val enabled = !allowUseGlobal || customChoice.isChecked
-            widthLayout.isEnabled = enabled
-            heightLayout.isEnabled = enabled
-        }
-        if (allowUseGlobal) {
-            choiceGroup.check(if (useGlobal) globalChoice.id else customChoice.id)
-            choiceGroup.setOnCheckedChangeListener { _, _ -> updateInputState() }
-        }
-        updateInputState()
-
-        val dialog = MaterialAlertDialogBuilder(this)
-            .setTitle(title)
-            .setView(container)
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(R.string.save, null)
-            .create()
-        dialog.show()
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-            if (allowUseGlobal && globalChoice.isChecked) {
-                dialog.dismiss()
-                onSave(null)
-                return@setOnClickListener
-            }
-            val width = widthInput.text?.toString()?.toIntOrNull()
-            val height = heightInput.text?.toString()?.toIntOrNull()
-            val resolution = if (width != null && height != null) {
-                LigaseResolutionDto(width, height)
-            } else {
-                null
-            }
-            if (resolution == null || !resolution.isValid()) {
-                val error = getString(R.string.ligase_resolution_invalid)
-                widthLayout.error = error
-                heightLayout.error = error
-                return@setOnClickListener
-            }
-            dialog.dismiss()
-            onSave(resolution)
-        }
-    }
-
-    private fun updateGlobalResolution(
-        host: ComputerDetails,
-        snapshot: LigaseSyncSnapshotDto,
-        resolution: LigaseResolutionDto,
-    ) {
-        libraryStreamingSettingsCoordinator.updateGlobal(host, snapshot, resolution)
-    }
-
-    private fun updateAppResolution(
-        host: ComputerDetails,
-        snapshot: LigaseSyncSnapshotDto,
-        appUuid: String,
-        resolution: LigaseResolutionDto?,
-    ) {
-        libraryStreamingSettingsCoordinator.updateApp(
-            host,
-            snapshot,
-            appUuid,
-            resolution,
+        StreamingResolutionDialogFragment.show(
+            supportFragmentManager,
+            StreamingResolutionEditorRequest(
+                target = StreamingResolutionTarget.GLOBAL,
+                title = getString(R.string.ligase_global_resolution),
+                hostKey = host.uuid.normalizedHostKey(),
+                baseRevision = snapshot.streaming.revision,
+                initialResolution = snapshot.streaming.globalResolution,
+            ),
+            themeMode,
         )
+    }
+
+    private fun registerStreamingResolutionResult() {
+        supportFragmentManager.setFragmentResultListener(
+            StreamingResolutionDialogFragment.RESULT_KEY,
+            this,
+        ) { _, bundle ->
+            StreamingResolutionDialogFragment.resultFrom(bundle)
+                ?.let(::submitStreamingResolution)
+        }
+    }
+
+    private fun submitStreamingResolution(result: StreamingResolutionEditResult) {
+        val host = libraryHost
+        val snapshot = librarySessionViewModel.state.content?.sync
+        when (
+            streamingResolutionSubmissionDecision(
+                request = result.request,
+                selectedHostKey = host?.uuid,
+                connectivity = librarySessionViewModel.state.connectivity,
+                accessMode = host?.ligaseClientAccessMode,
+                currentRevision = snapshot?.streaming?.revision,
+            )
+        ) {
+            StreamingResolutionSubmissionDecision.STALE_HOST -> {
+                toast(R.string.ligase_streaming_settings_host_changed)
+                return
+            }
+            StreamingResolutionSubmissionDecision.OFFLINE -> {
+                toast(R.string.ligase_host_offline)
+                return
+            }
+            StreamingResolutionSubmissionDecision.PERMISSION_DENIED -> {
+                toast(R.string.ligase_observe_mode_action_blocked)
+                host?.let { managerBinder?.invalidateStateForComputer(it.uuid) }
+                return
+            }
+            StreamingResolutionSubmissionDecision.CONTENT_UNAVAILABLE -> {
+                toast(R.string.ligase_streaming_settings_unavailable)
+                return
+            }
+            StreamingResolutionSubmissionDecision.REVISION_CONFLICT -> {
+                fetchLibrarySync(force = true)
+                toast(R.string.ligase_sync_revision_conflict)
+                return
+            }
+            StreamingResolutionSubmissionDecision.READY -> Unit
+        }
+        checkNotNull(host)
+        checkNotNull(snapshot)
+        val accepted = when (result.request.target) {
+            StreamingResolutionTarget.GLOBAL -> {
+                val resolution = result.resolution ?: return
+                libraryStreamingSettingsCoordinator.updateGlobal(host, snapshot, resolution)
+            }
+            StreamingResolutionTarget.APP -> {
+                val appUuid = result.request.appUuid ?: return
+                libraryStreamingSettingsCoordinator.updateApp(
+                    host,
+                    snapshot,
+                    appUuid,
+                    result.resolution,
+                )
+            }
+        }
+        if (!accepted) {
+            toast(R.string.ligase_streaming_settings_in_flight)
+        }
     }
 
     private fun showAddHostDialog() {
@@ -1078,3 +1039,5 @@ class LigaseActivity : AppCompatActivity() {
         private const val EXIT_INTERVAL_MS = 2_000L
     }
 }
+
+private fun String.normalizedHostKey(): String = trim().lowercase(Locale.ROOT)

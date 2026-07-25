@@ -14,8 +14,6 @@ import android.widget.EditText;
 
 import androidx.test.core.app.ApplicationProvider;
 
-import com.limelight.ligase.feature.library.data.dto.LigaseResolutionDto;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -28,10 +26,6 @@ import org.robolectric.shadows.ShadowDialog;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
-
-import kotlin.Unit;
-import kotlin.jvm.functions.Function1;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(
@@ -81,38 +75,6 @@ public class LigaseActivityTest {
 
         activity.getOnBackPressedDispatcher().onBackPressed();
         assertTrue(activity.isFinishing());
-    }
-
-    @Test
-    public void resolutionEditorPositiveButtonInvokesSaveCallback() throws Exception {
-        LigasePreferences.setInputDeviceMode(context, InputDeviceMode.TOUCH);
-        LigaseActivity activity = Robolectric.buildActivity(LigaseActivity.class).setup().get();
-        AtomicReference<LigaseResolutionDto> saved = new AtomicReference<>();
-        Function1<LigaseResolutionDto, Unit> callback = value -> {
-            saved.set(value);
-            return Unit.INSTANCE;
-        };
-        Method showEditor = LigaseActivity.class.getDeclaredMethod(
-                "showResolutionEditor",
-                String.class,
-                LigaseResolutionDto.class,
-                boolean.class,
-                boolean.class,
-                Function1.class);
-        showEditor.setAccessible(true);
-
-        showEditor.invoke(
-                activity,
-                "Resolution",
-                new LigaseResolutionDto(1600, 900),
-                false,
-                false,
-                callback);
-        Dialog dialog = ShadowDialog.getLatestDialog();
-        Button save = dialog.findViewById(android.R.id.button1);
-        save.performClick();
-
-        assertEquals(new LigaseResolutionDto(1600, 900), saved.get());
     }
 
     @Test
