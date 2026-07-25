@@ -48,6 +48,8 @@ import com.limelight.ligase.feature.input.layout.v2.domain.LayoutCatalogV2UiStat
 import com.limelight.ligase.feature.input.layout.v2.editor.LayoutV2EditorHandoffIssue
 import com.limelight.ligase.feature.input.layout.v2.editor.LayoutV2EditorHandoffResult
 import com.limelight.ligase.feature.input.layout.v2.ui.blackeditor.LayoutV2BlackEditorActivity
+import com.limelight.ligase.feature.input.layout.v3.application.LayoutV3EditorWorkspaceViewModel
+import com.limelight.ligase.feature.input.layout.v3.ui.blackeditor.LayoutV3BlackEditorActivity
 import com.limelight.ligase.feature.library.application.LibraryHostCoordinator
 import com.limelight.ligase.feature.library.application.LibraryManualSortCoordinator
 import com.limelight.ligase.feature.library.application.LibraryStreamingSettingsCoordinator
@@ -141,6 +143,8 @@ class LigaseActivity : AppCompatActivity() {
         LayoutV2CatalogRegistrationAttachment? = null
     private var layoutCatalogV2State by mutableStateOf(LayoutCatalogV2UiState())
     private var layoutV2EditorLaunchInFlight = false
+    private lateinit var layoutV3EditorWorkspaceViewModel: LayoutV3EditorWorkspaceViewModel
+    private var layoutV3EditorLaunchInFlight = false
 
     private var managerBinder: ComputerManagerService.ComputerManagerBinder? = null
     private var serviceBound = false
@@ -305,12 +309,16 @@ class LigaseActivity : AppCompatActivity() {
                 layoutCatalogV2SourceRegistry.refresh(registeredRecords = records)
                 true
             }
+        layoutV3EditorWorkspaceViewModel =
+            ViewModelProvider(this)[LayoutV3EditorWorkspaceViewModel::class.java]
         refreshLayoutV2CatalogFromDisk(editorReturned = false)
 
         setContent {
             val libraryState = librarySessionViewModel.state
             val layoutV2EditorWorkspaceState by
                 layoutV2EditorWorkspaceViewModel.state.collectAsState()
+            val layoutV3EditorWorkspaceState by
+                layoutV3EditorWorkspaceViewModel.state.collectAsState()
             LaunchedEffect(pairingViewModel.state) {
                 if (pairingViewModel.state == com.limelight.ligase.pairing.AttendedPairingUiState.Completed) {
                     pairingViewModel.targetHostUuid
@@ -375,6 +383,7 @@ class LigaseActivity : AppCompatActivity() {
                 layoutCatalogV2State = layoutCatalogV2State,
                 layoutEditorState = layoutWorkspaceViewModel.editorState,
                 layoutV2EditorWorkspaceState = layoutV2EditorWorkspaceState,
+                layoutV3EditorWorkspaceState = layoutV3EditorWorkspaceState,
                 pairingState = pairingViewModel.state,
                 onPageSelected = ::selectPage,
                 onInputSelected = ::selectInput,
@@ -455,6 +464,10 @@ class LigaseActivity : AppCompatActivity() {
                 onLayoutV2Discard = layoutV2EditorWorkspaceViewModel::discard,
                 onLayoutV2Leave = layoutV2EditorWorkspaceViewModel::leave,
                 onLayoutV2EditorLaunchRequested = ::launchLayoutV2Editor,
+                onLayoutV3CreateBlank = ::launchNewLayoutV3Editor,
+                onLayoutV3ResumeRecovery = ::resumeLayoutV3Editor,
+                onLayoutV3DiscardRecovery =
+                    layoutV3EditorWorkspaceViewModel::discardRecovery,
                 onGlobalResolutionClick = ::showGlobalResolutionSettings,
                 onPairingCancel = pairingViewModel::cancel,
                 onPairingDismiss = pairingViewModel::dismissStopped,
@@ -1101,6 +1114,27 @@ class LigaseActivity : AppCompatActivity() {
         }
     }
 
+    private fun launchNewLayoutV3Editor(displayName: String?) {
+        val request = layoutV3EditorWorkspaceViewModel.beginNewV3(displayName)
+        if (request == null) {
+            toast(R.string.ligase_layout_error_no_draft)
+            return
+        }
+        layoutV3EditorLaunchInFlight = true
+        startActivity(LayoutV3BlackEditorActivity.createIntent(this, request))
+    }
+
+    private fun resumeLayoutV3Editor(draftId: String) {
+        layoutV3EditorWorkspaceViewModel.resumeRecovery(draftId)
+        val request = layoutV3EditorWorkspaceViewModel.launchExistingAfterCheckpoint(draftId)
+        if (request == null) {
+            toast(R.string.ligase_layout_error_no_draft)
+            return
+        }
+        layoutV3EditorLaunchInFlight = true
+        startActivity(LayoutV3BlackEditorActivity.createIntent(this, request))
+    }
+
     private fun refreshLayoutV2CatalogFromDisk(editorReturned: Boolean) {
         if (
             !::layoutV2EditorWorkspaceViewModel.isInitialized ||
@@ -1121,6 +1155,10 @@ class LigaseActivity : AppCompatActivity() {
         val editorReturned = layoutV2EditorLaunchInFlight
         layoutV2EditorLaunchInFlight = false
         refreshLayoutV2CatalogFromDisk(editorReturned)
+        if (layoutV3EditorLaunchInFlight) {
+            layoutV3EditorLaunchInFlight = false
+            layoutV3EditorWorkspaceViewModel.refreshAfterEditorReturn()
+        }
         foreground = true
         refreshLocalHdrCapabilities()
         streamBitrateState.refresh(PreferenceConfiguration.getDefaultBitrate(this))
@@ -1149,6 +1187,9 @@ class LigaseActivity : AppCompatActivity() {
     override fun onStop() {
         if (::layoutV2EditorWorkspaceViewModel.isInitialized) {
             layoutV2EditorWorkspaceViewModel.onStop()
+        }
+        if (::layoutV3EditorWorkspaceViewModel.isInitialized) {
+            layoutV3EditorWorkspaceViewModel.onStop()
         }
         super.onStop()
     }

@@ -7,12 +7,17 @@ import static org.junit.Assert.assertTrue;
 
 import android.app.Dialog;
 import android.content.Context;
+import android.content.Intent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 
 import androidx.test.core.app.ApplicationProvider;
+
+import com.limelight.ligase.feature.input.layout.v3.application.LayoutV3EditorActivityViewModel;
+import com.limelight.ligase.feature.input.layout.v3.editor.LayoutV3EditorLaunchMode;
+import com.limelight.ligase.feature.input.layout.v3.ui.blackeditor.LayoutV3BlackEditorActivity;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -75,6 +80,29 @@ public class LigaseActivityTest {
 
         activity.getOnBackPressedDispatcher().onBackPressed();
         assertTrue(activity.isFinishing());
+    }
+
+    @Test
+    public void newV3EditorLaunchUsesTypedActivityIntent() throws Exception {
+        LigasePreferences.setInputDeviceMode(context, InputDeviceMode.TOUCH);
+        LigaseActivity activity = Robolectric.buildActivity(LigaseActivity.class).setup().get();
+        Method launch = LigaseActivity.class.getDeclaredMethod(
+                "launchNewLayoutV3Editor",
+                String.class);
+        launch.setAccessible(true);
+
+        launch.invoke(activity, "Local layout");
+        Intent intent = Shadows.shadowOf(activity).getNextStartedActivity();
+
+        assertEquals(
+                LayoutV3BlackEditorActivity.class.getName(),
+                intent.getComponent().getClassName());
+        assertEquals(
+                LayoutV3EditorLaunchMode.NEW_V3.name(),
+                intent.getStringExtra(LayoutV3EditorActivityViewModel.EXTRA_LAYOUT_V3_MODE));
+        assertEquals(
+                "Local layout",
+                intent.getStringExtra(LayoutV3EditorActivityViewModel.EXTRA_LAYOUT_V3_DISPLAY_NAME));
     }
 
     @Test
