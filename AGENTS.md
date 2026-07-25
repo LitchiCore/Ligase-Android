@@ -43,6 +43,42 @@ These rules apply to the whole Android repository.
   authority. Link to them; do not create a second copied authority in app code
   or frontend docs.
 
+## Cross-repository collaboration
+
+- When present, the coordination-root `AUTHORITY.md` is the owner and
+  field-location index for Android, Host, and Layouts Web. Read it before
+  cross-repository work and report stale paths or ownership conflicts to the
+  coordinator. The coordinator maintains that index; repository agents do not
+  edit it concurrently. It never replaces this repository's canonical schema,
+  API, tests, or owner documents.
+- The domain owner prepares a review snapshot with an exact allowlist, stable
+  byte sizes and SHA-256 values, machine validation, and explicit exclusions.
+  Review assets remain uncommitted and must be labelled `REVIEW`; older hashes
+  are invalid as soon as a revised snapshot is issued.
+- Every affected consumer performs an independent, read-only review and returns
+  `ACCEPT` or `NEEDS_REVISION` against the exact snapshot. Silence, an earlier
+  acceptance, unit tests, or a coordinator summary is not acceptance.
+- `NEEDS_REVISION` returns the snapshot to its owner. The owner changes only
+  review assets, publishes new hashes, and repeats every required review.
+  Production implementation, staging, and compatibility fallbacks are
+  prohibited while any required reviewer has not accepted.
+- After all required reviews accept, wait for explicit coordinator
+  authorization before staging the machine authority. Commit and push the
+  authority as an exact, reviewable change and report the remote SHA. Begin
+  production work only under a separately stated implementation scope, in
+  compile-safe dependency order.
+- Frontend and backend owners communicate typed seams and blockers directly,
+  but both report review verdicts, authorization needs, commit SHAs, runtime
+  mutations, and final evidence to the coordinator. A peer notification does
+  not itself authorize a broader action.
+- In a shared checkout, never stage, revert, format, or repair peer WIP. Reserve
+  Gradle and ADB windows explicitly, release them promptly, and rerun the final
+  gate after the source owner declares a frozen source state.
+- Cross-repository changes are separate commits in their owning repositories.
+  A provider commit precedes a consumer implementation when the consumer needs
+  the new authority or typed API. Reports must distinguish `REVIEW`, `FROZEN`,
+  `TRANSITIONAL`, implemented, device-tested, and blocked states.
+
 ## Safety and evidence
 
 - Do not clear device data, delete paired computers, pair a device, start or
