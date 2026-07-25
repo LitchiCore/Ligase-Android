@@ -95,6 +95,47 @@ class LayoutV3EditorActivityViewModelTest {
         owner.closeForTest()
     }
 
+    @Test
+    fun circlePixelResizeUsesBackendDominantAxisAndPersistsSquareReadback() {
+        val owner = newOwner()
+        owner.addElement(ControlKind.KEYBOARD)
+        val element = owner.state.value.editor.draft!!.elements.single()
+        val token = (owner.beginGesture(element.elementId) as LayoutV3GestureStartResult.Ready).token
+        val target = element.resolvedRect.copy(
+            width = element.resolvedRect.width + 80,
+            height = element.resolvedRect.height + 20,
+        )
+
+        assertEquals(
+            LayoutV3EditResult.Applied,
+            owner.commitPixelResize(token, IntRect(0, 0, 2400, 1080), target),
+        )
+        val readback = owner.state.value.editor.draft!!.elements.single().resolvedRect
+        assertEquals(readback.width, readback.height)
+        assertEquals(element.resolvedRect.width + 80, readback.width)
+        owner.closeForTest()
+    }
+
+    @Test
+    fun directCircleResizeCannotPersistEllipse() {
+        val owner = newOwner()
+        owner.addElement(ControlKind.MOUSE)
+        val element = owner.state.value.editor.draft!!.elements.single()
+
+        assertEquals(
+            LayoutV3EditResult.Applied,
+            owner.resizeElement(
+                element.elementId,
+                element.resolvedRect.width + 80,
+                element.resolvedRect.height + 20,
+            ),
+        )
+        val readback = owner.state.value.editor.draft!!.elements.single().resolvedRect
+        assertEquals(element.resolvedRect.width + 80, readback.width)
+        assertEquals(readback.width, readback.height)
+        owner.closeForTest()
+    }
+
     private fun newOwner(): LayoutV3EditorActivityViewModel {
         val owner = LayoutV3EditorActivityViewModel(
             application,

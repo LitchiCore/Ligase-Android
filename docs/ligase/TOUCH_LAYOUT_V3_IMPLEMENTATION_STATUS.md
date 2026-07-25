@@ -39,6 +39,9 @@ read only by tests.
 - the UI-safe forward editor mapper, which consumes immutable editor geometry
   without reconstructing protocol payloads and returns typed pixel, clip,
   draw-visibility, and hit-test projections;
+- the single typed resize policy used by preview and persisted actions:
+  keyboard/mouse circles use the dominant drag axis and always read back as a
+  square, while rectangle shapes retain independent width and height;
 - the atomic keyboard-key batch seam, including canonical key order, bounded
   cardinality, deterministic center stack/IDs/layers, and persisted
   `nextKeyboardBatchOrdinal`.

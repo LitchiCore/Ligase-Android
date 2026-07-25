@@ -144,8 +144,13 @@ class LayoutV3EditorSession(
     fun moveElement(elementId: String, x: Int, y: Int): LayoutV3EditResult =
         updateResolvedRect(elementId) { it.copy(x = x, y = y) }
 
-    fun resizeElement(elementId: String, width: Int, height: Int): LayoutV3EditResult =
-        updateResolvedRect(elementId) { it.copy(width = width, height = height) }
+    fun resizeElement(elementId: String, width: Int, height: Int): LayoutV3EditResult {
+        val variant = selectedVariant() ?: return reject(LayoutV3EditorIssue.NO_ACTIVE_DRAFT)
+        val current = variant.elements.firstOrNull { it.elementId == elementId }
+            ?: return reject(LayoutV3EditorIssue.UNKNOWN_ELEMENT, elementId)
+        val resolved = LayoutV3Geometry.resolve(variant.canvas, current)
+        return resizeResolvedRect(elementId, resolved.copy(width = width, height = height))
+    }
 
     fun nudgeElement(elementId: String, deltaX: Int, deltaY: Int): LayoutV3EditResult =
         updateResolvedRect(elementId) {
@@ -203,7 +208,7 @@ class LayoutV3EditorSession(
         if (generation == null || generation != sessionGeneration) {
             return reject(LayoutV3EditorIssue.STALE_GESTURE, token.elementId)
         }
-        return updateResolvedRect(token.elementId) { rect }
+        return resizeResolvedRect(token.elementId, rect)
     }
 
     @Synchronized
@@ -569,6 +574,27 @@ class LayoutV3EditorSession(
                 anchorX = rebased.first.first,
                 anchorY = rebased.first.second,
             )
+        }
+    }
+
+    private fun resizeResolvedRect(
+        elementId: String,
+        targetRect: IntRect,
+    ): LayoutV3EditResult {
+        val variant = selectedVariant() ?: return reject(LayoutV3EditorIssue.NO_ACTIVE_DRAFT)
+        val current = variant.elements.firstOrNull { it.elementId == elementId }
+            ?: return reject(LayoutV3EditorIssue.UNKNOWN_ELEMENT, elementId)
+        if (!current.editable()) return reject(LayoutV3EditorIssue.READ_ONLY_KIND, elementId)
+        return when (
+            val decision = LayoutV3ResizePolicy.constrain(
+                current.toEditorElement(variant.canvas),
+                targetRect,
+            )
+        ) {
+            is LayoutV3ResizeDecision.Ready ->
+                updateResolvedRect(elementId) { decision.rect }
+            is LayoutV3ResizeDecision.Rejected ->
+                reject(decision.issue, elementId)
         }
     }
 

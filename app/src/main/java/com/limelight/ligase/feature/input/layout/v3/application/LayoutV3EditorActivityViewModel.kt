@@ -125,8 +125,11 @@ class LayoutV3EditorActivityViewModel internal constructor(
     fun selectElement(elementId: String) = publish(session.selectElement(elementId))
     fun moveElement(elementId: String, x: Int, y: Int) =
         publish(session.moveElement(elementId, x, y))
-    fun resizeElement(elementId: String, width: Int, height: Int) =
-        publish(session.resizeElement(elementId, width, height))
+    fun resizeElement(
+        elementId: String,
+        width: Int,
+        height: Int,
+    ): LayoutV3EditResult = session.resizeElement(elementId, width, height).also(::publish)
     fun beginGesture(elementId: String): LayoutV3GestureStartResult =
         session.beginGesture(elementId)
     fun commitMove(token: LayoutV3GestureCommitToken, x: Int, y: Int): LayoutV3EditResult =
