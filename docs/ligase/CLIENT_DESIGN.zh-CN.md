@@ -87,11 +87,13 @@
   与 Workspace owner，不读写 v1 SharedPreferences。当前已验证空白布局、0/1/2/3/8
   typed 控件、进程恢复、原子保存与重启后 `LOCAL_COPY / READY`；4/5/6/7/9 没有授权
   生产来源时不注入 fixture，也不宣称真机编辑通过。
-- 当前 Compose 卡片式 v2 画布只作为阶段性实现，不再是最终产品方向。**计划中**的最终
-  编辑体验是独立 `sensorLandscape`、沉浸式黑色 TouchKit 画布：大厅 owner 先把草稿
+- Compose 卡片式 v2 画布已退出产品主路径。当前编辑体验使用独立
+  `sensorLandscape`、沉浸式黑色 TouchKit 画布：大厅 owner 先把草稿
   checkpoint 到 journal 并释放，随后仅以 opaque draft ID 交给独立 Activity 独占恢复；
-  Intent 不携带 raw state、路径、hash 或扩展字段。该 handoff 在对应后端提交完成前只能
-  视为计划，不能写成已交付能力。
+  Intent 不携带 raw state、路径、hash 或扩展字段。拖动和缩放在 View 内逐帧预览，
+  每次手势只在结束时提交一次 typed action。画布占满 Activity 可用内容区；新增、
+  属性、层级、保存和离开动作放在可收起的半透明覆盖层中，开关覆盖层不重排画布，
+  覆盖层打开时也不会把点击穿透给底层控件。
 - v1 TouchKit 仍服务现有串流运行态并继续读取旧布局；v2 Creator 不双写、不迁移、不删除
   v1 用户数据。未来 runtime cutover 必须另行冻结并使用真实 decoded video viewport
   重新校验，不能以手机 DPI 或物理屏幕替代。

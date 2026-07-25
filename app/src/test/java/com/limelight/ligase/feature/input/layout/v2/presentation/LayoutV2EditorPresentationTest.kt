@@ -54,4 +54,32 @@ class LayoutV2EditorPresentationTest {
         assertEquals(0.66f, layoutV2EditorCanvasWeight(wide = true), 0.001f)
         assertEquals(1f, layoutV2EditorCanvasWeight(wide = false), 0.001f)
     }
+
+    @Test
+    fun `black editor overlay never resizes canvas`() {
+        assertEquals(
+            layoutV2BlackEditorCanvasSize(2400, 1080, toolsOpen = false),
+            layoutV2BlackEditorCanvasSize(2400, 1080, toolsOpen = true),
+        )
+    }
+
+    @Test
+    fun `black editor back closes overlay before leaving`() {
+        assertEquals(
+            LayoutV2BlackEditorBackAction.CLOSE_TOOLS,
+            layoutV2BlackEditorBackAction(
+                handoffReady = true,
+                toolsOpen = true,
+                dirty = true,
+            ),
+        )
+        assertEquals(
+            LayoutV2BlackEditorBackAction.CONFIRM_LEAVE,
+            layoutV2BlackEditorBackAction(
+                handoffReady = true,
+                toolsOpen = false,
+                dirty = true,
+            ),
+        )
+    }
 }

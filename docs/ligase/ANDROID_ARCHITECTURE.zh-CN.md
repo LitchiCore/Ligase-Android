@@ -66,10 +66,10 @@ LigaseActivity（composition / Android lifecycle / legacy ABI bridge）
 - 未验证或未授权的能力不得补造：4/5/6/7/9 的生产内容、Host catalog 下载、publish、
   runtime cutover、preview/export/share。
 
-### 计划中的黑色横屏编辑器
+### 黑色横屏编辑器
 
-最终 v2 编辑体验将采用独立横屏沉浸式黑色 TouchKit 画布，而不是当前 Compose 卡片式
-画布。计划遵守以下不变量：
+v2 编辑体验采用独立横屏沉浸式黑色 TouchKit 画布，而不是壳层内的卡片式编辑画布。
+实现遵守以下不变量：
 
 1. Hall Workspace 先强制 checkpoint journal 并释放当前 owner。
 2. Activity Intent 只携带 canonical opaque draft ID。
@@ -78,9 +78,13 @@ LigaseActivity（composition / Android lifecycle / legacy ABI bridge）
 4. canonical integer canvas 等比 `contain` 到黑色内容区，letterbox 不参与布局坐标；
    不使用 DPI 或物理屏幕推断 runtime compatibility。
 5. 拖动/缩放可在 View 内逐帧 preview，但每次手势只在 pointer-up 提交一次 typed action。
+6. 黑色 canvas 始终占满 Activity 可用内容区。新增、属性、层级与保存操作位于可收起的
+   半透明浮层；浮层开关不得改变 canvas 测量结果或控件像素位置。
+7. 浮层打开时拦截底层触控；外部点击与 Back 先关闭浮层且不得穿透。关闭后才允许
+   画布选择、拖动和缩放。
 
-上述内容在 handoff 与 viewport mapper 的后端实现提交前均为 **PLANNED**，不能作为当前
-APK 已交付或已验收能力。
+handoff、exclusive lease、viewport mapper 与全屏浮层 Activity 已进入生产代码；
+真实手机/平板交互仍必须以对应冻结 APK 的设备证据为准，自动测试不能替代真机验收。
 
 ## 设备验收矩阵
 

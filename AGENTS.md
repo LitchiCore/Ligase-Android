@@ -56,6 +56,16 @@ These rules apply to the whole Android repository.
 
 ## Git and reporting
 
+- Every task final and commit handoff must declare
+  `DOC_IMPACT=UPDATED|NONE` with a reason. Changes to user behavior or wording,
+  architecture owners or dependency direction, storage/schema/protocol,
+  Activity/lifecycle, permissions/security, build/install instructions, or
+  device acceptance steps require the owner document in the same commit or a
+  frozen documentation contract first. Only mechanical refactors and test-only
+  strengthening normally qualify for `NONE`.
+- Documentation must link to the machine authority instead of copying it.
+  Planned work must not be described as implemented, and temporary SHAs or test
+  counts do not belong in stable architecture documents.
 - Preserve unrelated shared changes. Stage only the exact approved files;
   `git add .` and broad staging are prohibited.
 - Keep structural moves, behavior changes, protocol/storage changes, and

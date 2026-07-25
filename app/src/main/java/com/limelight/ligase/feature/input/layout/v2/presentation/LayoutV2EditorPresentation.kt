@@ -113,3 +113,30 @@ data class LayoutV2ScreenRect(
 )
 
 fun layoutV2EditorCanvasWeight(wide: Boolean): Float = if (wide) 0.66f else 1f
+
+enum class LayoutV2BlackEditorBackAction {
+    ABORT,
+    CLOSE_TOOLS,
+    CONFIRM_LEAVE,
+    FINISH,
+}
+
+fun layoutV2BlackEditorBackAction(
+    handoffReady: Boolean,
+    toolsOpen: Boolean,
+    dirty: Boolean,
+): LayoutV2BlackEditorBackAction = when {
+    !handoffReady -> LayoutV2BlackEditorBackAction.ABORT
+    toolsOpen -> LayoutV2BlackEditorBackAction.CLOSE_TOOLS
+    dirty -> LayoutV2BlackEditorBackAction.CONFIRM_LEAVE
+    else -> LayoutV2BlackEditorBackAction.FINISH
+}
+
+fun layoutV2BlackEditorCanvasSize(
+    availableWidthPx: Int,
+    availableHeightPx: Int,
+    @Suppress("UNUSED_PARAMETER") toolsOpen: Boolean,
+): IntSize {
+    require(availableWidthPx > 0 && availableHeightPx > 0)
+    return IntSize(availableWidthPx, availableHeightPx)
+}

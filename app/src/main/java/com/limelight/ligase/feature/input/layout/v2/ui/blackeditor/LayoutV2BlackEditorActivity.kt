@@ -3,17 +3,18 @@ package com.limelight.ligase.feature.input.layout.v2.ui.blackeditor
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
-import android.graphics.Color
 import android.os.Bundle
-import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
-import android.widget.FrameLayout
-import android.widget.TextView
+import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import com.limelight.R
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
+import com.limelight.ligase.LigaseComposeTheme
+import com.limelight.ligase.LigaseThemeMode
 import com.limelight.ligase.feature.input.layout.v2.application.LayoutV2EditorActivityViewModel
+import com.limelight.ligase.feature.input.layout.v2.editor.LayoutV2EditorExitCode
 
 /**
  * Internal landscape shell for the v2 TouchKit editor.
@@ -30,27 +31,35 @@ class LayoutV2BlackEditorActivity : AppCompatActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
         hideSystemUi()
 
-        val root = FrameLayout(this).apply {
-            setBackgroundColor(Color.BLACK)
+        setContent {
+            LigaseComposeTheme(LigaseThemeMode.DARK) {
+                val workspace by editorViewModel.state.collectAsState()
+                val handoff by editorViewModel.handoff.collectAsState()
+                LayoutV2BlackEditorScreen(
+                    workspace = workspace,
+                    handoff = handoff,
+                    onSelect = editorViewModel::selectElement,
+                    onMove = editorViewModel::moveElement,
+                    onResize = editorViewModel::resizeElement,
+                    onSetAnchors = editorViewModel::setAnchors,
+                    onSetZOrder = editorViewModel::setZOrder,
+                    onDelete = editorViewModel::deleteElement,
+                    onUpdateProperties = editorViewModel::updateProperties,
+                    onAdd = editorViewModel::addElement,
+                    onValidate = editorViewModel::validate,
+                    onKeepAndFinish = {
+                        finishIfSuccessful(editorViewModel.keepDraftAndFinish().code)
+                    },
+                    onSaveAndFinish = {
+                        finishIfSuccessful(editorViewModel.saveAndFinish().code)
+                    },
+                    onDiscardAndFinish = {
+                        finishIfSuccessful(editorViewModel.discardAndFinish().code)
+                    },
+                    onAbort = ::finish,
+                )
+            }
         }
-        val loading = TextView(this).apply {
-            setText(R.string.title_touchkit_layout_editor)
-            setTextColor(Color.WHITE)
-            textSize = 20f
-            gravity = Gravity.CENTER
-        }
-        root.addView(
-            loading,
-            FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT,
-            ),
-        )
-        setContentView(root)
-
-        // Force creation now so invalid/missing/duplicate handoffs fail closed
-        // before an editor surface is attached.
-        editorViewModel.handoff.value
     }
 
     override fun onStop() {
@@ -71,6 +80,13 @@ class LayoutV2BlackEditorActivity : AppCompatActivity() {
                 View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
                 View.SYSTEM_UI_FLAG_FULLSCREEN or
                 View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+    }
+
+    private fun finishIfSuccessful(code: LayoutV2EditorExitCode) {
+        if (code != LayoutV2EditorExitCode.FAILED) {
+            setResult(RESULT_OK)
+            finish()
+        }
     }
 
     companion object {

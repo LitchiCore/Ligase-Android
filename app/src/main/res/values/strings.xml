@@ -1225,4 +1225,8 @@
     <string name="ligase_layout_v2_horizontal_anchor">Horizontal: %1$s</string>
     <string name="ligase_layout_v2_vertical_anchor">Vertical: %1$s</string>
     <string name="ligase_layout_v2_keep_draft_leave">Keep draft and leave</string>
+    <string name="ligase_layout_v2_resize_handle">Resize %1$s</string>
+    <string name="ligase_layout_v2_handoff_failed">This draft could not be opened safely. Return to the layout hall and try again.</string>
+    <string name="ligase_layout_v2_open_tools">Edit / settings</string>
+    <string name="ligase_layout_v2_close_tools">Close editing tools</string>
 </resources>
