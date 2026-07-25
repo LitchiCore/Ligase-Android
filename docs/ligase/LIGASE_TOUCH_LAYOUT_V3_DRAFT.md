@@ -1,6 +1,6 @@
 # Ligase Touch Layout v3 — adaptive anchored fullscreen review draft
 
-Status: **REVIEW_READY_5 / NOT FROZEN / NOT IMPLEMENTED**.
+Status: **FROZEN CONTENT CONTRACT / IMPLEMENTATION AUTHORIZED ONLY BY SEPARATE TASK**.
 
 This document is the proposed replacement for the development-only
 `ligase-touch-layout` schemaVersion 2 contract. It does not authorize Android

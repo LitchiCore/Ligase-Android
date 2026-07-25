@@ -1,6 +1,6 @@
 # Android Touch Layout v3 API review
 
-Status: **REVIEW_READY_5 / DESIGN ONLY**.
+Status: **FROZEN API / VALIDATION BASELINE**.
 
 The final production package is
 `com.limelight.ligase.feature.input.layout.v3`. No v2 typealias, forwarding
