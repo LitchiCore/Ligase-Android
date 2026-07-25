@@ -18,6 +18,22 @@ object TouchLayoutV2ContentVerifier {
 }
 
 object LayoutCatalogV2Projector {
+    fun contentAligned(
+        descriptor: LayoutDescriptorV1,
+        content: VerifiedTouchLayoutV2Content,
+    ): Boolean {
+        if (LayoutContractV1Validator.validateDescriptor(descriptor) != null) return false
+        return try {
+            TouchLayoutV2Validator.validateDescriptorAlignment(
+                content.document,
+                descriptorProjection(descriptor),
+            )
+            true
+        } catch (_: TouchLayoutV2Exception) {
+            false
+        }
+    }
+
     fun project(
         descriptor: LayoutDescriptorV1,
         content: VerifiedTouchLayoutV2Content?,
@@ -62,17 +78,7 @@ object LayoutCatalogV2Projector {
         )
         if (local.availability != LayoutLocalAvailability.READY || content == null) return base
 
-        val touchDescriptor = LayoutDescriptorProjection(
-            descriptor.layoutId,
-            descriptor.revision,
-            descriptor.variants.filter { it.inputProfile == "touch" }.map { variant ->
-                DescriptorVariantProjection(
-                    variant.variantId,
-                    variant.deviceClasses.map(::deviceClass),
-                    variant.orientations.map(::orientation),
-                )
-            },
-        )
+        val touchDescriptor = descriptorProjection(descriptor)
         try {
             TouchLayoutV2Validator.validateDescriptorAlignment(content.document, touchDescriptor)
         } catch (_: TouchLayoutV2Exception) {
@@ -185,4 +191,17 @@ object LayoutCatalogV2Projector {
         "landscape" -> LayoutOrientation.LANDSCAPE
         else -> error("validated descriptor has unknown orientation")
     }
+
+    private fun descriptorProjection(descriptor: LayoutDescriptorV1) =
+        LayoutDescriptorProjection(
+            descriptor.layoutId,
+            descriptor.revision,
+            descriptor.variants.filter { it.inputProfile == "touch" }.map { variant ->
+                DescriptorVariantProjection(
+                    variant.variantId,
+                    variant.deviceClasses.map(::deviceClass),
+                    variant.orientations.map(::orientation),
+                )
+            },
+        )
 }

@@ -52,6 +52,29 @@ data class LayoutCatalogV2VariantSummary(
     val compatibilityHints: Set<LayoutVariantCompatibilityHint>,
 )
 
+data class LayoutCatalogV2DesignReferenceHint(
+    val densityDpi: Int?,
+    val resolution: IntSize?,
+)
+
+data class LayoutCatalogV2CompatibilityDetails(
+    val preferredAspectRatio: AspectRatio,
+    val minAspectRatio: AspectRatio,
+    val maxAspectRatio: AspectRatio,
+    val minShortestSideDp: Int,
+    val minTouchTargetDp: Int,
+    val safeAreaPolicy: SafeAreaPolicy,
+    val canvas: IntSize,
+    val designReferenceHint: LayoutCatalogV2DesignReferenceHint,
+)
+
+data class LayoutCatalogV2UiVariant(
+    val summary: LayoutCatalogV2VariantSummary,
+    val deviceClasses: List<DeviceClass>,
+    val orientations: List<LayoutOrientation>,
+    val compatibility: LayoutCatalogV2CompatibilityDetails,
+)
+
 enum class LayoutVariantSelectionSource { EXPLICIT_PREFERENCE, ONLY_ELIGIBLE }
 enum class LayoutVariantSelectionCode {
     SELECTED,
@@ -87,6 +110,92 @@ sealed interface LayoutCatalogV2ProjectionResult {
 }
 
 enum class LayoutCatalogV2ProjectionRejection { INVALID_DESCRIPTOR }
+
+data class LayoutCatalogV2PortableIdentity(
+    val provider: String,
+    val id: String,
+)
+
+data class LayoutCatalogV2UiItem(
+    val layoutId: String,
+    val revision: Long,
+    val displayName: String?,
+    val publication: LayoutPublication,
+    val compatibility: LayoutCompatibilityV1,
+    val portableIdentities: List<LayoutCatalogV2PortableIdentity>,
+    val local: LayoutCatalogV2LocalState,
+    val contentVerified: Boolean,
+    val variants: List<LayoutCatalogV2UiVariant>,
+    val preferredVariantId: String?,
+    val selection: LayoutVariantSelection,
+)
+
+data class LayoutCatalogV2Issue(
+    val layoutId: String?,
+    val revision: Long?,
+    val code: LayoutCatalogV2IssueCode,
+)
+
+enum class LayoutCatalogV2IssueCode {
+    INVALID_DESCRIPTOR,
+    CONTENT_MISSING,
+    CONTENT_CORRUPT,
+    CONTENT_HASH_MISMATCH,
+    CONTENT_ALIGNMENT_INVALID,
+    INVALID_STORED_PREFERENCE,
+    STALE_STORED_PREFERENCE,
+    STORAGE_FAILURE,
+}
+
+sealed interface LayoutPreferenceActionState {
+    data object Idle : LayoutPreferenceActionState
+    data class Saved(
+        val layoutId: String,
+        val revision: Long,
+        val variantId: String,
+    ) : LayoutPreferenceActionState
+    data class Cleared(val layoutId: String) : LayoutPreferenceActionState
+    data class Failed(val code: LayoutPreferredVariantWriteCode) :
+        LayoutPreferenceActionState
+}
+
+data class LayoutCatalogV2UiState(
+    val refreshing: Boolean = false,
+    val items: List<LayoutCatalogV2UiItem> = emptyList(),
+    val issues: List<LayoutCatalogV2Issue> = emptyList(),
+    val preferenceAction: LayoutPreferenceActionState = LayoutPreferenceActionState.Idle,
+)
+
+enum class LayoutPreferredVariantWriteCode {
+    SAVED,
+    CLEARED,
+    INVALID_IDENTITY,
+    STALE_REVISION,
+    CONTENT_NOT_READY,
+    INVALID_ALIGNMENT,
+    UNKNOWN_VARIANT,
+    INELIGIBLE_VARIANT,
+    WRITE_FAILED,
+}
+
+data class LayoutPreferredVariantWriteResult(
+    val code: LayoutPreferredVariantWriteCode,
+)
+
+enum class LayoutCatalogV2WriteCode {
+    SAVED,
+    INVALID_DESCRIPTOR,
+    INVALID_ORIGIN,
+    CONTENT_REJECTED,
+    CONTENT_ALIGNMENT_INVALID,
+    WRITE_FAILED,
+    READBACK_FAILED,
+    ROLLBACK_FAILED,
+}
+
+data class LayoutCatalogV2WriteResult(
+    val code: LayoutCatalogV2WriteCode,
+)
 
 class VerifiedTouchLayoutV2Content internal constructor(
     val document: TouchLayoutV2Document,

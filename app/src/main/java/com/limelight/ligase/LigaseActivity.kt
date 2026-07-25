@@ -36,6 +36,10 @@ import com.limelight.ligase.feature.host.application.HostWakeResult
 import com.limelight.ligase.feature.host.infrastructure.LegacyComputerRegistryTransport
 import com.limelight.ligase.feature.input.application.InputSelectionCoordinator
 import com.limelight.ligase.feature.input.application.InputSelectionState
+import com.limelight.ligase.feature.input.layout.v2.application.LayoutCatalogV2Catalog
+import com.limelight.ligase.feature.input.layout.v2.data.LayoutCatalogV2LocalRepository
+import com.limelight.ligase.feature.input.layout.v2.data.LayoutPreferredVariantV2Repository
+import com.limelight.ligase.feature.input.layout.v2.domain.LayoutCatalogV2UiState
 import com.limelight.ligase.feature.library.application.LibraryHostCoordinator
 import com.limelight.ligase.feature.library.application.LibraryManualSortCoordinator
 import com.limelight.ligase.feature.library.application.LibraryStreamingSettingsCoordinator
@@ -122,6 +126,8 @@ class LigaseActivity : AppCompatActivity() {
     private lateinit var libraryStreamingSettingsCoordinator:
         LibraryStreamingSettingsCoordinator
     private lateinit var layoutWorkspaceViewModel: LayoutWorkspaceViewModel
+    private lateinit var layoutCatalogV2Catalog: LayoutCatalogV2Catalog
+    private var layoutCatalogV2State by mutableStateOf(LayoutCatalogV2UiState())
 
     private var managerBinder: ComputerManagerService.ComputerManagerBinder? = null
     private var serviceBound = false
@@ -271,6 +277,10 @@ class LigaseActivity : AppCompatActivity() {
         )
         registerStreamingResolutionResult()
         layoutWorkspaceViewModel = ViewModelProvider(this)[LayoutWorkspaceViewModel::class.java]
+        layoutCatalogV2Catalog = LayoutCatalogV2Catalog(
+            LayoutCatalogV2LocalRepository(this),
+            LayoutPreferredVariantV2Repository(this),
+        ) { state -> layoutCatalogV2State = state }
 
         setContent {
             val libraryState = librarySessionViewModel.state
@@ -335,6 +345,7 @@ class LigaseActivity : AppCompatActivity() {
                     },
                 manualSortState = librarySessionViewModel.manualSortState,
                 layoutCatalogState = layoutWorkspaceViewModel.catalogState,
+                layoutCatalogV2State = layoutCatalogV2State,
                 layoutEditorState = layoutWorkspaceViewModel.editorState,
                 pairingState = pairingViewModel.state,
                 onPageSelected = ::selectPage,
@@ -360,6 +371,19 @@ class LigaseActivity : AppCompatActivity() {
                 onLayoutCatalogRefresh = {
                     layoutWorkspaceViewModel.refreshCatalog()
                     inputSelectionCoordinator.refreshLayouts()
+                },
+                onLayoutCatalogV2Refresh = {
+                    layoutCatalogV2State = layoutCatalogV2Catalog.state
+                },
+                onLayoutVariantPreferred = { layoutId, revision, variantId ->
+                    layoutCatalogV2Catalog.selectPreferredVariant(
+                        layoutId,
+                        revision,
+                        variantId,
+                    )
+                },
+                onLayoutVariantPreferenceCleared = { layoutId ->
+                    layoutCatalogV2Catalog.clearPreferredVariant(layoutId)
                 },
                 onLayoutSelect = { layoutId ->
                     if (layoutWorkspaceViewModel.selectGlobal(layoutId)) {
