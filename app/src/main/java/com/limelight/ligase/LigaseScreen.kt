@@ -1,19 +1,8 @@
 package com.limelight.ligase
 
 import androidx.annotation.StringRes
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeContent
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -23,65 +12,33 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.limelight.R
 import com.limelight.grid.assets.CachedAppAssetLoader
+import com.limelight.ligase.app.root.LigaseRootContent
+import com.limelight.ligase.feature.layout.domain.LayoutCatalogUiState
+import com.limelight.ligase.feature.layout.domain.LayoutControlKind
+import com.limelight.ligase.feature.layout.domain.LayoutEditorSessionState
 import com.limelight.ligase.feature.library.data.dto.LigaseResolutionDto
 import com.limelight.ligase.feature.library.domain.HostSortMode
 import com.limelight.ligase.feature.library.domain.LibraryHdrState
 import com.limelight.ligase.feature.library.domain.LibraryLayoutMode
-import com.limelight.ligase.feature.library.domain.LigaseLibraryStatus
 import com.limelight.ligase.feature.library.domain.LigaseLibraryItem
-import com.limelight.ligase.app.navigation.LigaseNavigationPlacement
-import com.limelight.ligase.app.navigation.LigaseNavigationShell
-import com.limelight.ligase.app.navigation.currentLigaseNavigationPlacement
-import com.limelight.ligase.feature.layout.domain.LayoutCatalogUiState
-import com.limelight.ligase.feature.layout.domain.LayoutControlKind
-import com.limelight.ligase.feature.layout.domain.LayoutEditorSessionState
-import com.limelight.ligase.feature.layout.presentation.LayoutSaveNavigation
-import com.limelight.ligase.feature.layout.presentation.layoutSaveNavigation
-import com.limelight.ligase.feature.layout.ui.LayoutEditorScreen
-import com.limelight.ligase.feature.layout.ui.LayoutHallScreen
-import com.limelight.ligase.feature.library.ui.LibraryManualEditorUiState
-import com.limelight.ligase.feature.library.ui.LibraryRouteActions
-import com.limelight.ligase.feature.library.ui.LibraryRouteUiState
-import com.limelight.ligase.feature.settings.presentation.SettingsUiState
-import com.limelight.ligase.feature.settings.ui.SettingsScreen
-import com.limelight.ligase.library.LibraryRoute
-import com.limelight.ligase.library.LibraryConnectivity
-import com.limelight.ligase.library.ManualLibraryOrderDraft
-import com.limelight.ligase.library.ManualLibrarySortActionState
-import com.limelight.ligase.library.ManualLibrarySortError
+import com.limelight.ligase.feature.library.domain.LigaseLibraryStatus
 import com.limelight.ligase.input.LigaseInputCategory
 import com.limelight.ligase.input.LigaseInputDevice
-import com.limelight.ligase.input.LigaseInputPage
 import com.limelight.ligase.input.LigaseTouchLayout
 import com.limelight.ligase.input.LigaseTouchOverlayMode
-import com.limelight.ligase.feature.pairing.ui.AttendedPairingDialog
+import com.limelight.ligase.library.LibraryConnectivity
+import com.limelight.ligase.library.ManualLibrarySortActionState
 import com.limelight.ligase.pairing.AttendedPairingUiState
 import com.limelight.nvstream.http.ComputerDetails
-
-private enum class LigaseLayoutRoute {
-    MAIN,
-    HALL,
-    EDITOR,
-}
-
-@Composable
-internal fun ligaseNavigationContentBottomPadding(): Dp =
-    if (LocalConfiguration.current.screenWidthDp < 600) 104.dp else 28.dp
 
 @Composable
 fun LigaseRoot(
@@ -149,333 +106,76 @@ fun LigaseRoot(
     onGlobalResolutionClick: () -> Unit,
     onPairingCancel: () -> Unit,
     onPairingDismiss: () -> Unit,
-) {
-    LigaseComposeTheme(themeMode) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.safeContent),
-        ) {
-            if (onboarding) {
-                LigaseInputPage(
-                    selectedInput = selectedInput,
-                    onboarding = true,
-                    devices = inputDevices,
-                    selectedGamepadKey = selectedGamepadKey,
-                    selectedKeyboardKey = selectedKeyboardKey,
-                    selectedMouseKey = selectedMouseKey,
-                    touchLayouts = touchLayouts,
-                    selectedTouchLayoutId = selectedTouchLayoutId,
-                    touchOverlayMode = touchOverlayMode,
-                    onInputSelected = onInputSelected,
-                    onInputConfirmed = onInputConfirmed,
-                    onDeviceSelected = onInputDeviceSelected,
-                    onTouchLayoutSelected = onTouchLayoutSelected,
-                    onTouchOverlayModeChanged = onTouchOverlayModeChanged,
-                )
-            } else {
-                val navigationPlacement = currentLigaseNavigationPlacement()
-                val libraryOnline = libraryConnectivity == LibraryConnectivity.ONLINE
-                var layoutRoute by rememberSaveable {
-                    mutableStateOf(LigaseLayoutRoute.MAIN)
-                }
-                var pendingEditorOpen by rememberSaveable { mutableStateOf(false) }
-                var pendingLayoutSave by rememberSaveable { mutableStateOf(false) }
-                LaunchedEffect(
-                    layoutEditorState.draftId,
-                    layoutEditorState.error,
-                    pendingEditorOpen,
-                ) {
-                    if (pendingEditorOpen && layoutEditorState.draftId != null) {
-                        layoutRoute = LigaseLayoutRoute.EDITOR
-                        pendingEditorOpen = false
-                    } else if (
-                        pendingEditorOpen &&
-                        layoutEditorState.error != null
-                    ) {
-                        layoutRoute = LigaseLayoutRoute.HALL
-                        pendingEditorOpen = false
-                    }
-                }
-                LaunchedEffect(
-                    pendingLayoutSave,
-                    layoutEditorState.saving,
-                    layoutEditorState.dirty,
-                    layoutEditorState.error,
-                ) {
-                    when (
-                        layoutSaveNavigation(
-                            pendingSave = pendingLayoutSave,
-                            saving = layoutEditorState.saving,
-                            dirty = layoutEditorState.dirty,
-                            hasError = layoutEditorState.error != null,
-                        )
-                    ) {
-                        LayoutSaveNavigation.HALL -> {
-                            pendingLayoutSave = false
-                            layoutRoute = LigaseLayoutRoute.HALL
-                        }
-                        LayoutSaveNavigation.STAY_EDITOR -> {
-                            pendingLayoutSave = false
-                        }
-                        LayoutSaveNavigation.WAIT -> Unit
-                    }
-                }
-                var manualOrderDraft by remember(libraryHost?.uuid) {
-                    mutableStateOf<ManualLibraryOrderDraft?>(null)
-                }
-                var manualConflictRevision by remember(libraryHost?.uuid) {
-                    mutableStateOf<Long?>(null)
-                }
-                var manualConflictPending by remember(libraryHost?.uuid) {
-                    mutableStateOf(false)
-                }
-                LaunchedEffect(libraryCanOperate) {
-                    if (!libraryCanOperate) {
-                        manualOrderDraft = null
-                        manualConflictRevision = null
-                        manualConflictPending = false
-                    }
-                }
-                LaunchedEffect(manualSortState.appliedRevision) {
-                    if (manualSortState.appliedRevision != null) {
-                        manualOrderDraft = null
-                        manualConflictRevision = null
-                        manualConflictPending = false
-                    }
-                }
-                LaunchedEffect(
-                    manualSortState.error,
-                    libraryRevision,
-                    libraryItems.mapNotNull(LigaseLibraryItem::hostAppUuid),
-                ) {
-                    if (manualSortState.error == ManualLibrarySortError.REVISION_CONFLICT) {
-                        if (!manualConflictPending) {
-                            manualConflictRevision = libraryRevision
-                            manualConflictPending = true
-                        } else if (libraryRevision != manualConflictRevision) {
-                            manualOrderDraft =
-                                ManualLibraryOrderDraft.fromLibraryItems(libraryItems)
-                            manualConflictRevision = null
-                            manualConflictPending = false
-                        }
-                    }
-                }
-                val libraryGridState = rememberSaveable(
-                    libraryHost?.uuid,
-                    libraryLayoutMode,
-                    saver = LazyGridState.Saver,
-                ) {
-                    LazyGridState()
-                }
-                val inputListState = rememberSaveable(
-                    saver = LazyListState.Saver,
-                ) {
-                    LazyListState()
-                }
-                val navigateToMainPage: (LigasePage) -> Unit = { page ->
-                    pendingEditorOpen = false
-                    layoutRoute = LigaseLayoutRoute.MAIN
-                    onPageSelected(page)
-                }
-                val mainPageContent: @Composable () -> Unit = {
-                    AnimatedContent(
-                        targetState = currentPage,
-                        transitionSpec = { fadeIn() togetherWith fadeOut() },
-                        label = "Ligase page",
-                    ) { page ->
-                        when (page) {
-                            LigasePage.HOME -> LibraryRoute(
-                                state = LibraryRouteUiState(
-                                    hosts = hosts,
-                                    selectedHost = libraryHost,
-                                    items = libraryItems,
-                                    loading = libraryLoading,
-                                    refreshing = libraryRefreshing,
-                                    status = libraryStatus,
-                                    connectivity = libraryConnectivity,
-                                    runningAppId = libraryRunningAppId,
-                                    sortMode = librarySortMode,
-                                    layoutMode = libraryLayoutMode,
-                                    hasOperatePermission = libraryCanConfigureInput,
-                                    actionsEnabled = libraryCanConfigureInput && libraryOnline,
-                                    showTopBar =
-                                        navigationPlacement != LigaseNavigationPlacement.SIDE,
-                                    manualEditor = LibraryManualEditorUiState(
-                                        draft = manualOrderDraft,
-                                        saving = manualSortState.saving,
-                                        editingEnabled = libraryCanOperate &&
-                                            libraryOnline &&
-                                            !(
-                                                manualSortState.error ==
-                                                    ManualLibrarySortError.REVISION_CONFLICT &&
-                                                    manualConflictPending
-                                            ),
-                                        errorMessage =
-                                            manualSortErrorMessage(manualSortState.error),
-                                    ),
-                                ),
-                                actions = LibraryRouteActions(
-                                    onSortModeChanged = onLibrarySortModeChanged,
-                                    onLayoutModeChanged = onLibraryLayoutModeChanged,
-                                    onHostSelected = onHostClick,
-                                    onAddHost = onAddHost,
-                                    onRemoveHost = onRemoveHost,
-                                    onLaunch = onLibraryLaunch,
-                                    onConfigure = onLibraryConfigure,
-                                    onRetrySync = onLibraryRetrySync,
-                                    onManualSort = {
-                                        if (libraryCanOperate && libraryOnline) {
-                                            manualOrderDraft =
-                                                ManualLibraryOrderDraft.fromLibraryItems(
-                                                    libraryItems,
-                                                )
-                                            manualConflictRevision = null
-                                            manualConflictPending = false
-                                        }
-                                    },
-                                    onManualMove = { movingUuid, targetUuid ->
-                                        manualOrderDraft = manualOrderDraft?.move(
-                                            movingUuid,
-                                            targetUuid,
-                                        )
-                                    },
-                                    onManualSave = {
-                                        manualOrderDraft?.let { draft ->
-                                            onManualOrderSubmit(draft.orderedPublishedUuids)
-                                        }
-                                    },
-                                    onManualCancel = {
-                                        manualOrderDraft = null
-                                        manualConflictRevision = null
-                                        manualConflictPending = false
-                                    },
-                                ),
-                                gridState = libraryGridState,
-                                assetLoader = libraryAssetLoader,
-                            )
-                            LigasePage.INPUT -> LigaseInputPage(
-                                selectedInput = selectedInput,
-                                onboarding = false,
-                                devices = inputDevices,
-                                selectedGamepadKey = selectedGamepadKey,
-                                selectedKeyboardKey = selectedKeyboardKey,
-                                selectedMouseKey = selectedMouseKey,
-                                touchLayouts = touchLayouts,
-                                selectedTouchLayoutId = selectedTouchLayoutId,
-                                touchOverlayMode = touchOverlayMode,
-                                onInputSelected = onInputSelected,
-                                onInputConfirmed = onInputConfirmed,
-                                onDeviceSelected = onInputDeviceSelected,
-                                onTouchLayoutSelected = onTouchLayoutSelected,
-                                onTouchOverlayModeChanged = onTouchOverlayModeChanged,
-                                listState = inputListState,
-                                selectedTouchLayoutEditable = layoutCatalogState.items
-                                    .firstOrNull {
-                                        it.layoutId == selectedTouchLayoutId
-                                    }
-                                    ?.editable == true,
-                                onBrowseLayouts = {
-                                    onLayoutCatalogRefresh()
-                                    layoutRoute = LigaseLayoutRoute.HALL
-                                },
-                                onEditTouchLayout = {
-                                    selectedTouchLayoutId?.let { layoutId ->
-                                        val editable = layoutCatalogState.items
-                                            .firstOrNull { it.layoutId == layoutId }
-                                            ?.editable == true
-                                        if (editable) {
-                                            onLayoutOpenEditor(layoutId)
-                                        } else {
-                                            onLayoutCreateCopy(layoutId)
-                                        }
-                                        pendingEditorOpen = true
-                                        layoutRoute = LigaseLayoutRoute.HALL
-                                    }
-                                },
-                            )
-                            LigasePage.SETTINGS -> SettingsScreen(
-                                state = SettingsUiState(
-                                    selectedInput = selectedInput ?: InputDeviceMode.TOUCH,
-                                    themeMode = themeMode,
-                                    languageMode = languageMode,
-                                    globalResolution = libraryGlobalResolution,
-                                    hdrState = libraryHdrState,
-                                    canOperate = libraryCanOperate && libraryOnline,
-                                ),
-                                onOpenInput = {
-                                    navigateToMainPage(LigasePage.INPUT)
-                                },
-                                onThemeSelected = onThemeSelected,
-                                onLanguageSelected = onLanguageSelected,
-                                onGlobalResolutionClick = onGlobalResolutionClick,
-                                onAdvancedSettings = onAdvancedSettings,
-                            )
-                        }
-                    }
-                }
-                val pageContent: @Composable () -> Unit = {
-                    when (layoutRoute) {
-                        LigaseLayoutRoute.MAIN -> mainPageContent()
-                        LigaseLayoutRoute.HALL -> LayoutHallScreen(
-                            state = layoutCatalogState,
-                            actionError = layoutEditorState.error,
-                            onBack = { layoutRoute = LigaseLayoutRoute.MAIN },
-                            onRefresh = onLayoutCatalogRefresh,
-                            onSelect = onLayoutSelect,
-                            onPreview = onLayoutPreview,
-                            onEdit = { layoutId ->
-                                onLayoutOpenEditor(layoutId)
-                                pendingEditorOpen = true
-                            },
-                            onCreateCopy = { layoutId ->
-                                onLayoutCreateCopy(layoutId)
-                                pendingEditorOpen = true
-                            },
-                        )
-                        LigaseLayoutRoute.EDITOR -> LayoutEditorScreen(
-                            state = layoutEditorState,
-                            onBack = { layoutRoute = LigaseLayoutRoute.HALL },
-                            onMove = onLayoutMove,
-                            onResize = onLayoutResize,
-                            onDelete = onLayoutDelete,
-                            onAdd = onLayoutAdd,
-                            onSave = {
-                                pendingLayoutSave = true
-                                onLayoutSave()
-                            },
-                            onDiscard = onLayoutDiscard,
-                        )
-                    }
-                }
-                LigaseNavigationShell(
-                    placement = navigationPlacement,
-                    currentPage = currentPage,
-                    inputEnabled = libraryCanConfigureInput && libraryOnline,
-                    onPageSelected = navigateToMainPage,
-                ) {
-                    pageContent()
-                }
-            }
-            AttendedPairingDialog(
-                state = pairingState,
-                onCancel = onPairingCancel,
-                onDismiss = onPairingDismiss,
-            )
-        }
-    }
-}
+) = LigaseRootContent(
+    themeMode = themeMode,
+    onboarding = onboarding,
+    currentPage = currentPage,
+    selectedInput = selectedInput,
+    inputDevices = inputDevices,
+    selectedGamepadKey = selectedGamepadKey,
+    selectedKeyboardKey = selectedKeyboardKey,
+    selectedMouseKey = selectedMouseKey,
+    touchLayouts = touchLayouts,
+    selectedTouchLayoutId = selectedTouchLayoutId,
+    touchOverlayMode = touchOverlayMode,
+    languageMode = languageMode,
+    hosts = hosts,
+    libraryHost = libraryHost,
+    libraryItems = libraryItems,
+    libraryLoading = libraryLoading,
+    libraryRefreshing = libraryRefreshing,
+    libraryStatus = libraryStatus,
+    libraryConnectivity = libraryConnectivity,
+    libraryRevision = libraryRevision,
+    libraryGlobalResolution = libraryGlobalResolution,
+    libraryHdrState = libraryHdrState,
+    libraryRunningAppId = libraryRunningAppId,
+    librarySortMode = librarySortMode,
+    libraryLayoutMode = libraryLayoutMode,
+    libraryAssetLoader = libraryAssetLoader,
+    libraryCanOperate = libraryCanOperate,
+    libraryCanConfigureInput = libraryCanConfigureInput,
+    manualSortState = manualSortState,
+    layoutCatalogState = layoutCatalogState,
+    layoutEditorState = layoutEditorState,
+    pairingState = pairingState,
+    onPageSelected = onPageSelected,
+    onInputSelected = onInputSelected,
+    onInputConfirmed = onInputConfirmed,
+    onInputDeviceSelected = onInputDeviceSelected,
+    onTouchLayoutSelected = onTouchLayoutSelected,
+    onTouchOverlayModeChanged = onTouchOverlayModeChanged,
+    onThemeSelected = onThemeSelected,
+    onLanguageSelected = onLanguageSelected,
+    onHostClick = onHostClick,
+    onRemoveHost = onRemoveHost,
+    onAddHost = onAddHost,
+    onAdvancedSettings = onAdvancedSettings,
+    onLibrarySortModeChanged = onLibrarySortModeChanged,
+    onLibraryLayoutModeChanged = onLibraryLayoutModeChanged,
+    onLibraryLaunch = onLibraryLaunch,
+    onLibraryConfigure = onLibraryConfigure,
+    onLibraryRetrySync = onLibraryRetrySync,
+    onManualOrderSubmit = onManualOrderSubmit,
+    onLayoutCatalogRefresh = onLayoutCatalogRefresh,
+    onLayoutSelect = onLayoutSelect,
+    onLayoutPreview = onLayoutPreview,
+    onLayoutCreateCopy = onLayoutCreateCopy,
+    onLayoutOpenEditor = onLayoutOpenEditor,
+    onLayoutMove = onLayoutMove,
+    onLayoutResize = onLayoutResize,
+    onLayoutDelete = onLayoutDelete,
+    onLayoutAdd = onLayoutAdd,
+    onLayoutSave = onLayoutSave,
+    onLayoutDiscard = onLayoutDiscard,
+    onGlobalResolutionClick = onGlobalResolutionClick,
+    onPairingCancel = onPairingCancel,
+    onPairingDismiss = onPairingDismiss,
+)
 
-@StringRes
-private fun manualSortErrorMessage(error: ManualLibrarySortError?): Int? =
-    when (error) {
-        null -> null
-        ManualLibrarySortError.REVISION_CONFLICT -> R.string.ligase_manual_sort_conflict
-        ManualLibrarySortError.PERMISSION_DENIED ->
-            R.string.ligase_manual_sort_permission_denied
-        ManualLibrarySortError.INVALID_ORDER,
-        ManualLibrarySortError.FAILED -> R.string.ligase_manual_sort_failed
-    }
+@Composable
+internal fun ligaseNavigationContentBottomPadding(): Dp =
+    if (LocalConfiguration.current.screenWidthDp < 600) 104.dp else 28.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -492,9 +192,7 @@ internal fun LigasePageScaffold(
                         IconButton(onClick = onBack) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_ligase_back),
-                                contentDescription = stringResource(
-                                    R.string.ligase_back,
-                                ),
+                                contentDescription = stringResource(R.string.ligase_back),
                             )
                         }
                     }
