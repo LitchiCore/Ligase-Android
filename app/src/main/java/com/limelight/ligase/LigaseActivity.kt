@@ -5,8 +5,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.media.MediaCodecInfo
-import android.media.MediaCodecList
 import android.os.Bundle
 import android.os.Build
 import android.os.IBinder
@@ -56,6 +54,8 @@ import com.limelight.ligase.feature.library.domain.LibraryLayoutMode
 import com.limelight.ligase.feature.library.domain.LibrarySyncAutoLoadPolicy
 import com.limelight.ligase.feature.library.domain.LigaseLibraryItem
 import com.limelight.ligase.feature.library.infrastructure.LegacyGameStreamLibraryTransport
+import com.limelight.ligase.feature.library.infrastructure.AndroidHdrCapabilities
+import com.limelight.ligase.feature.library.infrastructure.AndroidHdrCapabilityProbe
 import com.limelight.ligase.feature.layout.editor.LayoutWorkspaceViewModel
 import com.limelight.ligase.feature.pairing.application.HostPairingCoordinator
 import com.limelight.ligase.feature.pairing.application.HostPairingMode
@@ -109,9 +109,7 @@ class LigaseActivity : AppCompatActivity() {
     private val hosts = mutableStateListOf<ComputerDetails>()
     private var libraryHost by mutableStateOf<ComputerDetails?>(null)
     private var libraryAccessMode by mutableStateOf<String?>(null)
-    private var displayHdrSupported: Boolean? = null
-    private var decoderHdrSupported: Boolean? = null
-    private var userHdrEnabled: Boolean? = null
+    private var localHdrCapabilities = AndroidHdrCapabilities(null, null, null)
     private var libraryRunningAppId by mutableStateOf(0)
     private var librarySortMode by mutableStateOf(HostSortMode.NAME_ASCENDING)
     private var libraryLayoutMode by mutableStateOf(LibraryLayoutMode.LIST)
@@ -125,6 +123,7 @@ class LigaseActivity : AppCompatActivity() {
     private lateinit var hostPairingCoordinator: HostPairingCoordinator
     private lateinit var hostEndpointCoordinator: HostEndpointCoordinator
     private lateinit var streamLaunchCoordinator: StreamLaunchCoordinator
+    private lateinit var hdrCapabilityProbe: AndroidHdrCapabilityProbe
     private lateinit var librarySessionViewModel: LibrarySessionViewModel
     private lateinit var libraryHostCoordinator: LibraryHostCoordinator
     private lateinit var libraryStreamingSettingsCoordinator:
@@ -172,10 +171,9 @@ class LigaseActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         UiHelper.setLocale(this)
         enableEdgeToEdge()
-        displayHdrSupported = detectDisplayHdrSupport()
-        decoderHdrSupported = detectHdrDecoderSupport()
+        hdrCapabilityProbe = AndroidHdrCapabilityProbe(this)
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false)
-        userHdrEnabled = PreferenceConfiguration.readPreferences(this).enableHdr
+        localHdrCapabilities = hdrCapabilityProbe.probe()
 
         onboarding = !LigasePreferences.hasInputDeviceMode(this)
         selectedInput = if (onboarding) null else LigasePreferences.getInputDeviceMode(this)
@@ -744,15 +742,13 @@ class LigaseActivity : AppCompatActivity() {
     private fun currentHdrState(hostEncodingSupported: Boolean?): LibraryHdrState =
         LibraryHdrStateResolver.resolve(
             hostEncodingSupported = hostEncodingSupported,
-            displaySupported = displayHdrSupported,
-            decoderSupported = decoderHdrSupported,
-            userEnabled = userHdrEnabled,
+            displaySupported = localHdrCapabilities.displaySupported,
+            decoderSupported = localHdrCapabilities.decoderSupported,
+            userEnabled = localHdrCapabilities.userEnabled,
         )
 
     private fun refreshLocalHdrCapabilities() {
-        displayHdrSupported = detectDisplayHdrSupport()
-        decoderHdrSupported = detectHdrDecoderSupport()
-        userHdrEnabled = PreferenceConfiguration.readPreferences(this).enableHdr
+        localHdrCapabilities = hdrCapabilityProbe.probe()
         val host = libraryHost ?: return
         val hostEncodingSupported =
             librarySessionViewModel.state.content?.sync?.capabilities?.hdrEncodingSupported
@@ -760,44 +756,6 @@ class LigaseActivity : AppCompatActivity() {
             host.uuid,
             currentHdrState(hostEncodingSupported),
         )
-    }
-
-    private fun detectDisplayHdrSupport(): Boolean {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return false
-        val capabilities = windowManager.defaultDisplay.hdrCapabilities ?: return false
-        return capabilities.supportedHdrTypes.any {
-            it == android.view.Display.HdrCapabilities.HDR_TYPE_HDR10
-        }
-    }
-
-    private fun detectHdrDecoderSupport(): Boolean? {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return false
-        return try {
-            MediaCodecList(MediaCodecList.REGULAR_CODECS).codecInfos
-                .asSequence()
-                .filterNot(MediaCodecInfo::isEncoder)
-                .any { codec ->
-                    codec.supportedTypes.any { type ->
-                        when {
-                            type.equals("video/hevc", ignoreCase = true) ->
-                                codec.getCapabilitiesForType(type).profileLevels.any {
-                                    it.profile ==
-                                        MediaCodecInfo.CodecProfileLevel.HEVCProfileMain10HDR10
-                                }
-                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
-                                type.equals("video/av01", ignoreCase = true) ->
-                                codec.getCapabilitiesForType(type).profileLevels.any {
-                                    it.profile ==
-                                        MediaCodecInfo.CodecProfileLevel.AV1ProfileMain10HDR10
-                                }
-                            else -> false
-                        }
-                    }
-                }
-        } catch (error: RuntimeException) {
-            LimeLog.warning("Unable to inspect local HDR decoder capability: $error")
-            null
-        }
     }
 
     private fun updateLibraryFromRaw(rawAppList: String?) {
