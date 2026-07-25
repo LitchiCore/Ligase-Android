@@ -69,7 +69,7 @@ import com.limelight.ligase.input.LigaseInputDevice
 import com.limelight.ligase.input.LigaseInputPage
 import com.limelight.ligase.input.LigaseTouchLayout
 import com.limelight.ligase.input.LigaseTouchOverlayMode
-import com.limelight.ligase.pairing.AttendedPairingDialog
+import com.limelight.ligase.feature.pairing.ui.AttendedPairingDialog
 import com.limelight.ligase.pairing.AttendedPairingUiState
 import com.limelight.nvstream.http.ComputerDetails
 
