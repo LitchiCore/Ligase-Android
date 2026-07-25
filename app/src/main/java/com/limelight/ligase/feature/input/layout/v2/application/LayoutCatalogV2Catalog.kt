@@ -10,11 +10,16 @@ internal class LayoutCatalogV2Source(
     val origin: LayoutLocalOrigin,
     val workspace: LayoutWorkspaceState,
     val packagedContent: ByteArray? = null,
+    val registeredContent: ByteArray? = null,
 ) {
     override fun toString(): String =
         "LayoutCatalogV2Source(layoutId=${descriptor.layoutId}," +
             "revision=${descriptor.revision},origin=$origin,workspace=$workspace," +
-            "content=${if (packagedContent == null) "absent" else "redacted"})"
+            "content=${if (packagedContent == null && registeredContent == null) {
+                "absent"
+            } else {
+                "redacted"
+            }})"
 }
 
 class LayoutCatalogV2Catalog(
@@ -229,7 +234,14 @@ class LayoutCatalogV2Catalog(
                 }
             } ?: LayoutCatalogV2LocalReadResult.Missing
             LayoutLocalOrigin.LOCAL_COPY ->
-                localRepository.read(descriptor.layoutId, descriptor.revision)
+                source.registeredContent?.let {
+                    when (val verified = TouchLayoutV2ContentVerifier.verify(it)) {
+                        is LayoutContentVerificationResult.Verified ->
+                            LayoutCatalogV2LocalReadResult.Ready(verified.content, it)
+                        is LayoutContentVerificationResult.Rejected ->
+                            LayoutCatalogV2LocalReadResult.Rejected(verified.code)
+                    }
+                } ?: localRepository.read(descriptor.layoutId, descriptor.revision)
             LayoutLocalOrigin.HOST_CATALOG -> LayoutCatalogV2LocalReadResult.Missing
         }
         val base = LayoutCatalogV2LocalState(

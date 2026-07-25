@@ -15,6 +15,10 @@ import com.limelight.ligase.feature.input.layout.v2.domain.SoftKeyboardPayload
 import com.limelight.ligase.feature.input.layout.v2.domain.TouchLayoutV2Document
 import com.limelight.ligase.feature.input.layout.v2.domain.TouchLayoutV2Element
 import com.limelight.ligase.feature.input.layout.v2.domain.TouchLayoutV2Variant
+import com.limelight.ligase.feature.input.layout.v2.domain.LayoutLocalAvailability
+import com.limelight.ligase.feature.input.layout.v2.data.LayoutCatalogV2LocalRepository
+import com.limelight.ligase.feature.input.layout.v2.data.LayoutCatalogV2PackagedSource
+import com.limelight.ligase.feature.input.layout.v2.data.LayoutPreferredVariantV2Repository
 import com.limelight.ligase.feature.input.layout.v2.editor.LayoutV2DraftIdentity
 import com.limelight.ligase.feature.input.layout.v2.editor.LayoutV2DraftOrigin
 import com.limelight.ligase.feature.input.layout.v2.editor.LayoutV2EditableProperties
@@ -200,8 +204,10 @@ class LayoutV2EditorWorkspaceViewModelTest {
     fun saveRegistersAllCommittedGenerationsAndRestartRehydratesRegistration() {
         val first = LayoutV2EditorWorkspaceViewModel(application)
         var firstRegistration = emptyList<LayoutCatalogV2RegisteredRecord>()
+        val firstRegistry = registry()
         first.attachCatalogRegistration {
             firstRegistration = it
+            firstRegistry.refresh(registeredRecords = it)
             true
         }
         assertTrue(firstRegistration.isEmpty())
@@ -222,14 +228,27 @@ class LayoutV2EditorWorkspaceViewModelTest {
         assertEquals(1, firstRegistration.size)
         val savedId = firstRegistration.single().descriptor.layoutId
         assertNotNull(savedId)
+        assertTrue(firstRegistration.single().committedArtifact?.isNotEmpty() == true)
+        assertEquals(
+            LayoutLocalAvailability.READY,
+            firstRegistry.state.items.single().local.availability,
+        )
+        assertTrue(firstRegistry.state.items.single().contentVerified)
 
         val restarted = LayoutV2EditorWorkspaceViewModel(application)
         var restored = emptyList<LayoutCatalogV2RegisteredRecord>()
+        val restartedRegistry = registry()
         restarted.attachCatalogRegistration {
             restored = it
+            restartedRegistry.refresh(registeredRecords = it)
             true
         }
         assertEquals(firstRegistration, restored)
+        assertEquals(
+            LayoutLocalAvailability.READY,
+            restartedRegistry.state.items.single().local.availability,
+        )
+        assertTrue(restartedRegistry.state.items.single().contentVerified)
         assertFalse(restarted.state.value.editor.recoverableDrafts.any {
             it.draftId == savedId
         })
@@ -281,6 +300,14 @@ class LayoutV2EditorWorkspaceViewModelTest {
             "ligase-touch-layout-v2-generations",
         ).forEach { File(application.filesDir, it).deleteRecursively() }
     }
+
+    private fun registry() = LayoutCatalogV2SourceRegistry(
+        LayoutCatalogV2Catalog(
+            LayoutCatalogV2LocalRepository(application),
+            LayoutPreferredVariantV2Repository(application),
+        ),
+        LayoutCatalogV2PackagedSource(application),
+    )
 
     private fun blankDraft(): LayoutV2EditorDraft {
         val request = (

@@ -6,11 +6,32 @@ import com.limelight.ligase.feature.input.layout.v2.domain.*
 import com.limelight.ligase.layout.LayoutContractV1Validator
 import com.limelight.ligase.layout.LayoutDescriptorV1
 
-data class LayoutCatalogV2RegisteredRecord(
+class LayoutCatalogV2RegisteredRecord(
     val descriptor: LayoutDescriptorV1,
     val origin: LayoutLocalOrigin,
     val workspace: LayoutWorkspaceState,
-)
+    internal val committedArtifact: ByteArray? = null,
+) {
+    override fun equals(other: Any?): Boolean =
+        other is LayoutCatalogV2RegisteredRecord &&
+            descriptor == other.descriptor &&
+            origin == other.origin &&
+            workspace == other.workspace &&
+            when {
+                committedArtifact == null -> other.committedArtifact == null
+                other.committedArtifact == null -> false
+                else -> committedArtifact.contentEquals(other.committedArtifact)
+            }
+
+    override fun hashCode(): Int =
+        31 * (31 * (31 * descriptor.hashCode() + origin.hashCode()) + workspace.hashCode()) +
+            (committedArtifact?.contentHashCode() ?: 0)
+
+    override fun toString(): String =
+        "LayoutCatalogV2RegisteredRecord(layoutId=${descriptor.layoutId}," +
+            "revision=${descriptor.revision},origin=$origin,workspace=$workspace," +
+            "content=${if (committedArtifact == null) "absent" else "redacted"})"
+}
 
 data class LayoutCatalogV2HostSnapshot(
     val state: LayoutHostCatalogState,
@@ -64,7 +85,12 @@ class LayoutCatalogV2SourceRegistry(
             it.origin == LayoutLocalOrigin.LOCAL_COPY
         }
         val candidates = localRecords.map {
-            LayoutCatalogV2Source(it.descriptor, it.origin, it.workspace)
+            LayoutCatalogV2Source(
+                it.descriptor,
+                it.origin,
+                it.workspace,
+                registeredContent = it.committedArtifact,
+            )
         } + hostSnapshot.descriptors.map {
             LayoutCatalogV2Source(
                 it,

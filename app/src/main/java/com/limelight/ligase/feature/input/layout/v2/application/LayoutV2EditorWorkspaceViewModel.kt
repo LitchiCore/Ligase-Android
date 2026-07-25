@@ -225,6 +225,7 @@ class LayoutV2EditorWorkspaceViewModel(application: Application) : AndroidViewMo
                 it.descriptor,
                 LayoutLocalOrigin.LOCAL_COPY,
                 LayoutWorkspaceState.DRAFT,
+                it.artifact,
             )
         }
 
