@@ -1,6 +1,7 @@
 package com.limelight.ligase.feature.settings.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,6 +34,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -42,6 +46,7 @@ import com.limelight.R
 import com.limelight.ligase.feature.settings.presentation.StreamBitrateDraftValidation
 import com.limelight.ligase.feature.settings.presentation.StreamBitrateSaveNavigation
 import com.limelight.ligase.feature.settings.presentation.streamBitrateSaveNavigation
+import com.limelight.ligase.feature.settings.presentation.streamBitratePresetPresentation
 import com.limelight.ligase.feature.settings.presentation.validateStreamBitrateDraft
 import com.limelight.ligase.feature.stream.application.StreamBitrateSaveError
 import com.limelight.ligase.feature.stream.application.StreamBitrateUiState
@@ -144,12 +149,36 @@ internal fun StreamBitrateSetting(
                     state.presets.forEach { preset ->
                         val selected =
                             !dialogState.customExpanded && selectedPresetId == preset.id
+                        val presetPresentation =
+                            streamBitratePresetPresentation(preset.id) ?: return@forEach
+                        val description = stringResource(presetPresentation.description)
+                        val recommended = preset.id == state.recommendedPreset.id
+                        val accessibilityLabel = if (recommended) {
+                            stringResource(
+                                R.string.ligase_stream_bitrate_preset_accessibility_recommended,
+                                preset.displayMbps,
+                                description,
+                            )
+                        } else {
+                            stringResource(
+                                R.string.ligase_stream_bitrate_preset_accessibility,
+                                preset.displayMbps,
+                                description,
+                            )
+                        }
                         Card(
                             modifier = Modifier
-                                .widthIn(min = 104.dp)
-                                .clickable(enabled = !state.saving) {
+                                .widthIn(min = 136.dp)
+                                .selectable(
+                                    selected = selected,
+                                    enabled = !state.saving,
+                                    role = Role.RadioButton,
+                                ) {
                                     dialogState.selectedPresetName = preset.id.name
                                     dialogState.customExpanded = false
+                                }
+                                .semantics(mergeDescendants = true) {
+                                    contentDescription = accessibilityLabel
                                 },
                             colors = CardDefaults.cardColors(),
                         ) {
@@ -160,10 +189,16 @@ internal fun StreamBitrateSetting(
                                 RadioButton(
                                     selected = selected,
                                     onClick = null,
+                                    modifier = Modifier.clearAndSetSemantics {},
                                 )
-                                Column {
+                                Column(Modifier.clearAndSetSemantics {}) {
                                     Text("${preset.displayMbps} Mbps")
-                                    if (preset.id == state.recommendedPreset.id) {
+                                    Text(
+                                        text = description,
+                                        style = androidx.compose.material3.MaterialTheme.typography
+                                            .labelMedium,
+                                    )
+                                    if (recommended) {
                                         Text(stringResource(R.string.ligase_stream_bitrate_recommended_short))
                                     }
                                 }
@@ -171,6 +206,10 @@ internal fun StreamBitrateSetting(
                         }
                     }
                 }
+                Text(
+                    text = stringResource(R.string.ligase_stream_bitrate_reference_notice),
+                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                )
                 TextButton(
                     onClick = {
                         dialogState.customExpanded = true

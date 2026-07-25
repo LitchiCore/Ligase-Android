@@ -1109,4 +1109,12 @@
     <string name="ligase_stream_bitrate_out_of_range">请输入 %1$.1f 到 %2$d Mbps。</string>
     <string name="ligase_stream_bitrate_write_failed">无法保存码率，请重试。</string>
     <string name="ligase_save">保存</string>
+    <string name="ligase_stream_bitrate_preset_5">节省带宽</string>
+    <string name="ligase_stream_bitrate_preset_10">标准画质</string>
+    <string name="ligase_stream_bitrate_preset_20">清晰画质，常用于 1080p</string>
+    <string name="ligase_stream_bitrate_preset_40">高画质</string>
+    <string name="ligase_stream_bitrate_preset_80">超高画质，适合 4K 或高帧率</string>
+    <string name="ligase_stream_bitrate_reference_notice">实际效果取决于分辨率、帧率、编码方式和网络质量；推荐仅供参考，不会自动修改当前设置。</string>
+    <string name="ligase_stream_bitrate_preset_accessibility">%1$d Mbps，%2$s。</string>
+    <string name="ligase_stream_bitrate_preset_accessibility_recommended">%1$d Mbps，%2$s，推荐。</string>
 </resources>

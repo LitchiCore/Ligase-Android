@@ -1123,4 +1123,12 @@
     <string name="ligase_stream_bitrate_out_of_range">Enter a value from %1$.1f to %2$d Mbps.</string>
     <string name="ligase_stream_bitrate_write_failed">Couldn\'t save the bitrate. Try again.</string>
     <string name="ligase_save">Save</string>
+    <string name="ligase_stream_bitrate_preset_5">Save bandwidth</string>
+    <string name="ligase_stream_bitrate_preset_10">Standard quality</string>
+    <string name="ligase_stream_bitrate_preset_20">Clear quality, commonly used for 1080p</string>
+    <string name="ligase_stream_bitrate_preset_40">High quality</string>
+    <string name="ligase_stream_bitrate_preset_80">Ultra-high quality for 4K or high frame rates</string>
+    <string name="ligase_stream_bitrate_reference_notice">Actual results depend on resolution, frame rate, encoding, and network quality. The recommendation is only a reference and never changes your current setting automatically.</string>
+    <string name="ligase_stream_bitrate_preset_accessibility">%1$d Mbps. %2$s.</string>
+    <string name="ligase_stream_bitrate_preset_accessibility_recommended">%1$d Mbps. %2$s. Recommended.</string>
 </resources>

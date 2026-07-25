@@ -58,10 +58,10 @@ class SettingsPresentationTest {
         val bitrate = bitrateState(currentKbps = 15_500)
 
         assertEquals(
-            StreamBitrateDraftValidation.Ready(30_000),
+            StreamBitrateDraftValidation.Ready(40_000),
             validateStreamBitrateDraft(
                 bitrate,
-                StreamBitratePresetId.MBPS_30,
+                StreamBitratePresetId.MBPS_40,
                 "not-used",
             ),
         )
@@ -112,6 +112,27 @@ class SettingsPresentationTest {
         assertEquals("15.5", restored.customMbps)
         assertTrue(restored.customExpanded)
         assertEquals(null, restored.pendingKbps)
+    }
+
+    @Test
+    fun `only active simplified presets have product descriptions`() {
+        val activeIds = listOf(
+            StreamBitratePresetId.MBPS_5,
+            StreamBitratePresetId.MBPS_10,
+            StreamBitratePresetId.MBPS_20,
+            StreamBitratePresetId.MBPS_40,
+            StreamBitratePresetId.MBPS_80,
+        )
+
+        assertTrue(activeIds.all { streamBitratePresetPresentation(it) != null })
+        assertEquals(
+            null,
+            streamBitratePresetPresentation(StreamBitratePresetId.MBPS_15),
+        )
+        assertEquals(
+            null,
+            streamBitratePresetPresentation(StreamBitratePresetId.MBPS_300),
+        )
     }
 
     private fun state(

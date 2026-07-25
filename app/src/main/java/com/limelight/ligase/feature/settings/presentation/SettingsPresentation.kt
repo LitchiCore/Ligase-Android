@@ -1,5 +1,7 @@
 package com.limelight.ligase.feature.settings.presentation
 
+import androidx.annotation.StringRes
+import com.limelight.R
 import com.limelight.ligase.InputDeviceMode
 import com.limelight.ligase.LigaseLanguageMode
 import com.limelight.ligase.LigaseThemeMode
@@ -72,4 +74,24 @@ fun streamBitrateSaveNavigation(
     state.error != null -> StreamBitrateSaveNavigation.KEEP_OPEN
     state.currentKbps == pendingKbps -> StreamBitrateSaveNavigation.CLOSE
     else -> StreamBitrateSaveNavigation.WAITING
+}
+
+data class StreamBitratePresetPresentation(
+    @StringRes val description: Int,
+)
+
+fun streamBitratePresetPresentation(
+    id: StreamBitratePresetId,
+): StreamBitratePresetPresentation? = when (id) {
+    StreamBitratePresetId.MBPS_5 ->
+        StreamBitratePresetPresentation(R.string.ligase_stream_bitrate_preset_5)
+    StreamBitratePresetId.MBPS_10 ->
+        StreamBitratePresetPresentation(R.string.ligase_stream_bitrate_preset_10)
+    StreamBitratePresetId.MBPS_20 ->
+        StreamBitratePresetPresentation(R.string.ligase_stream_bitrate_preset_20)
+    StreamBitratePresetId.MBPS_40 ->
+        StreamBitratePresetPresentation(R.string.ligase_stream_bitrate_preset_40)
+    StreamBitratePresetId.MBPS_80 ->
+        StreamBitratePresetPresentation(R.string.ligase_stream_bitrate_preset_80)
+    else -> null
 }
