@@ -36,10 +36,13 @@ import com.limelight.LimeLog
 import com.limelight.R
 import com.limelight.TouchKitLayoutPreviewActivity
 import com.limelight.binding.PlatformBinding
-import com.limelight.computers.ComputerManagerListener
 import com.limelight.computers.ComputerManagerService
 import com.limelight.grid.assets.CachedAppAssetLoader
-import com.limelight.grid.assets.DiskAssetLoader
+import com.limelight.ligase.feature.host.application.HostAddResult
+import com.limelight.ligase.feature.host.application.HostClickAction
+import com.limelight.ligase.feature.host.application.HostEndpointCoordinator
+import com.limelight.ligase.feature.host.application.HostWakeResult
+import com.limelight.ligase.feature.host.infrastructure.LegacyComputerRegistryTransport
 import com.limelight.ligase.feature.library.application.LibraryHostCoordinator
 import com.limelight.ligase.feature.library.application.LibraryStreamingSettingsCoordinator
 import com.limelight.ligase.feature.library.application.LibraryStreamingSettingsResult
@@ -79,7 +82,6 @@ import com.limelight.ligase.pairing.LigaseClientAccessMode
 import com.limelight.nvstream.http.ComputerDetails
 import com.limelight.nvstream.http.PairingManager
 import com.limelight.nvstream.http.PairingManager.PairState
-import com.limelight.nvstream.wol.WakeOnLanSender
 import com.limelight.preferences.PreferenceConfiguration
 import com.limelight.preferences.StreamSettings
 import com.limelight.utils.ServerHelper
@@ -116,6 +118,7 @@ class LigaseActivity : AppCompatActivity() {
     private lateinit var touchLayoutRepository: LigaseTouchLayoutRepository
     private lateinit var pairingViewModel: AttendedPairingViewModel
     private lateinit var hostPairingCoordinator: HostPairingCoordinator
+    private lateinit var hostEndpointCoordinator: HostEndpointCoordinator
     private lateinit var librarySessionViewModel: LibrarySessionViewModel
     private lateinit var libraryHostCoordinator: LibraryHostCoordinator
     private lateinit var libraryStreamingSettingsCoordinator:
@@ -124,7 +127,6 @@ class LigaseActivity : AppCompatActivity() {
 
     private var managerBinder: ComputerManagerService.ComputerManagerBinder? = null
     private var serviceBound = false
-    private var polling = false
     private var foreground = false
     private var lastBackPressedAt = 0L
 
@@ -136,7 +138,7 @@ class LigaseActivity : AppCompatActivity() {
                 managerBinder = binder
                 val restoredHost = pendingLibraryHostUuid?.let(binder::getComputer)
                 runOnUiThread {
-                    startComputerUpdates()
+                    hostEndpointCoordinator.onTransportAvailable(::handleHostUpdate)
                     if (currentPage == LigasePage.HOME && restoredHost != null) {
                         openLibrary(restoredHost)
                     }
@@ -147,7 +149,7 @@ class LigaseActivity : AppCompatActivity() {
 
         override fun onServiceDisconnected(name: ComponentName?) {
             managerBinder = null
-            polling = false
+            hostEndpointCoordinator.onTransportUnavailable()
             if (::libraryHostCoordinator.isInitialized) {
                 libraryHostCoordinator.stopAppListUpdates()
             }
@@ -197,6 +199,10 @@ class LigaseActivity : AppCompatActivity() {
             ?.let { saved -> LigasePage.entries.firstOrNull { it.name == saved } }
             ?: if (onboarding) LigasePage.INPUT else LigasePage.HOME
         pendingLibraryHostUuid = savedInstanceState?.getString(STATE_LIBRARY_HOST_UUID)
+        hostEndpointCoordinator = HostEndpointCoordinator(
+            transport = LegacyComputerRegistryTransport(this) { managerBinder },
+            postToMain = { action -> runOnUiThread(action) },
+        )
         pairingViewModel = ViewModelProvider(this)[AttendedPairingViewModel::class.java]
         hostPairingCoordinator = HostPairingCoordinator(
             transport = LegacyPairingTransport(this) { managerBinder },
@@ -466,66 +472,59 @@ class LigaseActivity : AppCompatActivity() {
     }
 
     private fun startComputerUpdates() {
-        val binder = managerBinder ?: return
-        if (polling || !foreground) return
-        binder.startPolling(ComputerManagerListener { details ->
-            runOnUiThread {
-                val index = hosts.indexOfFirst { it.uuid.equals(details.uuid, ignoreCase = true) }
-                if (index >= 0) hosts[index] = details
-                else {
-                    hosts += details
-                    hosts.sortBy { it.name.lowercase() }
-                }
-                if (libraryHost?.uuid?.equals(details.uuid, ignoreCase = true) == true) {
-                    val previousConnectivity = librarySessionViewModel.state.connectivity
-                    libraryHost = details
-                    libraryAccessMode = details.ligaseClientAccessMode
-                    libraryRunningAppId = details.runningGameId
-                    libraryHostCoordinator.updateConnectivity(details)
-                    if (details.state != ComputerDetails.State.ONLINE) {
-                        stopAppListUpdates()
-                    }
-                    handleSelectedHostCapabilities(details)
-                    if (
-                        details.state == ComputerDetails.State.ONLINE &&
-                        previousConnectivity != LibraryConnectivity.ONLINE &&
-                        librarySessionViewModel.state.content != null
-                    ) {
-                        fetchLibrarySync(force = true)
-                    }
-                    if (
-                        details.state == ComputerDetails.State.ONLINE &&
-                        librarySessionViewModel.state.content != null
-                    ) {
-                        updateLibraryFromRaw(details.rawAppList)
-                    }
-                } else if (
-                    libraryHost == null &&
-                    currentPage == LigasePage.HOME &&
-                    details.state == ComputerDetails.State.ONLINE &&
-                    details.pairState == PairState.PAIRED
-                ) {
-                    openLibrary(details)
-                }
-            }
-        })
-        polling = true
+        hostEndpointCoordinator.startUpdates()
     }
 
     private fun stopComputerUpdates(wait: Boolean) {
-        val binder = managerBinder ?: return
-        if (!polling) return
-        binder.stopPolling()
-        if (wait) binder.waitForPollingStopped()
-        polling = false
+        hostEndpointCoordinator.stopUpdates(wait)
+    }
+
+    private fun handleHostUpdate(details: ComputerDetails) {
+        val index = hosts.indexOfFirst { it.uuid.equals(details.uuid, ignoreCase = true) }
+        if (index >= 0) hosts[index] = details
+        else {
+            hosts += details
+            hosts.sortBy { it.name.lowercase() }
+        }
+        if (libraryHost?.uuid?.equals(details.uuid, ignoreCase = true) == true) {
+            val previousConnectivity = librarySessionViewModel.state.connectivity
+            libraryHost = details
+            libraryAccessMode = details.ligaseClientAccessMode
+            libraryRunningAppId = details.runningGameId
+            libraryHostCoordinator.updateConnectivity(details)
+            if (details.state != ComputerDetails.State.ONLINE) {
+                stopAppListUpdates()
+            }
+            handleSelectedHostCapabilities(details)
+            if (
+                details.state == ComputerDetails.State.ONLINE &&
+                previousConnectivity != LibraryConnectivity.ONLINE &&
+                librarySessionViewModel.state.content != null
+            ) {
+                fetchLibrarySync(force = true)
+            }
+            if (
+                details.state == ComputerDetails.State.ONLINE &&
+                librarySessionViewModel.state.content != null
+            ) {
+                updateLibraryFromRaw(details.rawAppList)
+            }
+        } else if (
+            libraryHost == null &&
+            currentPage == LigasePage.HOME &&
+            details.state == ComputerDetails.State.ONLINE &&
+            details.pairState == PairState.PAIRED
+        ) {
+            openLibrary(details)
+        }
     }
 
     private fun onHostClicked(host: ComputerDetails) {
-        when {
-            host.state == ComputerDetails.State.UNKNOWN -> Unit
-            host.state == ComputerDetails.State.OFFLINE -> wakeHost(host)
-            host.pairState != PairState.PAIRED -> pairHost(host)
-            else -> openLibrary(host)
+        when (hostEndpointCoordinator.actionFor(host)) {
+            HostClickAction.IGNORE -> Unit
+            HostClickAction.WAKE -> wakeHost(host)
+            HostClickAction.PAIR -> pairHost(host)
+            HostClickAction.OPEN -> openLibrary(host)
         }
     }
 
@@ -608,19 +607,15 @@ class LigaseActivity : AppCompatActivity() {
     }
 
     private fun wakeHost(host: ComputerDetails) {
-        if (host.macAddress == null) {
-            toast(R.string.wol_no_mac)
-            return
+        hostEndpointCoordinator.wake(host) { result ->
+            toast(
+                when (result) {
+                    HostWakeResult.Sent -> R.string.wol_waking_msg
+                    HostWakeResult.MissingMacAddress -> R.string.wol_no_mac
+                    HostWakeResult.Failed -> R.string.wol_fail
+                },
+            )
         }
-        Thread {
-            val message = try {
-                WakeOnLanSender.sendWolPacket(host)
-                R.string.wol_waking_msg
-            } catch (_: IOException) {
-                R.string.wol_fail
-            }
-            runOnUiThread { toast(message) }
-        }.start()
     }
 
     private fun openLibrary(host: ComputerDetails) {
@@ -656,9 +651,7 @@ class LigaseActivity : AppCompatActivity() {
 
     private fun selectDefaultHostIfNeeded() {
         if (libraryHost != null) return
-        hosts.firstOrNull {
-            it.state == ComputerDetails.State.ONLINE && it.pairState == PairState.PAIRED
-        }?.let(::openLibrary)
+        hostEndpointCoordinator.defaultHost(hosts)?.let(::openLibrary)
     }
 
     private fun confirmRemoveHost(host: ComputerDetails) {
@@ -675,10 +668,10 @@ class LigaseActivity : AppCompatActivity() {
     private fun removeHost(host: ComputerDetails) {
         val wasSelected = libraryHost?.uuid?.equals(host.uuid, ignoreCase = true) == true
         if (wasSelected) clearLibraryState()
-        managerBinder?.removeComputer(host)
-        DiskAssetLoader(this).deleteAssetsForComputer(host.uuid)
-        hosts.removeAll { it.uuid.equals(host.uuid, ignoreCase = true) }
-        if (wasSelected) selectDefaultHostIfNeeded()
+        if (hostEndpointCoordinator.remove(host)) {
+            hosts.removeAll { it.uuid.equals(host.uuid, ignoreCase = true) }
+            if (wasSelected) selectDefaultHostIfNeeded()
+        }
     }
 
     private fun stopAppListUpdates() {
@@ -1111,33 +1104,20 @@ class LigaseActivity : AppCompatActivity() {
     }
 
     private fun addHost(endpoint: LigaseEndpoint) {
-        val binder = managerBinder
-        if (binder == null) {
-            toast(R.string.error_manager_not_running)
-            return
-        }
-        toast(R.string.msg_add_pc)
-        Thread {
-            val details = ComputerDetails().apply {
-                endpoints = listOf(endpoint)
-                manualAddress = endpoint.toLegacyAddressTuple()
-            }
-            val success = try {
-                binder.addComputerBlocking(details)
-            } catch (_: InterruptedException) {
-                false
-            } catch (_: IllegalArgumentException) {
-                false
-            }
-            runOnUiThread {
-                if (success) {
-                    toast(R.string.addpc_success)
-                    onHostClicked(details)
-                } else {
-                    toast(R.string.addpc_fail)
+        if (
+            hostEndpointCoordinator.add(endpoint) { result ->
+                when (result) {
+                    is HostAddResult.Added -> {
+                        toast(R.string.addpc_success)
+                        onHostClicked(result.details)
+                    }
+                    HostAddResult.ManagerUnavailable -> toast(R.string.error_manager_not_running)
+                    HostAddResult.Failed -> toast(R.string.addpc_fail)
                 }
             }
-        }.start()
+        ) {
+            toast(R.string.msg_add_pc)
+        }
     }
 
     private fun toast(message: Int) {
@@ -1150,7 +1130,7 @@ class LigaseActivity : AppCompatActivity() {
         refreshLocalHdrCapabilities()
         reloadTouchLayouts()
         inputDeviceRepository.start()
-        startComputerUpdates()
+        hostEndpointCoordinator.onForeground(::handleHostUpdate)
         startAppListUpdates()
         UiHelper.showDecoderCrashDialog(this)
     }
@@ -1166,7 +1146,7 @@ class LigaseActivity : AppCompatActivity() {
         foreground = false
         inputDeviceRepository.stop()
         stopAppListUpdates()
-        stopComputerUpdates(false)
+        hostEndpointCoordinator.onBackground()
         super.onPause()
     }
 
@@ -1174,7 +1154,9 @@ class LigaseActivity : AppCompatActivity() {
         if (::inputDeviceRepository.isInitialized) {
             inputDeviceRepository.stop()
         }
-        stopComputerUpdates(false)
+        if (::hostEndpointCoordinator.isInitialized) {
+            hostEndpointCoordinator.close()
+        }
         stopAppListUpdates()
         disposeLibraryAssets()
         if (serviceBound) {
