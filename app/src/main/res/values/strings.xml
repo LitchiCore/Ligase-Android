@@ -1229,4 +1229,8 @@
     <string name="ligase_layout_v2_handoff_failed">This draft could not be opened safely. Return to the layout hall and try again.</string>
     <string name="ligase_layout_v2_open_tools">Edit / settings</string>
     <string name="ligase_layout_v2_close_tools">Close editing tools</string>
+    <string name="ligase_layout_v2_shape">Control shape</string>
+    <string name="ligase_layout_v2_shape_circle">Circle</string>
+    <string name="ligase_layout_v2_shape_rounded_rectangle">Rounded</string>
+    <string name="ligase_layout_v2_shape_rectangle">Rectangle</string>
 </resources>

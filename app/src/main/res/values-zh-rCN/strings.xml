@@ -1215,4 +1215,8 @@
     <string name="ligase_layout_v2_handoff_failed">无法安全打开这份草稿。请返回布局大厅后重试。</string>
     <string name="ligase_layout_v2_open_tools">编辑 / 设置</string>
     <string name="ligase_layout_v2_close_tools">收起编辑工具</string>
+    <string name="ligase_layout_v2_shape">控件形状</string>
+    <string name="ligase_layout_v2_shape_circle">圆形</string>
+    <string name="ligase_layout_v2_shape_rounded_rectangle">圆角矩形</string>
+    <string name="ligase_layout_v2_shape_rectangle">矩形</string>
 </resources>

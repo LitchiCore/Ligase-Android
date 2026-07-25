@@ -2,6 +2,11 @@ package com.limelight.ligase.feature.input.layout.v2.presentation
 
 import com.limelight.ligase.feature.input.layout.v2.domain.IntRect
 import com.limelight.ligase.feature.input.layout.v2.domain.IntSize
+import com.limelight.ligase.feature.input.layout.v2.domain.Appearance
+import com.limelight.ligase.feature.input.layout.v2.domain.InputCode
+import com.limelight.ligase.feature.input.layout.v2.domain.InputCodeNamespace
+import com.limelight.ligase.feature.input.layout.v2.domain.Trigger
+import com.limelight.ligase.feature.input.layout.v2.editor.LayoutV2EditableProperties
 import com.limelight.ligase.feature.input.layout.v2.editor.LayoutV2EditorState
 import com.limelight.ligase.feature.input.layout.v2.editor.LayoutV2RecoveryProtection
 import org.junit.Assert.assertEquals
@@ -80,6 +85,68 @@ class LayoutV2EditorPresentationTest {
                 toolsOpen = false,
                 dirty = true,
             ),
+        )
+    }
+
+    @Test
+    fun `shape protocol values are the exact three supported choices`() {
+        assertEquals(
+            listOf("circle", "roundedrectangle", "rectangle"),
+            LayoutV2EditorShape.entries.map(LayoutV2EditorShape::protocolValue),
+        )
+        LayoutV2EditorShape.entries.forEach {
+            assertEquals(it, layoutV2EditorShape(it.protocolValue))
+        }
+        assertEquals(null, layoutV2EditorShape("oval"))
+    }
+
+    @Test
+    fun `changing keyboard shape preserves every other typed field`() {
+        val original = LayoutV2EditableProperties.Keyboard(
+            inputCode = InputCode(InputCodeNamespace.USB_HID_KEYBOARD_USAGE, 42),
+            appearance = Appearance(
+                label = "Jump",
+                description = "Hold to jump",
+                shape = "circle",
+                showPhysicalKeyNames = true,
+            ),
+            trigger = Trigger.TIMED_HOLD,
+            timedHoldMs = 750,
+        )
+
+        val changed = original.withEditorShape(LayoutV2EditorShape.ROUNDED_RECTANGLE)
+            as LayoutV2EditableProperties.Keyboard
+
+        assertEquals(
+            original.copy(
+                appearance = original.appearance.copy(shape = "roundedrectangle"),
+            ),
+            changed,
+        )
+    }
+
+    @Test
+    fun `changing mouse shape preserves button trigger and appearance metadata`() {
+        val original = LayoutV2EditableProperties.Mouse(
+            button = "secondary",
+            appearance = Appearance(
+                label = "Aim",
+                description = "Aim button",
+                shape = "circle",
+                showPhysicalKeyNames = false,
+            ),
+            trigger = Trigger.TOGGLE,
+            timedHoldMs = null,
+        )
+
+        val changed = original.withEditorShape(LayoutV2EditorShape.RECTANGLE)
+            as LayoutV2EditableProperties.Mouse
+
+        assertEquals(
+            original.copy(
+                appearance = original.appearance.copy(shape = "rectangle"),
+            ),
+            changed,
         )
     }
 }

@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -241,6 +242,7 @@ private fun BlackTouchElement(
         element.rect.x, element.rect.y, element.rect.width, element.rect.height,
     )
     val resizeDescription = stringResource(R.string.ligase_layout_v2_resize_handle, label)
+    val elementShape = element.editorShape().composeShape()
 
     Box(
         Modifier
@@ -259,12 +261,12 @@ private fun BlackTouchElement(
             }
             .background(
                 if (isSelected) Color(0x6635315C) else Color(0x462A2E39),
-                CircleShape,
+                elementShape,
             )
             .border(
                 if (isSelected) 3.dp else 1.dp,
                 if (isSelected) Color(0xFFB8B1FF) else Color.White.copy(alpha = 0.52f),
-                CircleShape,
+                elementShape,
             )
             .pointerInput(element.elementId, element.rect, viewport) {
                 detectDragGestures(
@@ -534,6 +536,7 @@ private fun BlackPropertySummary(
                 val next = Trigger.entries[(p.trigger.ordinal + 1) % Trigger.entries.size]
                 onUpdate(element.elementId, p.copy(trigger = next))
             }
+            BlackShapeSelector(element, p, onUpdate)
         }
         is LayoutV2EditableProperties.Mouse -> {
             Text(
@@ -544,6 +547,7 @@ private fun BlackPropertySummary(
                 val next = Trigger.entries[(p.trigger.ordinal + 1) % Trigger.entries.size]
                 onUpdate(element.elementId, p.copy(trigger = next))
             }
+            BlackShapeSelector(element, p, onUpdate)
         }
         is LayoutV2EditableProperties.Analog ->
             Text(p.diagonalPolicy, color = Color.White.copy(alpha = 0.8f))
@@ -556,6 +560,52 @@ private fun BlackPropertySummary(
             )
         null -> Unit
     }
+}
+
+@Composable
+private fun BlackShapeSelector(
+    element: LayoutV2EditorElement,
+    properties: LayoutV2EditableProperties,
+    onUpdate: (String, LayoutV2EditableProperties) -> Unit,
+) {
+    Text(
+        stringResource(R.string.ligase_layout_v2_shape),
+        color = Color.White.copy(alpha = 0.8f),
+    )
+    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+        LayoutV2EditorShape.entries.forEachIndexed { index, shape ->
+            SegmentedButton(
+                selected = element.editorShape() == shape,
+                onClick = {
+                    onUpdate(element.elementId, properties.withEditorShape(shape))
+                },
+                shape = SegmentedButtonDefaults.itemShape(
+                    index = index,
+                    count = LayoutV2EditorShape.entries.size,
+                ),
+                label = {
+                    Text(
+                        stringResource(
+                            when (shape) {
+                                LayoutV2EditorShape.CIRCLE ->
+                                    R.string.ligase_layout_v2_shape_circle
+                                LayoutV2EditorShape.ROUNDED_RECTANGLE ->
+                                    R.string.ligase_layout_v2_shape_rounded_rectangle
+                                LayoutV2EditorShape.RECTANGLE ->
+                                    R.string.ligase_layout_v2_shape_rectangle
+                            },
+                        ),
+                    )
+                },
+            )
+        }
+    }
+}
+
+private fun LayoutV2EditorShape.composeShape(): Shape = when (this) {
+    LayoutV2EditorShape.CIRCLE -> CircleShape
+    LayoutV2EditorShape.ROUNDED_RECTANGLE -> RoundedCornerShape(18)
+    LayoutV2EditorShape.RECTANGLE -> RoundedCornerShape(0)
 }
 
 @Composable

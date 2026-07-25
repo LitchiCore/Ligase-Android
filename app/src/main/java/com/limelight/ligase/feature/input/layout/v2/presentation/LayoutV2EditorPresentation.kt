@@ -3,6 +3,7 @@ package com.limelight.ligase.feature.input.layout.v2.presentation
 import com.limelight.ligase.feature.input.layout.v2.domain.IntRect
 import com.limelight.ligase.feature.input.layout.v2.domain.IntSize
 import com.limelight.ligase.feature.input.layout.v2.editor.LayoutV2EditorElement
+import com.limelight.ligase.feature.input.layout.v2.editor.LayoutV2EditableProperties
 import com.limelight.ligase.feature.input.layout.v2.editor.LayoutV2EditorIssue
 import com.limelight.ligase.feature.input.layout.v2.editor.LayoutV2EditorState
 import com.limelight.ligase.feature.input.layout.v2.editor.LayoutV2ElementCapability
@@ -43,6 +44,35 @@ fun LayoutV2EditorElement.canDelete(): Boolean =
 
 fun LayoutV2EditorElement.isInspectOnly(): Boolean =
     LayoutV2ElementCapability.INSPECT_ONLY in capabilities
+
+enum class LayoutV2EditorShape(val protocolValue: String) {
+    CIRCLE("circle"),
+    ROUNDED_RECTANGLE("roundedrectangle"),
+    RECTANGLE("rectangle"),
+}
+
+fun LayoutV2EditorElement.editorShape(): LayoutV2EditorShape = when (
+    val properties = editableProperties
+) {
+    is LayoutV2EditableProperties.Keyboard ->
+        requireNotNull(layoutV2EditorShape(properties.appearance.shape))
+    is LayoutV2EditableProperties.Mouse ->
+        requireNotNull(layoutV2EditorShape(properties.appearance.shape))
+    else -> LayoutV2EditorShape.CIRCLE
+}
+
+fun LayoutV2EditableProperties.withEditorShape(
+    shape: LayoutV2EditorShape,
+): LayoutV2EditableProperties = when (this) {
+    is LayoutV2EditableProperties.Keyboard ->
+        copy(appearance = appearance.copy(shape = shape.protocolValue))
+    is LayoutV2EditableProperties.Mouse ->
+        copy(appearance = appearance.copy(shape = shape.protocolValue))
+    else -> this
+}
+
+fun layoutV2EditorShape(protocolValue: String): LayoutV2EditorShape? =
+    LayoutV2EditorShape.entries.firstOrNull { it.protocolValue == protocolValue }
 
 data class LayoutV2CanvasTransform(
     val canvas: IntSize,
