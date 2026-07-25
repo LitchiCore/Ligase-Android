@@ -7,7 +7,12 @@ object TouchLayoutV2Codec {
         Regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
     private val hashPattern = Regex("^sha256:[0-9a-f]{64}$")
 
-    fun decode(raw: ByteArray): TouchLayoutV2Document {
+    fun decode(raw: ByteArray): TouchLayoutV2Document = decode(raw, allowEmptyDraft = false)
+
+    internal fun decodeDraft(raw: ByteArray): TouchLayoutV2Document =
+        decode(raw, allowEmptyDraft = true)
+
+    private fun decode(raw: ByteArray, allowEmptyDraft: Boolean): TouchLayoutV2Document {
         val root = try {
             StrictJson.parse(raw).obj("")
         } catch (error: TouchLayoutV2Exception) {
@@ -32,7 +37,7 @@ object TouchLayoutV2Codec {
             validateExtensions(it, "/extensions", 0)
         }
         val variants = root.array("variants", "").bounded(1, 32, "/variants")
-            .mapIndexed(::parseVariant)
+            .mapIndexed { index, value -> parseVariant(index, value, allowEmptyDraft) }
         val contentHash = root.string("contentHash", "")
         if (!hashPattern.matches(contentHash)) fail("schemaRejected", "/contentHash")
         val document = TouchLayoutV2Document(
@@ -48,7 +53,11 @@ object TouchLayoutV2Codec {
         return document
     }
 
-    private fun parseVariant(index: Int, value: StrictJsonValue): TouchLayoutV2Variant {
+    private fun parseVariant(
+        index: Int,
+        value: StrictJsonValue,
+        allowEmptyDraft: Boolean,
+    ): TouchLayoutV2Variant {
         val path = "/variants/$index"
         val obj = value.obj(path)
         obj.exactKeys(
@@ -72,7 +81,11 @@ object TouchLayoutV2Codec {
                 }
             }
         val canvas = parseSize(obj.obj("canvas", path), "$path/canvas")
-        val elements = obj.array("elements", path).bounded(1, 512, "$path/elements")
+        val elements = obj.array("elements", path).bounded(
+            if (allowEmptyDraft) 0 else 1,
+            512,
+            "$path/elements",
+        )
             .mapIndexed { item, entry -> parseElement(item, entry, canvas, path) }
         return TouchLayoutV2Variant(
             variantId = obj.string("variantId", path).uuid("$path/variantId"),
