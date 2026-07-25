@@ -36,6 +36,9 @@ read only by tests.
 - the complete generation-bound gesture-token facade plus the authoritative
   full-overlay pixel-to-canonical inverse mapper; UI preview remains
   non-persistent and release/cancel can consume a token at most once;
+- the UI-safe forward editor mapper, which consumes immutable editor geometry
+  without reconstructing protocol payloads and returns typed pixel, clip,
+  draw-visibility, and hit-test projections;
 - the atomic keyboard-key batch seam, including canonical key order, bounded
   cardinality, deterministic center stack/IDs/layers, and persisted
   `nextKeyboardBatchOrdinal`.

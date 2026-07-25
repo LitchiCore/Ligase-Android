@@ -63,10 +63,10 @@ data class LayoutV3InspectOnlySummary(
 data class LayoutV3EditorElement(
     val elementId: String,
     val kind: ControlKind,
-    val rect: AnchoredRect,
+    override val rect: AnchoredRect,
     val resolvedRect: IntRect,
-    val anchorX: HorizontalAnchor,
-    val anchorY: VerticalAnchor,
+    override val anchorX: HorizontalAnchor,
+    override val anchorY: VerticalAnchor,
     val zOrder: Int,
     val enabled: Boolean,
     val hidden: Boolean,
@@ -74,7 +74,7 @@ data class LayoutV3EditorElement(
     val editableProperties: LayoutV3EditableProperties?,
     val inspectOnlySummary: LayoutV3InspectOnlySummary?,
     val capabilities: Set<LayoutV3ElementCapability>,
-)
+) : LayoutV3AnchoredElementGeometry
 
 data class LayoutV3EditorDraft(
     val identity: LayoutV3DraftIdentity,

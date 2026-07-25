@@ -37,6 +37,12 @@ data class AnchoredRect(
     val width: Int,
     val height: Int,
 )
+
+interface LayoutV3AnchoredElementGeometry {
+    val rect: AnchoredRect
+    val anchorX: HorizontalAnchor
+    val anchorY: VerticalAnchor
+}
 data class AspectRatio(val numerator: Int, val denominator: Int)
 
 data class LayoutRecommendation(

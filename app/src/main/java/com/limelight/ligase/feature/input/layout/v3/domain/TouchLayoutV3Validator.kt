@@ -104,9 +104,33 @@ object LayoutV3Geometry {
         return (anchorX to anchorY) to AnchoredRect(horizontalOffset, verticalOffset, rect.width, rect.height)
     }
 
-    fun map(canvas: IntSize, element: TouchLayoutV3Element, overlay: IntRect, minimumTargetPx: Int = 1): IntRect {
+    fun map(
+        canvas: IntSize,
+        element: TouchLayoutV3Element,
+        overlay: IntRect,
+        minimumTargetPx: Int = 1,
+    ): IntRect = mapAnchoredRect(
+        canvas,
+        element.rect,
+        element.anchorX,
+        element.anchorY,
+        overlay,
+        minimumTargetPx,
+    )
+
+    fun mapAnchoredRect(
+        canvas: IntSize,
+        source: AnchoredRect,
+        anchorX: HorizontalAnchor,
+        anchorY: VerticalAnchor,
+        overlay: IntRect,
+        minimumTargetPx: Int = 1,
+    ): IntRect {
+        if (canvas.width <= 0 || canvas.height <= 0) fail("invalidCanvas")
         if (overlay.width <= 0 || overlay.height <= 0) fail("invalidOverlayBounds")
-        val source = element.rect
+        if (source.width <= 0 || source.height <= 0 || minimumTargetPx <= 0) {
+            fail("invalidElementRect")
+        }
         val width = roundHalfUp(source.width.toLong() * overlay.height, canvas.height.toLong())
         val height = roundHalfUp(source.height.toLong() * overlay.height, canvas.height.toLong())
         val offsetX = roundHalfUp(source.horizontalOffset.toLong() * overlay.width, canvas.width.toLong())
@@ -114,16 +138,30 @@ object LayoutV3Geometry {
         if (width < minimumTargetPx || height < minimumTargetPx) fail("targetBelowMinimum")
         val x = Math.addExact(
             overlay.x.toLong(),
-            anchorOrigin(overlay.width, width, offsetX, element.anchorX).toLong(),
+            anchorOrigin(overlay.width, width, offsetX, anchorX).toLong(),
         ).checkedInt()
         val y = Math.addExact(
             overlay.y.toLong(),
-            anchorOrigin(overlay.height, height, offsetY, element.anchorY).toLong(),
+            anchorOrigin(overlay.height, height, offsetY, anchorY).toLong(),
         ).checkedInt()
         return IntRect(x, y, width, height).also {
             if (!isVisible(it, overlay)) fail("targetNotVisible")
         }
     }
+
+    fun mapEditorElement(
+        canvas: IntSize,
+        element: LayoutV3AnchoredElementGeometry,
+        overlay: IntRect,
+        minimumTargetPx: Int = 1,
+    ): IntRect = mapAnchoredRect(
+        canvas,
+        element.rect,
+        element.anchorX,
+        element.anchorY,
+        overlay,
+        minimumTargetPx,
+    )
 
     /**
      * Authoritative inverse for editor gesture commits. Element endpoints are
