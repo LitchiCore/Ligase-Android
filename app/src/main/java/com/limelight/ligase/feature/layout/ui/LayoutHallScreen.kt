@@ -45,6 +45,7 @@ import com.limelight.ligase.feature.layout.domain.LayoutCatalogSource
 import com.limelight.ligase.feature.layout.domain.LayoutCatalogUiState
 import com.limelight.ligase.feature.layout.domain.LayoutEditorError
 import com.limelight.ligase.feature.layout.presentation.layoutHallColumns
+import com.limelight.ligase.feature.input.layout.v3.application.LayoutV3CommittedLayoutSummary
 import com.limelight.ligase.feature.input.layout.v3.editor.RecoverableDraftSummary as RecoverableV3DraftSummary
 import java.text.DateFormat
 import java.util.Date
@@ -60,9 +61,11 @@ fun LayoutHallScreen(
     onEdit: (String) -> Unit,
     onCreateCopy: (String) -> Unit,
     recoverableV3Drafts: List<RecoverableV3DraftSummary> = emptyList(),
+    committedV3Layouts: List<LayoutV3CommittedLayoutSummary> = emptyList(),
     onV3CreateBlank: (String?) -> Unit = {},
     onV3ResumeRecovery: (String) -> Unit = {},
     onV3DiscardRecovery: (String) -> Unit = {},
+    onV3OpenCommitted: (String, Long, String) -> Unit = { _, _, _ -> },
 ) {
     BackHandler(onBack = onBack)
     LigasePageScaffold(
@@ -84,9 +87,11 @@ fun LayoutHallScreen(
                         item {
                             LayoutV3CreatorSection(
                                 recoverableDrafts = recoverableV3Drafts,
+                                committedLayouts = committedV3Layouts,
                                 onCreateBlank = onV3CreateBlank,
                                 onResumeRecovery = onV3ResumeRecovery,
                                 onDiscardRecovery = onV3DiscardRecovery,
+                                onOpenCommitted = onV3OpenCommitted,
                             )
                         }
                         item {
@@ -110,9 +115,11 @@ fun LayoutHallScreen(
                         item(span = { GridItemSpan(maxLineSpan) }) {
                             LayoutV3CreatorSection(
                                 recoverableDrafts = recoverableV3Drafts,
+                                committedLayouts = committedV3Layouts,
                                 onCreateBlank = onV3CreateBlank,
                                 onResumeRecovery = onV3ResumeRecovery,
                                 onDiscardRecovery = onV3DiscardRecovery,
+                                onOpenCommitted = onV3OpenCommitted,
                             )
                         }
                         actionError?.let { error ->
@@ -141,10 +148,12 @@ fun LayoutHallScreen(
                     ) {
                         item {
                             LayoutV3CreatorSection(
-                                recoverableDrafts = recoverableV3Drafts,
+                            recoverableDrafts = recoverableV3Drafts,
+                            committedLayouts = committedV3Layouts,
                                 onCreateBlank = onV3CreateBlank,
                                 onResumeRecovery = onV3ResumeRecovery,
-                                onDiscardRecovery = onV3DiscardRecovery,
+                            onDiscardRecovery = onV3DiscardRecovery,
+                            onOpenCommitted = onV3OpenCommitted,
                             )
                         }
                         actionError?.let { error ->
@@ -175,9 +184,11 @@ fun LayoutHallScreen(
 @Composable
 private fun LayoutV3CreatorSection(
     recoverableDrafts: List<RecoverableV3DraftSummary>,
+    committedLayouts: List<LayoutV3CommittedLayoutSummary>,
     onCreateBlank: (String?) -> Unit,
     onResumeRecovery: (String) -> Unit,
     onDiscardRecovery: (String) -> Unit,
+    onOpenCommitted: (String, Long, String) -> Unit,
 ) {
     var discardTarget by remember { mutableStateOf<RecoverableV3DraftSummary?>(null) }
     Card(
@@ -227,6 +238,43 @@ private fun LayoutV3CreatorSection(
                             }
                             OutlinedButton(onClick = { discardTarget = draft }) {
                                 Text(stringResource(R.string.ligase_layout_v3_discard))
+                            }
+                        }
+                    }
+                }
+            }
+            if (committedLayouts.isNotEmpty()) {
+                HorizontalDivider()
+                Text(
+                    stringResource(R.string.ligase_layout_v3_local_copies_title),
+                    fontWeight = FontWeight.SemiBold,
+                )
+                committedLayouts.forEach { layout ->
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(layout.displayName, fontWeight = FontWeight.Medium)
+                        Text(
+                            stringResource(
+                                R.string.ligase_layout_v3_local_copy_verified,
+                                layout.revision,
+                                layout.variants.sumOf { it.controlCount },
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            stringResource(R.string.ligase_layout_v3_runtime_not_ready),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        layout.variants.firstOrNull()?.let { variant ->
+                            OutlinedButton(
+                                onClick = {
+                                    onOpenCommitted(
+                                        layout.layoutId,
+                                        layout.revision,
+                                        variant.variantId,
+                                    )
+                                },
+                            ) {
+                                Text(stringResource(R.string.ligase_layout_v3_continue_editing))
                             }
                         }
                     }

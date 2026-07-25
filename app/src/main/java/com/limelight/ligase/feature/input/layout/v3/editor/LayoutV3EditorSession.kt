@@ -87,6 +87,33 @@ class LayoutV3EditorSession(
     ): LayoutV3EditResult =
         copyFromSource(source, variantId, LayoutV3DraftOrigin.LOCAL_COPY)
 
+    fun openCommittedLocalCopy(
+        source: LayoutV3CreatorSource,
+        variantId: String,
+    ): LayoutV3EditResult {
+        if (
+            source.origin != LayoutV3DraftOrigin.LOCAL_COPY ||
+            source.availability != true
+        ) return reject(LayoutV3EditorIssue.SOURCE_NOT_READY)
+        val document = source.content.document
+        if (source.descriptor.publicationStatus == "retired") {
+            return reject(LayoutV3EditorIssue.RETIRED)
+        }
+        if (document.variants.none { it.variantId == variantId }) {
+            return reject(LayoutV3EditorIssue.VARIANT_NOT_FOUND)
+        }
+        return activate(
+            document,
+            LayoutV3DraftIdentity(
+                document.layoutId,
+                document.revision,
+                variantId,
+                LayoutV3DraftOrigin.LOCAL_COPY,
+            ),
+            dirty = false,
+        )
+    }
+
     fun resumeRecoverableDraft(draftId: String): LayoutV3EditResult =
         when (val result = journal.read(draftId)) {
             is LayoutV3JournalReadResult.Ready ->

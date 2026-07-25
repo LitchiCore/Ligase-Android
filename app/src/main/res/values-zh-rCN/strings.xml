@@ -1276,4 +1276,8 @@
     <string name="ligase_layout_v3_nudge_left">向左移动一步；长按连续移动</string>
     <string name="ligase_layout_v3_nudge_down">向下移动一步；长按连续移动</string>
     <string name="ligase_layout_v3_nudge_right">向右移动一步；长按连续移动</string>
+    <string name="ligase_layout_v3_local_copies_title">本机已保存布局</string>
+    <string name="ligase_layout_v3_local_copy_verified">本机副本 · 内容已验证 · 修订 %1$d · %2$d 个控件</string>
+    <string name="ligase_layout_v3_runtime_not_ready">当前可继续编辑；运行态尚未实现。</string>
+    <string name="ligase_layout_v3_continue_editing">继续编辑</string>
 </resources>

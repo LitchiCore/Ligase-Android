@@ -84,7 +84,8 @@
   并生成稳定的 canonical `variantId`。内建的 `OSC_Keyboard` 等旧标识只作为本机
   `legacySourceReference`，不得提升为未来跨端 layout identity。
 - Touch Layout v3是唯一新内容契约，使用独立strict schema、journal、generation
-  repository与Workspace/Activity owner，不读写v1 SharedPreferences，也不双读写v2。
+  repository与Workspace/Activity owner，不读写v1 SharedPreferences；失效v2
+  production owner已移除，不保留双读写或兼容fallback。
 - Compose卡片式画布已退出产品主路径。当前编辑体验使用独立`sensorLandscape`、
   沉浸式黑色TouchKit画布：新布局由Activity在完整edge-to-edge overlay bounds稳定后
   创建canvas；已有草稿仅以opaque draft ID交给独立Activity独占恢复；

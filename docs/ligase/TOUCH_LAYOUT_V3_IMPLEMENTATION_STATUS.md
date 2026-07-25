@@ -42,16 +42,21 @@ read only by tests.
 - the atomic keyboard-key batch seam, including canonical key order, bounded
   cardinality, deterministic center stack/IDs/layers, and persisted
   `nextKeyboardBatchOrdinal`.
+- the single local committed catalog projection: strict generations are
+  re-read after save and process restart, projected without raw bytes or
+  filesystem identity, and can be reopened through a typed Workspace action;
+- the Compose/product Activity bridge and immersive editor shell. Saved local
+  cards explicitly remain non-runtime until a separate runtime task.
 
-## Not implemented by Core A or Core B
+## Residual cutover
 
-Compose UI, Manifest/product Activity integration, catalog and source-registry
-replacement, preview/runtime rendering, Game/input dispatch, Host transport,
-Sync, publication, and download remain outside this block.
+The obsolete `feature/input/layout/v2` production and test trees, product
+Activity/Root bindings, and manifest entry were removed after v3 became the
+only content authority. They are not a fallback and are not read or written.
+The exact cutover coordinator remains responsible for quarantining the
+layout-owned v2 test-data targets before opening v3 repositories.
 
-The existing `feature/input/layout/v2` production tree is transitional only.
-It is not a fallback and is not read or written by v3. Later compile-safe
-cutover blocks must replace and then remove its catalog/source registry,
-Activity/editor symbols, tests, manifest entry, and storage references. Core B
-does not read, write, or migrate v2 generations or journals. TouchKit v1 runtime
-and persistence remain physically separate and are not deletion targets.
+Preview/runtime rendering, Game/input dispatch, Host transport, Sync,
+publication, download, and real-keyboard selection UI remain outside this
+block. TouchKit v1 runtime and persistence remain physically separate and are
+not deletion targets.

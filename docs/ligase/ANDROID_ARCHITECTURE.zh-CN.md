@@ -39,14 +39,14 @@ LigaseActivity（composition / Android lifecycle / legacy ABI bridge）
 | Input | `InputSelectionCoordinator` | UI 展示输入模式、稳定设备选择和布局摘要，不按设备名或易变 deviceId 猜测 |
 | Settings | application owners 的组合投影 | Settings route 不创建第二份偏好或 Host state |
 
-## Touch Layout v1 与 v2
+## TouchKit v1 与 Touch Layout v3
 
 ### v1：现有运行时
 
 - v1 TouchKit renderer、`KeyBoardController`、旧 layout loader 和 SharedPreferences 继续
   服务现有串流运行态。
-- v1 的 layout ID、动态元素 map 和旧 game store 不是 v2 identity 或 content schema。
-- v2 不双写 v1，不从文件名、显示名、numeric appid 或到达顺序猜 identity。
+- v1 的 layout ID、动态元素 map 和旧 game store 不是 v3 identity 或 content schema。
+- v3 不双写 v1，不从文件名、显示名、numeric appid 或到达顺序猜 identity。
 
 ### v3：唯一内容契约与本机 Creator
 
@@ -58,7 +58,9 @@ LigaseActivity（composition / Android lifecycle / legacy ABI bridge）
 - `LayoutV3EditorSession`和Activity lifecycle ViewModel是编辑状态的唯一owner；Compose
   只消费immutable projection和typed actions，不读取raw、path、hash或extensions。
 - journal只保护未提交草稿，不冒充正式保存；正式保存仍须完成generation原子写入及
-  readback。v3不双读写v2或v1存储。
+  readback。v2 production owner已移除；v3不读写v1存储。
+- committed v3 generation只能由Workspace/Repository严格枚举并投影为typed本机卡片；
+  Hall不读取路径、raw、hash或文件名。卡片可继续编辑，但不宣称runtime可执行。
 - 本阶段不包含真实PC键盘多选浮窗、Host下载、publish、runtime或preview/export/share。
 
 ### 黑色横屏编辑器
@@ -93,13 +95,13 @@ handoff、exclusive lease、adaptive mapper与全屏浮层Activity已进入生�
 
 | 设备 | 角色 | 当前证据边界 |
 | --- | --- | --- |
-| Xiaomi M2007J17C | 手机竖屏与横屏 | v2 Creator 创建、typed 控件、旋转、force-stop 恢复、保存后 READY 与重启回读通过 |
+| Xiaomi M2007J17C | 手机竖屏与横屏 | 历史v2测试数据证据不再作为当前v3验收；v3门按对应冻结APK重新执行 |
 | AGS2-AL00 | 宽屏/平板 | 大厅与编辑器宽屏布局、旋转、编辑、保存与 READY 轻量门通过 |
 | V2353A | 历史手机 | 仅保留旧提交的 library/manual/stream 等证据；不能替代当前源码验收 |
 
 统一限制：
 
-- 没有授权生产来源时，不注入 fixture 来制造 v2 catalog、模板或只读类型。
+- 没有授权生产来源时，不注入 fixture 来制造v3 catalog、模板或只读类型。
 - 没有 `NEW_HOST_READY` 时，不宣称 attended pairing、Host catalog、真实写回、
   disconnect/quit 或串流 runtime 通过。
 - 虚拟桌面驱动未安装时记录 `SKIP_DRIVER_NOT_INSTALLED`，不能换用桌面入口伪造通过。

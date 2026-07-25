@@ -2,6 +2,7 @@ package com.limelight.ligase.feature.input.layout.v3.application
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import com.limelight.ligase.feature.input.layout.v3.data.LayoutV3CommittedGeneration
 import com.limelight.ligase.feature.input.layout.v3.data.LayoutV3DraftJournal
 import com.limelight.ligase.feature.input.layout.v3.data.LayoutV3GenerationRepository
 import com.limelight.ligase.feature.input.layout.v3.serialization.LayoutV3ContentVerificationResult
@@ -30,6 +31,7 @@ data class LayoutV3WorkspaceActionResult(
 
 data class LayoutV3EditorWorkspaceUiState(
     val editor: LayoutV3EditorState = LayoutV3EditorState(),
+    val committedLayouts: List<LayoutV3CommittedLayoutSummary> = emptyList(),
     val lastAction: LayoutV3WorkspaceActionResult? = null,
     val launchPhase: LayoutV3WorkspaceLaunchPhase = LayoutV3WorkspaceLaunchPhase.IDLE,
 )
@@ -65,7 +67,10 @@ class LayoutV3EditorWorkspaceViewModel(application: Application) : AndroidViewMo
     )
 
     init {
-        mutableState.value = LayoutV3EditorWorkspaceUiState(session.state)
+        mutableState.value = LayoutV3EditorWorkspaceUiState(
+            editor = session.state,
+            committedLayouts = committedSummaries(),
+        )
     }
 
     fun attachCatalogRegistration(
@@ -82,12 +87,19 @@ class LayoutV3EditorWorkspaceViewModel(application: Application) : AndroidViewMo
         catalogRegistration = null
     }
 
-    fun refreshCatalog(): Boolean =
-        catalogRegistration?.invoke(committedRecords()) ?: false
+    fun refreshCatalog(): Boolean {
+        mutableState.value = mutableState.value.copy(
+            committedLayouts = committedSummaries(),
+        )
+        return catalogRegistration?.invoke(committedRecords()) ?: false
+    }
 
     fun refreshAfterEditorReturn(): Boolean {
         session.refreshRecoverableDrafts()
-        mutableState.value = mutableState.value.copy(editor = session.state)
+        mutableState.value = mutableState.value.copy(
+            editor = session.state,
+            committedLayouts = committedSummaries(),
+        )
         return refreshCatalog()
     }
 
@@ -133,6 +145,38 @@ class LayoutV3EditorWorkspaceViewModel(application: Application) : AndroidViewMo
                 variantId,
             ),
         )
+    }
+
+    fun launchCommitted(
+        layoutId: String,
+        revision: Long,
+        variantId: String,
+    ): LayoutV3EditorLaunchRequest? {
+        val generation = generations.read(layoutId, revision)
+        if (generation == null) {
+            publishRejected(LayoutV3EditorIssue.SOURCE_NOT_READY, layoutId)
+            return null
+        }
+        val verified = TouchLayoutV3ContentVerifier.verify(generation.artifact)
+            as? LayoutV3ContentVerificationResult.Verified
+        if (verified == null) {
+            publishRejected(LayoutV3EditorIssue.VALIDATION_FAILED, layoutId)
+            return null
+        }
+        publishActivated(
+            session.openCommittedLocalCopy(
+                LayoutV3CreatorSource(
+                    generation.descriptor,
+                    verified.content,
+                    LayoutV3DraftOrigin.LOCAL_COPY,
+                    true,
+                    LayoutV3WorkspaceState.DRAFT,
+                ),
+                variantId,
+            ),
+        )
+        return session.state.draft?.identity?.layoutId
+            ?.let(::launchExistingAfterCheckpoint)
     }
 
     fun resumeRecovery(draftId: String) =
@@ -283,6 +327,9 @@ class LayoutV3EditorWorkspaceViewModel(application: Application) : AndroidViewMo
                 it.artifact,
             )
         }
+
+    private fun committedSummaries(): List<LayoutV3CommittedLayoutSummary> =
+        generations.listCommitted().mapNotNull(LayoutV3CommittedGeneration::toSafeSummary)
 
     private fun publish(result: LayoutV3EditResult) {
         mutableState.value = mutableState.value.copy(
