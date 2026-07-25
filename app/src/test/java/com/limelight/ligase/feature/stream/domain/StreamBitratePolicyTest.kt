@@ -45,11 +45,15 @@ class StreamBitratePolicyTest {
     @Test
     fun `recommendation is stable and lower preset wins ties`() {
         assertEquals(
-            StreamBitratePresetId.MBPS_10,
-            StreamBitratePolicy.recommendedPreset(12_500).id,
+            listOf(5_000, 10_000, 20_000, 40_000, 80_000),
+            StreamBitratePolicy.presets.map { it.kbps },
         )
         assertEquals(
-            StreamBitratePresetId.MBPS_300,
+            StreamBitratePresetId.MBPS_10,
+            StreamBitratePolicy.recommendedPreset(15_000).id,
+        )
+        assertEquals(
+            StreamBitratePresetId.MBPS_80,
             StreamBitratePolicy.recommendedPreset(Int.MAX_VALUE).id,
         )
         assertTrue(StreamBitratePolicy.presets.zipWithNext().all { (a, b) -> a.kbps < b.kbps })

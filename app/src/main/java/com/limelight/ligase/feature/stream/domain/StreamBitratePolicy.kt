@@ -38,20 +38,11 @@ object StreamBitratePolicy {
     const val STEP_KBPS = 500
 
     val presets: List<StreamBitratePreset> = listOf(
-        preset(StreamBitratePresetId.MBPS_1, 1),
-        preset(StreamBitratePresetId.MBPS_2, 2),
         preset(StreamBitratePresetId.MBPS_5, 5),
         preset(StreamBitratePresetId.MBPS_10, 10),
-        preset(StreamBitratePresetId.MBPS_15, 15),
         preset(StreamBitratePresetId.MBPS_20, 20),
-        preset(StreamBitratePresetId.MBPS_30, 30),
         preset(StreamBitratePresetId.MBPS_40, 40),
-        preset(StreamBitratePresetId.MBPS_60, 60),
         preset(StreamBitratePresetId.MBPS_80, 80),
-        preset(StreamBitratePresetId.MBPS_100, 100),
-        preset(StreamBitratePresetId.MBPS_150, 150),
-        preset(StreamBitratePresetId.MBPS_200, 200),
-        preset(StreamBitratePresetId.MBPS_300, 300),
     )
 
     fun isValidKbps(kbps: Int): Boolean =

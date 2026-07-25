@@ -66,6 +66,11 @@ class StreamBitrateStateTest {
             state.setStreamBitrateKbps(40_001),
         )
         assertEquals(40_000, state.state.currentKbps)
+        assertEquals(
+            StreamBitrateSaveResult.Failed(StreamBitrateSaveError.WRITE_FAILED),
+            state.setStreamBitratePreset(StreamBitratePresetId.MBPS_30),
+        )
+        assertEquals(40_000, state.state.currentKbps)
     }
 
     @Test

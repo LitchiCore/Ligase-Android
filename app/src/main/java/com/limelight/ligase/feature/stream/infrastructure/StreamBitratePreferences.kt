@@ -65,7 +65,8 @@ class StreamBitratePreferences(
     }
 
     fun savePreset(id: StreamBitratePresetId): Boolean {
-        val preset = StreamBitratePolicy.presets.first { it.id == id }
+        val preset = StreamBitratePolicy.presets.firstOrNull { it.id == id }
+            ?: return false
         return preferences.edit()
             .putInt(CURRENT_KBPS_KEY, preset.kbps)
             .putString(SELECTION_KEY, PRESET_PREFIX + id.name)
@@ -79,7 +80,8 @@ class StreamBitratePreferences(
             StreamBitratePresetId.valueOf(raw.removePrefix(PRESET_PREFIX))
         }.getOrNull() ?: return null
         return id.takeIf {
-            StreamBitratePolicy.presets.first { preset -> preset.id == id }.kbps == kbps
+            StreamBitratePolicy.presets.firstOrNull { preset -> preset.id == id }
+                ?.kbps == kbps
         }
     }
 

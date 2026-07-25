@@ -89,10 +89,10 @@ class StreamBitrateState(
         }
 
     fun setStreamBitratePreset(id: StreamBitratePresetId): StreamBitrateSaveResult {
-        if (!preferences.savePreset(id)) {
+        val preset = StreamBitratePolicy.presets.firstOrNull { it.id == id }
+        if (preset == null || !preferences.savePreset(id)) {
             return fail(StreamBitrateSaveError.WRITE_FAILED)
         }
-        val preset = StreamBitratePolicy.presets.first { it.id == id }
         val next = toUiState(
             StoredStreamBitrate(
                 preset.kbps,

@@ -79,6 +79,25 @@ class StreamBitratePreferencesTest {
     }
 
     @Test
+    fun `removed preset marker becomes custom without changing bitrate`() {
+        sharedPreferences.edit()
+            .putInt(StreamBitratePreferences.CURRENT_KBPS_KEY, 15_000)
+            .putString("ligase_stream_bitrate_selection", "preset:MBPS_15")
+            .commit()
+        val before = sharedPreferences.all.toMap()
+
+        val restored = StreamBitratePreferences(sharedPreferences).readOrMigrate(20_000)
+
+        assertEquals(15_000, restored.kbps)
+        assertEquals(StreamBitrateSelectionSource.CUSTOM, restored.source)
+        assertEquals(before, sharedPreferences.all)
+        assertFalse(
+            StreamBitratePreferences(sharedPreferences)
+                .savePreset(StreamBitratePresetId.MBPS_15),
+        )
+    }
+
+    @Test
     fun `launch mapping validates and returns exact kbps`() {
         sharedPreferences.edit()
             .putInt(StreamBitratePreferences.CURRENT_KBPS_KEY, 80_500)
