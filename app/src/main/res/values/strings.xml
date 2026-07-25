@@ -1111,4 +1111,16 @@
     <string name="ligase_layout_action_smaller">Make smaller</string>
     <string name="ligase_layout_action_larger">Make larger</string>
     <string name="ligase_layout_action_delete">Delete control</string>
+    <string name="ligase_stream_bitrate">Streaming bitrate</string>
+    <string name="ligase_stream_bitrate_current">Current: %1$s Mbps</string>
+    <string name="ligase_stream_bitrate_recommended">Recommended for the current video settings: %1$d Mbps</string>
+    <string name="ligase_stream_bitrate_presets">Common choices</string>
+    <string name="ligase_stream_bitrate_recommended_short">Recommended</string>
+    <string name="ligase_stream_bitrate_custom">Advanced custom value</string>
+    <string name="ligase_stream_bitrate_custom_hint">Enter an integer or a value ending in .5. Changing resolution will not replace your choice.</string>
+    <string name="ligase_stream_bitrate_empty">Enter a bitrate.</string>
+    <string name="ligase_stream_bitrate_invalid_number">Use an integer or one decimal ending in .5.</string>
+    <string name="ligase_stream_bitrate_out_of_range">Enter a value from %1$.1f to %2$d Mbps.</string>
+    <string name="ligase_stream_bitrate_write_failed">Couldn\'t save the bitrate. Try again.</string>
+    <string name="ligase_save">Save</string>
 </resources>

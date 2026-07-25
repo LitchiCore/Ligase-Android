@@ -64,6 +64,9 @@ import com.limelight.ligase.feature.library.ui.LibraryRouteActions
 import com.limelight.ligase.feature.library.ui.LibraryRouteUiState
 import com.limelight.ligase.feature.settings.presentation.SettingsUiState
 import com.limelight.ligase.feature.settings.ui.SettingsScreen
+import com.limelight.ligase.feature.settings.ui.rememberStreamBitrateDialogState
+import com.limelight.ligase.feature.stream.application.StreamBitrateUiState
+import com.limelight.ligase.feature.stream.domain.StreamBitratePresetId
 import com.limelight.ligase.library.LibraryRoute
 import com.limelight.ligase.library.LibraryConnectivity
 import com.limelight.ligase.library.ManualLibraryOrderDraft
@@ -112,6 +115,7 @@ internal fun LigaseRootContent(
     layoutCatalogState: LayoutCatalogUiState,
     layoutEditorState: LayoutEditorSessionState,
     pairingState: AttendedPairingUiState,
+    streamBitrateState: StreamBitrateUiState,
     onPageSelected: (LigasePage) -> Unit,
     onInputSelected: (InputDeviceMode) -> Unit,
     onInputConfirmed: () -> Unit,
@@ -142,9 +146,12 @@ internal fun LigaseRootContent(
     onLayoutSave: () -> Unit,
     onLayoutDiscard: () -> Unit,
     onGlobalResolutionClick: () -> Unit,
+    onStreamBitratePresetSelected: (StreamBitratePresetId) -> Unit,
+    onStreamBitrateCustomSubmitted: (String) -> Unit,
     onPairingCancel: () -> Unit,
     onPairingDismiss: () -> Unit,
 ) {
+    val streamBitrateDialogState = rememberStreamBitrateDialogState()
     LigaseComposeTheme(themeMode) {
         Box(
             modifier = Modifier
@@ -397,13 +404,19 @@ internal fun LigaseRootContent(
                                     globalResolution = libraryGlobalResolution,
                                     hdrState = libraryHdrState,
                                     canOperate = libraryCanOperate && libraryOnline,
+                                    streamBitrate = streamBitrateState,
                                 ),
+                                streamBitrateDialogState = streamBitrateDialogState,
                                 onOpenInput = {
                                     navigateToMainPage(LigasePage.INPUT)
                                 },
                                 onThemeSelected = onThemeSelected,
                                 onLanguageSelected = onLanguageSelected,
                                 onGlobalResolutionClick = onGlobalResolutionClick,
+                                onStreamBitratePresetSelected =
+                                    onStreamBitratePresetSelected,
+                                onStreamBitrateCustomSubmitted =
+                                    onStreamBitrateCustomSubmitted,
                                 onAdvancedSettings = onAdvancedSettings,
                             )
                         }

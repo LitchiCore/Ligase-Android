@@ -31,6 +31,8 @@ import com.limelight.ligase.feature.library.domain.LibraryHdrState
 import com.limelight.ligase.feature.library.domain.LibraryLayoutMode
 import com.limelight.ligase.feature.library.domain.LigaseLibraryItem
 import com.limelight.ligase.feature.library.domain.LigaseLibraryStatus
+import com.limelight.ligase.feature.stream.application.StreamBitrateUiState
+import com.limelight.ligase.feature.stream.domain.StreamBitratePresetId
 import com.limelight.ligase.input.LigaseInputCategory
 import com.limelight.ligase.input.LigaseInputDevice
 import com.limelight.ligase.input.LigaseTouchLayout
@@ -74,6 +76,7 @@ fun LigaseRoot(
     layoutCatalogState: LayoutCatalogUiState,
     layoutEditorState: LayoutEditorSessionState,
     pairingState: AttendedPairingUiState,
+    streamBitrateState: StreamBitrateUiState,
     onPageSelected: (LigasePage) -> Unit,
     onInputSelected: (InputDeviceMode) -> Unit,
     onInputConfirmed: () -> Unit,
@@ -104,6 +107,8 @@ fun LigaseRoot(
     onLayoutSave: () -> Unit,
     onLayoutDiscard: () -> Unit,
     onGlobalResolutionClick: () -> Unit,
+    onStreamBitratePresetSelected: (StreamBitratePresetId) -> Unit,
+    onStreamBitrateCustomSubmitted: (String) -> Unit,
     onPairingCancel: () -> Unit,
     onPairingDismiss: () -> Unit,
 ) = LigaseRootContent(
@@ -139,6 +144,7 @@ fun LigaseRoot(
     layoutCatalogState = layoutCatalogState,
     layoutEditorState = layoutEditorState,
     pairingState = pairingState,
+    streamBitrateState = streamBitrateState,
     onPageSelected = onPageSelected,
     onInputSelected = onInputSelected,
     onInputConfirmed = onInputConfirmed,
@@ -169,6 +175,8 @@ fun LigaseRoot(
     onLayoutSave = onLayoutSave,
     onLayoutDiscard = onLayoutDiscard,
     onGlobalResolutionClick = onGlobalResolutionClick,
+    onStreamBitratePresetSelected = onStreamBitratePresetSelected,
+    onStreamBitrateCustomSubmitted = onStreamBitrateCustomSubmitted,
     onPairingCancel = onPairingCancel,
     onPairingDismiss = onPairingDismiss,
 )

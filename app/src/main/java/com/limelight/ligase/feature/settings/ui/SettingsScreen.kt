@@ -37,6 +37,7 @@ import com.limelight.ligase.LigasePageScaffold
 import com.limelight.ligase.LigaseSemanticTheme
 import com.limelight.ligase.LigaseThemeMode
 import com.limelight.ligase.feature.settings.presentation.SettingsUiState
+import com.limelight.ligase.feature.stream.domain.StreamBitratePresetId
 import com.limelight.ligase.inputTitle
 import com.limelight.ligase.library.messageResource
 import com.limelight.ligase.ligaseNavigationContentBottomPadding
@@ -44,10 +45,13 @@ import com.limelight.ligase.ligaseNavigationContentBottomPadding
 @Composable
 fun SettingsScreen(
     state: SettingsUiState,
+    streamBitrateDialogState: StreamBitrateDialogState,
     onOpenInput: () -> Unit,
     onThemeSelected: (LigaseThemeMode) -> Unit,
     onLanguageSelected: (LigaseLanguageMode) -> Unit,
     onGlobalResolutionClick: () -> Unit,
+    onStreamBitratePresetSelected: (StreamBitratePresetId) -> Unit,
+    onStreamBitrateCustomSubmitted: (String) -> Unit,
     onAdvancedSettings: () -> Unit,
 ) {
     LigasePageScaffold(stringResource(R.string.ligase_settings_title)) { pageModifier ->
@@ -99,6 +103,13 @@ fun SettingsScreen(
             item {
                 Spacer(Modifier.height(8.dp))
                 SectionTitle(R.string.ligase_streaming_settings_title)
+                StreamBitrateSetting(
+                    state = state.streamBitrate,
+                    dialogState = streamBitrateDialogState,
+                    onPresetSelected = onStreamBitratePresetSelected,
+                    onCustomSubmitted = onStreamBitrateCustomSubmitted,
+                )
+                Spacer(Modifier.height(12.dp))
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()

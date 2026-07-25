@@ -5,6 +5,10 @@ import com.limelight.ligase.LigaseLanguageMode
 import com.limelight.ligase.LigaseThemeMode
 import com.limelight.ligase.feature.library.data.dto.LigaseResolutionDto
 import com.limelight.ligase.feature.library.domain.LibraryHdrState
+import com.limelight.ligase.feature.stream.application.StreamBitrateUiState
+import com.limelight.ligase.feature.stream.domain.CustomBitrateParseResult
+import com.limelight.ligase.feature.stream.domain.StreamBitratePolicy
+import com.limelight.ligase.feature.stream.domain.StreamBitratePresetId
 
 data class SettingsUiState(
     val selectedInput: InputDeviceMode,
@@ -13,6 +17,7 @@ data class SettingsUiState(
     val globalResolution: LigaseResolutionDto?,
     val hdrState: LibraryHdrState,
     val canOperate: Boolean,
+    val streamBitrate: StreamBitrateUiState,
 ) {
     val inputEnabled: Boolean
         get() = canOperate
@@ -22,4 +27,49 @@ data class SettingsUiState(
 
     val hasResolutionContent: Boolean
         get() = globalResolution != null
+}
+
+sealed interface StreamBitrateDraftValidation {
+    data class Ready(val kbps: Int) : StreamBitrateDraftValidation
+    data object Empty : StreamBitrateDraftValidation
+    data object NotCanonicalNumber : StreamBitrateDraftValidation
+    data object OutOfRange : StreamBitrateDraftValidation
+}
+
+fun validateStreamBitrateDraft(
+    state: StreamBitrateUiState,
+    selectedPresetId: StreamBitratePresetId?,
+    customMbps: String,
+): StreamBitrateDraftValidation {
+    if (selectedPresetId != null) {
+        return state.presets
+            .firstOrNull { it.id == selectedPresetId }
+            ?.let { StreamBitrateDraftValidation.Ready(it.kbps) }
+            ?: StreamBitrateDraftValidation.OutOfRange
+    }
+    return when (val parsed = StreamBitratePolicy.parseCustomMbps(customMbps)) {
+        is CustomBitrateParseResult.Valid -> StreamBitrateDraftValidation.Ready(parsed.kbps)
+        CustomBitrateParseResult.Empty -> StreamBitrateDraftValidation.Empty
+        CustomBitrateParseResult.NotCanonicalNumber ->
+            StreamBitrateDraftValidation.NotCanonicalNumber
+        CustomBitrateParseResult.OutOfRange -> StreamBitrateDraftValidation.OutOfRange
+    }
+}
+
+enum class StreamBitrateSaveNavigation {
+    IDLE,
+    WAITING,
+    CLOSE,
+    KEEP_OPEN,
+}
+
+fun streamBitrateSaveNavigation(
+    pendingKbps: Int?,
+    state: StreamBitrateUiState,
+): StreamBitrateSaveNavigation = when {
+    pendingKbps == null -> StreamBitrateSaveNavigation.IDLE
+    state.saving -> StreamBitrateSaveNavigation.WAITING
+    state.error != null -> StreamBitrateSaveNavigation.KEEP_OPEN
+    state.currentKbps == pendingKbps -> StreamBitrateSaveNavigation.CLOSE
+    else -> StreamBitrateSaveNavigation.WAITING
 }

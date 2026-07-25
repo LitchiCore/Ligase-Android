@@ -1097,4 +1097,16 @@
     <string name="ligase_layout_action_smaller">缩小控件</string>
     <string name="ligase_layout_action_larger">放大控件</string>
     <string name="ligase_layout_action_delete">删除控件</string>
+    <string name="ligase_stream_bitrate">串流码率</string>
+    <string name="ligase_stream_bitrate_current">当前：%1$s Mbps</string>
+    <string name="ligase_stream_bitrate_recommended">按当前视频设置推荐：%1$d Mbps</string>
+    <string name="ligase_stream_bitrate_presets">常用档位</string>
+    <string name="ligase_stream_bitrate_recommended_short">推荐</string>
+    <string name="ligase_stream_bitrate_custom">高级自定义</string>
+    <string name="ligase_stream_bitrate_custom_hint">请输入整数或以 .5 结尾的数值。修改分辨率不会替换你的选择。</string>
+    <string name="ligase_stream_bitrate_empty">请输入码率。</string>
+    <string name="ligase_stream_bitrate_invalid_number">请输入整数或仅保留 .5 的一位小数。</string>
+    <string name="ligase_stream_bitrate_out_of_range">请输入 %1$.1f 到 %2$d Mbps。</string>
+    <string name="ligase_stream_bitrate_write_failed">无法保存码率，请重试。</string>
+    <string name="ligase_save">保存</string>
 </resources>
