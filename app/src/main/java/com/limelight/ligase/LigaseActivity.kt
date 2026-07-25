@@ -54,6 +54,10 @@ import com.limelight.ligase.feature.library.domain.LibrarySyncAutoLoadPolicy
 import com.limelight.ligase.feature.library.domain.LigaseLibraryItem
 import com.limelight.ligase.feature.library.infrastructure.LegacyGameStreamLibraryTransport
 import com.limelight.ligase.feature.layout.editor.LayoutWorkspaceViewModel
+import com.limelight.ligase.feature.pairing.application.HostPairingCoordinator
+import com.limelight.ligase.feature.pairing.application.HostPairingMode
+import com.limelight.ligase.feature.pairing.infrastructure.LegacyPairingResult
+import com.limelight.ligase.feature.pairing.infrastructure.LegacyPairingTransport
 import com.limelight.ligase.library.LibraryConnectivity
 import com.limelight.ligase.library.LibrarySessionError
 import com.limelight.ligase.library.LibrarySessionViewModel
@@ -69,14 +73,10 @@ import com.limelight.ligase.input.LigaseInputLaunchPolicy
 import com.limelight.ligase.input.LigaseTouchLayout
 import com.limelight.ligase.input.LigaseTouchLayoutRepository
 import com.limelight.ligase.input.LigaseTouchOverlayMode
-import com.limelight.ligase.pairing.AttendedPairingCoordinator
-import com.limelight.ligase.pairing.AttendedPairingCrypto
-import com.limelight.ligase.pairing.AttendedPairingRepository
 import com.limelight.ligase.pairing.AttendedPairingViewModel
 import com.limelight.ligase.pairing.LigaseAccessUiPolicy
 import com.limelight.ligase.pairing.LigaseClientAccessMode
 import com.limelight.nvstream.http.ComputerDetails
-import com.limelight.nvstream.http.NvHTTP
 import com.limelight.nvstream.http.PairingManager
 import com.limelight.nvstream.http.PairingManager.PairState
 import com.limelight.nvstream.wol.WakeOnLanSender
@@ -84,10 +84,7 @@ import com.limelight.preferences.PreferenceConfiguration
 import com.limelight.preferences.StreamSettings
 import com.limelight.utils.ServerHelper
 import com.limelight.utils.UiHelper
-import org.xmlpull.v1.XmlPullParserException
-import java.io.FileNotFoundException
 import java.io.IOException
-import java.net.UnknownHostException
 
 class LigaseActivity : AppCompatActivity() {
     private var currentPage by mutableStateOf(LigasePage.HOME)
@@ -118,6 +115,7 @@ class LigaseActivity : AppCompatActivity() {
     private lateinit var inputDeviceRepository: LigaseInputDeviceRepository
     private lateinit var touchLayoutRepository: LigaseTouchLayoutRepository
     private lateinit var pairingViewModel: AttendedPairingViewModel
+    private lateinit var hostPairingCoordinator: HostPairingCoordinator
     private lateinit var librarySessionViewModel: LibrarySessionViewModel
     private lateinit var libraryHostCoordinator: LibraryHostCoordinator
     private lateinit var libraryStreamingSettingsCoordinator:
@@ -200,6 +198,12 @@ class LigaseActivity : AppCompatActivity() {
             ?: if (onboarding) LigasePage.INPUT else LigasePage.HOME
         pendingLibraryHostUuid = savedInstanceState?.getString(STATE_LIBRARY_HOST_UUID)
         pairingViewModel = ViewModelProvider(this)[AttendedPairingViewModel::class.java]
+        hostPairingCoordinator = HostPairingCoordinator(
+            transport = LegacyPairingTransport(this) { managerBinder },
+            attendedViewModel = pairingViewModel,
+            postToMain = { action -> runOnUiThread(action) },
+            beforeLegacyPairing = { stopComputerUpdates(true) },
+        )
         librarySessionViewModel = ViewModelProvider(this)[LibrarySessionViewModel::class.java]
         libraryHostCoordinator = LibraryHostCoordinator(
             session = librarySessionViewModel,
@@ -536,10 +540,8 @@ class LigaseActivity : AppCompatActivity() {
             return
         }
 
-        if (host.ligaseAttendedPairingVersion == 1 &&
-            !host.ligaseAttendedPairingPath.isNullOrBlank()
-        ) {
-            pairHostAttended(host, binder)
+        if (hostPairingCoordinator.modeFor(host) == HostPairingMode.ATTENDED) {
+            pairHostAttended(host)
             return
         }
 
@@ -548,15 +550,12 @@ class LigaseActivity : AppCompatActivity() {
             .setMessage(R.string.ligase_pair_legacy_summary)
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.ligase_pair_continue) { _, _ ->
-                pairHostLegacy(host, binder)
+                pairHostLegacy(host)
             }
             .show()
     }
 
-    private fun pairHostLegacy(
-        host: ComputerDetails,
-        binder: ComputerManagerService.ComputerManagerBinder,
-    ) {
+    private fun pairHostLegacy(host: ComputerDetails) {
         val pin = PairingManager.generatePinString()
         val progressDialog = MaterialAlertDialogBuilder(this)
             .setTitle(R.string.pair_pairing_title)
@@ -568,114 +567,35 @@ class LigaseActivity : AppCompatActivity() {
             .create()
         progressDialog.show()
 
-        Thread {
-            var message: String? = null
-            var success = false
-            try {
-                stopComputerUpdates(true)
-                val http = NvHTTP(
-                    ServerHelper.getCurrentAddressFromComputer(host),
-                    host.httpsPort,
-                    binder.uniqueId,
-                    host.serverCert,
-                    PlatformBinding.getCryptoProvider(this),
-                )
-                if (http.pairState == PairState.PAIRED) {
-                    success = true
-                } else {
-                    val pairing = http.pairingManager
-                    when (pairing.pair(http.getServerInfo(true), pin, null)) {
-                        PairState.PAIRED -> {
-                            success = true
-                            binder.getComputer(host.uuid).serverCert = pairing.pairedCert
-                            binder.invalidateStateForComputer(host.uuid)
-                        }
-                        PairState.PIN_WRONG -> message = getString(R.string.pair_incorrect_pin)
-                        PairState.ALREADY_IN_PROGRESS ->
-                            message = getString(R.string.pair_already_in_progress)
-                        PairState.FAILED -> message = getString(
-                            if (host.runningGameId != 0) R.string.pair_pc_ingame
-                            else R.string.pair_fail,
-                        )
-                        else -> message = getString(R.string.pair_fail)
-                    }
-                }
-            } catch (_: UnknownHostException) {
-                message = getString(R.string.error_unknown_host)
-            } catch (_: FileNotFoundException) {
-                message = getString(R.string.error_404)
-            } catch (error: XmlPullParserException) {
-                message = error.message
-            } catch (error: IOException) {
-                message = error.message
-            }
-
-            runOnUiThread {
+        if (!hostPairingCoordinator.startLegacy(host, pin) { result ->
                 progressDialog.dismiss()
-                if (success) openLibrary(host)
-                else {
-                    Toast.makeText(
-                        this,
-                        message ?: getString(R.string.pair_fail),
-                        Toast.LENGTH_LONG,
-                    ).show()
+                if (result == LegacyPairingResult.Paired) {
+                    openLibrary(host)
+                } else {
+                    val message = when (result) {
+                        LegacyPairingResult.PinWrong -> getString(R.string.pair_incorrect_pin)
+                        LegacyPairingResult.AlreadyInProgress ->
+                            getString(R.string.pair_already_in_progress)
+                        LegacyPairingResult.HostInGame -> getString(R.string.pair_pc_ingame)
+                        LegacyPairingResult.UnknownHost -> getString(R.string.error_unknown_host)
+                        LegacyPairingResult.NotFound -> getString(R.string.error_404)
+                        is LegacyPairingResult.TransportFailure ->
+                            result.message ?: getString(R.string.pair_fail)
+                        LegacyPairingResult.Failed -> getString(R.string.pair_fail)
+                        LegacyPairingResult.Paired -> error("handled above")
+                    }
+                    Toast.makeText(this, message, Toast.LENGTH_LONG).show()
                     startComputerUpdates()
                 }
             }
-        }.start()
+        ) {
+            progressDialog.dismiss()
+        }
     }
 
-    private fun pairHostAttended(
-        host: ComputerDetails,
-        binder: ComputerManagerService.ComputerManagerBinder,
-    ) {
+    private fun pairHostAttended(host: ComputerDetails) {
         try {
-            val cryptoProvider = PlatformBinding.getCryptoProvider(this)
-            val http = NvHTTP(
-                ServerHelper.getCurrentAddressFromComputer(host),
-                host.httpsPort,
-                binder.uniqueId,
-                host.serverCert,
-                cryptoProvider,
-            )
-            val pairingManager = http.pairingManager
-            val coordinator = AttendedPairingCoordinator(
-                repository = AttendedPairingRepository(http),
-                crypto = AttendedPairingCrypto(),
-                clock = SystemClock::elapsedRealtime,
-                legacyPairing = object : AttendedPairingCoordinator.LegacyPairing {
-                    override fun pair(
-                        pin: String,
-                        requestId: String,
-                        expectedCertificateSha256: ByteArray,
-                    ): PairState = pairingManager.pairAttended(
-                        http.getServerInfo(true),
-                        pin,
-                        requestId,
-                        expectedCertificateSha256,
-                    )
-
-                    override fun cancel() {
-                        http.cancelActivePairingCall()
-                    }
-
-                    override fun onPaired(certificate: java.security.cert.X509Certificate?) {
-                        val pairedCertificate = pairingManager.pairedCert ?: return
-                        binder.getComputer(host.uuid).serverCert = pairedCertificate
-                        binder.invalidateStateForComputer(host.uuid)
-                    }
-                },
-                listener = pairingViewModel::update,
-                auditListener = pairingViewModel::updateAudit,
-            )
-            pairingViewModel.start(coordinator, host.uuid) {
-                coordinator.start(
-                    capabilityPath = host.ligaseAttendedPairingPath,
-                    hostUniqueId = host.uuid,
-                    deviceName = attendedDeviceName(),
-                    clientCertificate = cryptoProvider.clientCertificate,
-                )
-            }
+            hostPairingCoordinator.startAttended(host, attendedDeviceName())
         } catch (_: IOException) {
             toast(R.string.pair_pc_offline)
         }
