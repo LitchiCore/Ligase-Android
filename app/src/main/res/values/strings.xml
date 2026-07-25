@@ -1087,6 +1087,16 @@
     <string name="ligase_layout_error_no_draft">The editing session has ended. Return to the hall and open the copy again.</string>
     <string name="ligase_layout_browse">Browse layout hall</string>
     <string name="ligase_layout_edit_current">Edit current layout</string>
+    <string name="ligase_stream_quick_menu_eyebrow">Ligase stream</string>
+    <string name="ligase_stream_quick_menu_summary">Session controls and input tools</string>
+    <string name="ligase_stream_section_session">Session</string>
+    <string name="ligase_stream_section_controls">Input and tools</string>
+    <string name="ligase_stream_section_more">More controls</string>
+    <string name="ligase_stream_section_danger">End session</string>
+    <string name="ligase_stream_continue">Continue playing</string>
+    <string name="ligase_stream_continue_summary">Close this menu and return to the stream</string>
+    <string name="ligase_stream_disconnect_summary">Return to the library while keeping the host game running</string>
+    <string name="ligase_stream_quit_summary">Disconnect and ask the host to close the running game</string>
     <string name="ligase_layout_copy_current">Create editable copy</string>
     <string name="ligase_back">Back</string>
     <string name="ligase_layout_action_select">Select control</string>

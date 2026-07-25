@@ -1073,6 +1073,16 @@
     <string name="ligase_layout_error_no_draft">编辑会话已经结束，请返回大厅重新打开副本。</string>
     <string name="ligase_layout_browse">浏览布局大厅</string>
     <string name="ligase_layout_edit_current">编辑当前布局</string>
+    <string name="ligase_stream_quick_menu_eyebrow">Ligase 串流</string>
+    <string name="ligase_stream_quick_menu_summary">管理当前会话与输入工具</string>
+    <string name="ligase_stream_section_session">当前会话</string>
+    <string name="ligase_stream_section_controls">输入与工具</string>
+    <string name="ligase_stream_section_more">更多控制</string>
+    <string name="ligase_stream_section_danger">结束会话</string>
+    <string name="ligase_stream_continue">继续游戏</string>
+    <string name="ligase_stream_continue_summary">关闭菜单并返回串流画面</string>
+    <string name="ligase_stream_disconnect_summary">返回游戏库，同时让电脑上的游戏继续运行</string>
+    <string name="ligase_stream_quit_summary">断开串流，并要求电脑关闭当前游戏</string>
     <string name="ligase_layout_copy_current">创建可编辑副本</string>
     <string name="ligase_back">返回</string>
     <string name="ligase_layout_action_select">选择控件</string>
