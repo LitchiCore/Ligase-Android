@@ -44,6 +44,7 @@ import com.limelight.ligase.feature.host.infrastructure.LegacyComputerRegistryTr
 import com.limelight.ligase.feature.input.application.InputSelectionCoordinator
 import com.limelight.ligase.feature.input.application.InputSelectionState
 import com.limelight.ligase.feature.library.application.LibraryHostCoordinator
+import com.limelight.ligase.feature.library.application.LibraryManualSortCoordinator
 import com.limelight.ligase.feature.library.application.LibraryStreamingSettingsCoordinator
 import com.limelight.ligase.feature.library.application.LibraryStreamingSettingsResult
 import com.limelight.ligase.feature.library.data.dto.LigaseResolutionDto
@@ -75,7 +76,6 @@ import com.limelight.ligase.library.LibrarySessionError
 import com.limelight.ligase.library.LibrarySessionViewModel
 import com.limelight.ligase.library.LibraryOperationGate
 import com.limelight.ligase.library.ManualLibrarySortAction
-import com.limelight.ligase.library.ManualLibrarySortResult
 import com.limelight.ligase.endpoint.LigaseAddHostDialog
 import com.limelight.ligase.endpoint.LigaseEndpoint
 import com.limelight.ligase.input.LigaseInputCategory
@@ -106,7 +106,6 @@ class LigaseActivity : AppCompatActivity() {
     private var libraryAssetLoader by mutableStateOf<CachedAppAssetLoader?>(null)
     private var pendingLibraryHostUuid: String? = null
     private val syncRepository = LigaseSyncRepository()
-    private val manualSortAction = ManualLibrarySortAction()
     private lateinit var inputSelectionCoordinator: InputSelectionCoordinator
     private lateinit var pairingViewModel: AttendedPairingViewModel
     private lateinit var hostPairingCoordinator: HostPairingCoordinator
@@ -115,6 +114,7 @@ class LigaseActivity : AppCompatActivity() {
     private lateinit var hdrCapabilityProbe: AndroidHdrCapabilityProbe
     private lateinit var librarySessionViewModel: LibrarySessionViewModel
     private lateinit var libraryHostCoordinator: LibraryHostCoordinator
+    private lateinit var libraryManualSortCoordinator: LibraryManualSortCoordinator
     private lateinit var libraryStreamingSettingsCoordinator:
         LibraryStreamingSettingsCoordinator
     private lateinit var layoutWorkspaceViewModel: LayoutWorkspaceViewModel
@@ -205,6 +205,27 @@ class LigaseActivity : AppCompatActivity() {
             onRefreshFailed = { preservedContent, error ->
                 LimeLog.warning("Ligase library sync failed: $error")
                 if (preservedContent) toast(R.string.ligase_refresh_failed)
+            },
+        )
+        libraryManualSortCoordinator = LibraryManualSortCoordinator(
+            session = librarySessionViewModel,
+            action = ManualLibrarySortAction(),
+            repository = syncRepository,
+            httpFactory = libraryHostCoordinator::createHttp,
+            postToMain = { action -> runOnUiThread(action) },
+            onRevisionConflict = {
+                fetchLibrarySync(force = true)
+            },
+            onPermissionDenied = { host ->
+                managerBinder?.invalidateStateForComputer(host.uuid)
+            },
+            onSuccess = { host ->
+                librarySortMode = HostSortMode.MANUAL
+                LigasePreferences.setLibrarySortMode(
+                    this,
+                    host.uuid,
+                    HostSortMode.MANUAL,
+                )
             },
         )
         libraryStreamingSettingsCoordinator = LibraryStreamingSettingsCoordinator(
@@ -731,48 +752,7 @@ class LigaseActivity : AppCompatActivity() {
         val host = libraryHost ?: return
         if (!requireOperate(host)) return
         val snapshot = librarySessionViewModel.state.content?.sync ?: return
-        val ticket = librarySessionViewModel.beginManualSort(host.uuid) ?: return
-        Thread {
-            val result = manualSortAction.submit(
-                snapshot = snapshot,
-                orderedAppUuids = orderedAppUuids,
-                writer = { request ->
-                    syncRepository.updateManualOrder(
-                        libraryHostCoordinator.createHttp(host),
-                        request,
-                    )
-                },
-            )
-            runOnUiThread {
-                val acceptedResult =
-                    if (
-                        result is ManualLibrarySortResult.Success &&
-                        !librarySessionViewModel.applyManualOrder(host.uuid, result.response)
-                    ) {
-                        ManualLibrarySortResult.Failed
-                    } else {
-                        result
-                    }
-                if (acceptedResult is ManualLibrarySortResult.Success) {
-                    librarySortMode = HostSortMode.MANUAL
-                    LigasePreferences.setLibrarySortMode(
-                        this,
-                        host.uuid,
-                        HostSortMode.MANUAL,
-                    )
-                }
-                if (!librarySessionViewModel.acceptManualSort(ticket, acceptedResult)) {
-                    return@runOnUiThread
-                }
-                when (acceptedResult) {
-                    is ManualLibrarySortResult.RevisionConflict ->
-                        fetchLibrarySync(force = true)
-                    ManualLibrarySortResult.PermissionDenied ->
-                        managerBinder?.invalidateStateForComputer(host.uuid)
-                    else -> Unit
-                }
-            }
-        }.start()
+        libraryManualSortCoordinator.submit(host, snapshot, orderedAppUuids)
     }
 
     private fun launchLibraryItem(item: LigaseLibraryItem) {
@@ -1070,6 +1050,9 @@ class LigaseActivity : AppCompatActivity() {
         }
         if (::hostEndpointCoordinator.isInitialized) {
             hostEndpointCoordinator.close()
+        }
+        if (::libraryManualSortCoordinator.isInitialized) {
+            libraryManualSortCoordinator.close()
         }
         stopAppListUpdates()
         disposeLibraryAssets()
