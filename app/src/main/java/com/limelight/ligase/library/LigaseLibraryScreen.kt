@@ -2,9 +2,11 @@ package com.limelight.ligase.library
 
 import com.limelight.ligase.feature.library.domain.HostSortMode
 import com.limelight.ligase.feature.library.domain.LibraryLayoutMode
-import com.limelight.ligase.feature.library.domain.LigaseLibraryAdapter
 import com.limelight.ligase.feature.library.domain.LigaseLibraryItem
 import com.limelight.ligase.feature.library.domain.LigaseLibraryStatus
+import com.limelight.ligase.feature.library.ui.LibraryRouteActions
+import com.limelight.ligase.feature.library.ui.LibraryRouteUiState
+import com.limelight.ligase.feature.library.ui.libraryRoutePresentation
 import com.limelight.ligase.feature.library.ui.components.LibraryBlockingState
 import com.limelight.ligase.feature.library.ui.components.LibraryEmptyState
 import com.limelight.ligase.feature.library.ui.components.LibraryGamePosterCard
@@ -66,52 +68,35 @@ import androidx.compose.ui.unit.dp
 import com.limelight.R
 import com.limelight.grid.assets.CachedAppAssetLoader
 import com.limelight.ligase.ligaseNavigationContentBottomPadding
-import com.limelight.nvstream.http.ComputerDetails
 import com.limelight.nvstream.http.PairingManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LigaseLibraryPage(
-    hosts: List<ComputerDetails>,
-    selectedHost: ComputerDetails?,
-    items: List<LigaseLibraryItem>,
-    loading: Boolean,
-    refreshing: Boolean,
-    status: LigaseLibraryStatus,
-    connectivity: LibraryConnectivity,
-    runningAppId: Int,
-    sortMode: HostSortMode,
-    layoutMode: LibraryLayoutMode,
+fun LibraryRoute(
+    state: LibraryRouteUiState,
+    actions: LibraryRouteActions,
     gridState: LazyGridState,
     assetLoader: CachedAppAssetLoader?,
-    hasOperatePermission: Boolean,
-    actionsEnabled: Boolean,
-    showTopBar: Boolean,
-    onSortModeChanged: (HostSortMode) -> Unit,
-    onLayoutModeChanged: (LibraryLayoutMode) -> Unit,
-    onHostSelected: (ComputerDetails) -> Unit,
-    onAddHost: () -> Unit,
-    onRemoveHost: (ComputerDetails) -> Unit,
-    onLaunch: (LigaseLibraryItem) -> Unit,
-    onConfigure: (LigaseLibraryItem) -> Unit,
-    onRetrySync: () -> Unit,
-    manualOrderDraft: ManualLibraryOrderDraft?,
-    manualSortSaving: Boolean,
-    manualSortEditingEnabled: Boolean,
-    manualSortErrorMessage: Int?,
-    onManualSort: () -> Unit,
-    onManualMove: (movingUuid: String, targetUuid: String) -> Unit,
-    onManualSave: () -> Unit,
-    onManualCancel: () -> Unit,
 ) {
+    val hosts = state.hosts
+    val selectedHost = state.selectedHost
+    val items = state.items
+    val refreshing = state.refreshing
+    val status = state.status
+    val connectivity = state.connectivity
+    val runningAppId = state.runningAppId
+    val sortMode = state.sortMode
+    val layoutMode = state.layoutMode
+    val hasOperatePermission = state.hasOperatePermission
+    val actionsEnabled = state.actionsEnabled
+    val showTopBar = state.showTopBar
+    val manualOrderDraft = state.manualEditor.draft
+    val manualSortSaving = state.manualEditor.saving
+    val manualSortEditingEnabled = state.manualEditor.editingEnabled
+    val manualSortErrorMessage = state.manualEditor.errorMessage
     var query by remember(selectedHost?.uuid) { mutableStateOf("") }
-    // SnapshotStateList keeps the same object identity when its contents change.
-    // Compute this during composition so applist updates invalidate the result.
-    val visibleItems = manualOrderDraft?.entries?.mapNotNull { entry ->
-        items.firstOrNull { item ->
-            item.hostAppUuid.equals(entry.uuid, ignoreCase = true)
-        }
-    } ?: LigaseLibraryAdapter.visibleItems(items, query, sortMode)
+    val presentation = libraryRoutePresentation(state, query)
+    val visibleItems = presentation.visibleItems
     val bottomPadding = ligaseNavigationContentBottomPadding()
     val pullToRefreshState = rememberPullToRefreshState()
     val compactPhoneLandscape =
@@ -149,8 +134,8 @@ fun LigaseLibraryPage(
                     saving = manualSortSaving,
                     editingEnabled = manualSortEditingEnabled,
                     errorMessage = manualSortErrorMessage,
-                    onSave = onManualSave,
-                    onCancel = onManualCancel,
+                    onSave = actions.onManualSave,
+                    onCancel = actions.onManualCancel,
                 )
             }
         },
@@ -159,7 +144,7 @@ fun LigaseLibraryPage(
     ) { scaffoldPadding ->
         PullToRefreshBox(
             isRefreshing = refreshing,
-            onRefresh = onRetrySync,
+            onRefresh = actions.onRetrySync,
             state = pullToRefreshState,
             modifier = Modifier
                 .fillMaxSize()
@@ -240,34 +225,27 @@ fun LigaseLibraryPage(
                 LibraryHostStatus(
                     hosts = hosts,
                     selectedHost = selectedHost,
-                    onHostSelected = onHostSelected,
-                    onAddHost = onAddHost,
-                    onRemoveHost = onRemoveHost,
+                    onHostSelected = actions.onHostSelected,
+                    onAddHost = actions.onAddHost,
+                    onRemoveHost = actions.onRemoveHost,
                     connectivity = connectivity,
-                    onRetry = onRetrySync,
+                    onRetry = actions.onRetrySync,
                 )
             }
 
             if (selectedHost == null) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    LibraryNoHostSelected(onAddHost)
+                    LibraryNoHostSelected(actions.onAddHost)
                 }
             } else {
-                val contentPresentation = libraryContentPresentation(
-                    status = status,
-                    hasItems = items.isNotEmpty(),
-                )
+                val contentPresentation = presentation.content
                 if (contentPresentation == LibraryContentPresentation.CONTENT) {
-                    val preservedBanner = preservedLibraryBanner(
-                        status = status,
-                        hasItems = items.isNotEmpty(),
-                        connectivity = connectivity,
-                    )
+                    val preservedBanner = presentation.preservedBanner
                     if (preservedBanner != null) {
                         item(span = { GridItemSpan(maxLineSpan) }) {
                             LibraryPreservedContentBanner(
                                 banner = preservedBanner,
-                                onRetry = onRetrySync,
+                                onRetry = actions.onRetrySync,
                             )
                         }
                     }
@@ -283,14 +261,11 @@ fun LigaseLibraryPage(
                                 count = visibleItems.size,
                                 sortMode = sortMode,
                                 layoutMode = layoutMode,
-                                canSortByLastPlayed = items.any {
-                                    !it.isSystem && !it.lastPlayedAt.isNullOrBlank()
-                                },
-                                canManualSort = actionsEnabled &&
-                                    items.count { it.hostAppUuid != null } > 1,
-                                onSortModeChanged = onSortModeChanged,
-                                onLayoutModeChanged = onLayoutModeChanged,
-                                onManualSort = onManualSort,
+                                canSortByLastPlayed = presentation.canSortByLastPlayed,
+                                canManualSort = presentation.canManualSort,
+                                onSortModeChanged = actions.onSortModeChanged,
+                                onLayoutModeChanged = actions.onLayoutModeChanged,
+                                onManualSort = actions.onManualSort,
                             )
                         }
                     }
@@ -299,7 +274,11 @@ fun LigaseLibraryPage(
                             LibraryEmptyState(
                                 loading = false,
                                 query = query,
-                                onRefresh = if (query.isBlank()) onRetrySync else null,
+                                onRefresh = if (query.isBlank()) {
+                                    actions.onRetrySync
+                                } else {
+                                    null
+                                },
                             )
                         }
                     } else {
@@ -311,7 +290,7 @@ fun LigaseLibraryPage(
                                 item = item,
                                 draft = manualOrderDraft,
                                 enabled = manualSortEditingEnabled && !manualSortSaving,
-                                onMove = onManualMove,
+                                onMove = actions.onManualMove,
                             )
                             if (layoutMode == LibraryLayoutMode.LIST) {
                                 LibraryGameRowCard(
@@ -321,8 +300,8 @@ fun LigaseLibraryPage(
                                     assetLoader = assetLoader,
                                     canOperate = actionsEnabled && manualOrderDraft == null,
                                     manualEditing = manualOrderDraft != null,
-                                    onClick = { onLaunch(item) },
-                                    onConfigure = { onConfigure(item) },
+                                    onClick = { actions.onLaunch(item) },
+                                    onConfigure = { actions.onConfigure(item) },
                                 )
                             } else {
                                 LibraryGamePosterCard(
@@ -332,8 +311,8 @@ fun LigaseLibraryPage(
                                     assetLoader = assetLoader,
                                     canOperate = actionsEnabled && manualOrderDraft == null,
                                     manualEditing = manualOrderDraft != null,
-                                    onClick = { onLaunch(item) },
-                                    onConfigure = { onConfigure(item) },
+                                    onClick = { actions.onLaunch(item) },
+                                    onConfigure = { actions.onConfigure(item) },
                                 )
                             }
                         }
@@ -345,7 +324,7 @@ fun LigaseLibraryPage(
                                 LibraryBlockingState(
                                     title = R.string.ligase_host_incompatible_title,
                                     summary = R.string.ligase_host_incompatible_summary,
-                                    onRetry = onRetrySync,
+                                    onRetry = actions.onRetrySync,
                                 )
                             }
                         }
@@ -354,7 +333,7 @@ fun LigaseLibraryPage(
                                 LibraryBlockingState(
                                     title = R.string.ligase_sync_error_title,
                                     summary = R.string.ligase_sync_error_summary,
-                                    onRetry = onRetrySync,
+                                    onRetry = actions.onRetrySync,
                                 )
                             }
                         }
@@ -363,7 +342,7 @@ fun LigaseLibraryPage(
                                 LibraryBlockingState(
                                     title = R.string.ligase_sync_permission_error_title,
                                     summary = R.string.ligase_sync_permission_error_summary,
-                                    onRetry = onRetrySync,
+                                    onRetry = actions.onRetrySync,
                                 )
                             }
                         }
@@ -381,3 +360,4 @@ fun LigaseLibraryPage(
         }
     }
 }
+import com.limelight.nvstream.http.ComputerDetails

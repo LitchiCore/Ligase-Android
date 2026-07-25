@@ -54,9 +54,12 @@ import com.limelight.ligase.feature.layout.presentation.LayoutSaveNavigation
 import com.limelight.ligase.feature.layout.presentation.layoutSaveNavigation
 import com.limelight.ligase.feature.layout.ui.LayoutEditorScreen
 import com.limelight.ligase.feature.layout.ui.LayoutHallScreen
+import com.limelight.ligase.feature.library.ui.LibraryManualEditorUiState
+import com.limelight.ligase.feature.library.ui.LibraryRouteActions
+import com.limelight.ligase.feature.library.ui.LibraryRouteUiState
 import com.limelight.ligase.feature.settings.presentation.SettingsUiState
 import com.limelight.ligase.feature.settings.ui.SettingsScreen
-import com.limelight.ligase.library.LigaseLibraryPage
+import com.limelight.ligase.library.LibraryRoute
 import com.limelight.ligase.library.LibraryConnectivity
 import com.limelight.ligase.library.ManualLibraryOrderDraft
 import com.limelight.ligase.library.ManualLibrarySortActionState
@@ -282,66 +285,74 @@ fun LigaseRoot(
                         label = "Ligase page",
                     ) { page ->
                         when (page) {
-                            LigasePage.HOME -> LigaseLibraryPage(
-                                hosts = hosts,
-                                selectedHost = libraryHost,
-                                items = libraryItems,
-                                loading = libraryLoading,
-                                refreshing = libraryRefreshing,
-                                status = libraryStatus,
-                                connectivity = libraryConnectivity,
-                                runningAppId = libraryRunningAppId,
-                                sortMode = librarySortMode,
-                                layoutMode = libraryLayoutMode,
-                                gridState = libraryGridState,
-                                assetLoader = libraryAssetLoader,
-                                hasOperatePermission = libraryCanConfigureInput,
-                                actionsEnabled = libraryCanConfigureInput && libraryOnline,
-                                showTopBar =
-                                    navigationPlacement != LigaseNavigationPlacement.SIDE,
-                                onSortModeChanged = onLibrarySortModeChanged,
-                                onLayoutModeChanged = onLibraryLayoutModeChanged,
-                                onHostSelected = onHostClick,
-                                onAddHost = onAddHost,
-                                onRemoveHost = onRemoveHost,
-                                onLaunch = onLibraryLaunch,
-                                onConfigure = onLibraryConfigure,
-                                onRetrySync = onLibraryRetrySync,
-                                manualOrderDraft = manualOrderDraft,
-                                manualSortSaving = manualSortState.saving,
-                                manualSortEditingEnabled = libraryCanOperate &&
-                                    libraryOnline &&
-                                    !(
-                                        manualSortState.error ==
-                                            ManualLibrarySortError.REVISION_CONFLICT &&
-                                            manualConflictPending
+                            LigasePage.HOME -> LibraryRoute(
+                                state = LibraryRouteUiState(
+                                    hosts = hosts,
+                                    selectedHost = libraryHost,
+                                    items = libraryItems,
+                                    loading = libraryLoading,
+                                    refreshing = libraryRefreshing,
+                                    status = libraryStatus,
+                                    connectivity = libraryConnectivity,
+                                    runningAppId = libraryRunningAppId,
+                                    sortMode = librarySortMode,
+                                    layoutMode = libraryLayoutMode,
+                                    hasOperatePermission = libraryCanConfigureInput,
+                                    actionsEnabled = libraryCanConfigureInput && libraryOnline,
+                                    showTopBar =
+                                        navigationPlacement != LigaseNavigationPlacement.SIDE,
+                                    manualEditor = LibraryManualEditorUiState(
+                                        draft = manualOrderDraft,
+                                        saving = manualSortState.saving,
+                                        editingEnabled = libraryCanOperate &&
+                                            libraryOnline &&
+                                            !(
+                                                manualSortState.error ==
+                                                    ManualLibrarySortError.REVISION_CONFLICT &&
+                                                    manualConflictPending
+                                            ),
+                                        errorMessage =
+                                            manualSortErrorMessage(manualSortState.error),
                                     ),
-                                manualSortErrorMessage =
-                                    manualSortErrorMessage(manualSortState.error),
-                                onManualSort = {
-                                    if (libraryCanOperate && libraryOnline) {
-                                        manualOrderDraft =
-                                            ManualLibraryOrderDraft.fromLibraryItems(libraryItems)
+                                ),
+                                actions = LibraryRouteActions(
+                                    onSortModeChanged = onLibrarySortModeChanged,
+                                    onLayoutModeChanged = onLibraryLayoutModeChanged,
+                                    onHostSelected = onHostClick,
+                                    onAddHost = onAddHost,
+                                    onRemoveHost = onRemoveHost,
+                                    onLaunch = onLibraryLaunch,
+                                    onConfigure = onLibraryConfigure,
+                                    onRetrySync = onLibraryRetrySync,
+                                    onManualSort = {
+                                        if (libraryCanOperate && libraryOnline) {
+                                            manualOrderDraft =
+                                                ManualLibraryOrderDraft.fromLibraryItems(
+                                                    libraryItems,
+                                                )
+                                            manualConflictRevision = null
+                                            manualConflictPending = false
+                                        }
+                                    },
+                                    onManualMove = { movingUuid, targetUuid ->
+                                        manualOrderDraft = manualOrderDraft?.move(
+                                            movingUuid,
+                                            targetUuid,
+                                        )
+                                    },
+                                    onManualSave = {
+                                        manualOrderDraft?.let { draft ->
+                                            onManualOrderSubmit(draft.orderedPublishedUuids)
+                                        }
+                                    },
+                                    onManualCancel = {
+                                        manualOrderDraft = null
                                         manualConflictRevision = null
                                         manualConflictPending = false
-                                    }
-                                },
-                                onManualMove = { movingUuid, targetUuid ->
-                                    manualOrderDraft = manualOrderDraft?.move(
-                                        movingUuid,
-                                        targetUuid,
-                                    )
-                                },
-                                onManualSave = {
-                                    manualOrderDraft?.let { draft ->
-                                        onManualOrderSubmit(draft.orderedPublishedUuids)
-                                    }
-                                },
-                                onManualCancel = {
-                                    manualOrderDraft = null
-                                    manualConflictRevision = null
-                                    manualConflictPending = false
-                                },
+                                    },
+                                ),
+                                gridState = libraryGridState,
+                                assetLoader = libraryAssetLoader,
                             )
                             LigasePage.INPUT -> LigaseInputPage(
                                 selectedInput = selectedInput,
