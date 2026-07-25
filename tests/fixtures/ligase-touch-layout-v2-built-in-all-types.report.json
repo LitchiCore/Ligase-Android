@@ -1,0 +1,12 @@
+{
+  "result": "converted",
+  "sourceFormat": "artemis-touchkit-layout",
+  "legacySourceReference": "OSC_Keyboard",
+  "layoutId": "00000000-0000-0000-0000-000000000001",
+  "revision": 1,
+  "variantId": "00000000-0000-0000-0000-000000000002",
+  "elementCount": 10,
+  "contentHash": "sha256:3deee988ef529b34203b707beeced9a5233eccf3f0aca87f0dedef9494f1c5fd",
+  "anchorConversion": "explicitLeftTopNoInference",
+  "drawOrderEvidence": "authoritativeLegacyMetadata"
+}

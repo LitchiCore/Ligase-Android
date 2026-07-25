@@ -1,0 +1,30 @@
+{
+  "format": "artemis-touchkit-layout",
+  "version": 1,
+  "name": "Built-in all-types conversion fixture",
+  "sourceLayoutId": "OSC_Keyboard",
+  "preferences": {
+    "__touchkit_layout_format_version": {"type": "int", "value": 2},
+    "__touchkit_canvas_width": {"type": "int", "value": 1920},
+    "__touchkit_canvas_height": {"type": "int", "value": 1080},
+    "__touchkit_deleted_base_elements": {"type": "string", "value": "[]"},
+    "__touchkit_dynamic_elements": {
+      "type": "string",
+      "value": "[{\"type\":0,\"name\":\"A\",\"code\":29,\"elementId\":\"fixture_key\"},{\"type\":1,\"name\":\"ML\",\"code\":1,\"elementId\":\"fixture_mouse\"},{\"type\":2,\"upCode\":51,\"downCode\":47,\"leftCode\":29,\"rightCode\":32,\"middleCode\":62,\"elementId\":\"fixture_analog\"},{\"type\":3,\"upCode\":51,\"downCode\":47,\"leftCode\":29,\"rightCode\":32,\"elementId\":\"fixture_dpad\"},{\"type\":4,\"name\":\"Pair\",\"keys\":[\"A\",\"D\"],\"sticky\":false,\"elementId\":\"fixture_custom\"},{\"type\":5,\"name\":\"Wheel\",\"elementId\":\"fixture_radial\"},{\"type\":6,\"name\":\"Scroll\",\"scroll\":1,\"elementId\":\"fixture_scroll\"},{\"type\":7,\"name\":\"Combo\",\"elementId\":\"fixture_combo\"},{\"type\":8,\"name\":\"Keyboard\",\"elementId\":\"fixture_ime\"},{\"type\":9,\"name\":\"Gyro\",\"elementId\":\"fixture_gyro\"}]"
+    },
+    "__touchkit_authoritative_draw_order": {
+      "type": "string",
+      "value": "[\"fixture_key\",\"fixture_mouse\",\"fixture_analog\",\"fixture_dpad\",\"fixture_custom\",\"fixture_radial\",\"fixture_scroll\",\"fixture_combo\",\"fixture_ime\",\"fixture_gyro\"]"
+    },
+    "fixture_key": {"type": "string", "value": "{\"LEFT\":20,\"TOP\":20,\"WIDTH\":80,\"HEIGHT\":80,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"A\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\",\"EDITABLE_KEY_CODE\":29,\"SHOW_PHYSICAL_KEY_NAMES\":false}"},
+    "fixture_mouse": {"type": "string", "value": "{\"LEFT\":120,\"TOP\":20,\"WIDTH\":80,\"HEIGHT\":80,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"ML\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"TRIGGER_MODE\":\"HOLD\"}"},
+    "fixture_analog": {"type": "string", "value": "{\"LEFT\":220,\"TOP\":20,\"WIDTH\":180,\"HEIGHT\":180,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"STICK_BINDINGS\":\"上=W\\n下=S\\n左=A\\n右=D\\n中=1\"}"},
+    "fixture_dpad": {"type": "string", "value": "{\"LEFT\":420,\"TOP\":20,\"WIDTH\":180,\"HEIGHT\":180,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"STICK_BINDINGS\":\"上=W\\n下=S\\n左=A\\n右=D\"}"},
+    "fixture_custom": {"type": "string", "value": "{\"LEFT\":620,\"TOP\":20,\"WIDTH\":100,\"HEIGHT\":100,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Pair\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"RECTANGLE\",\"TRIGGER_MODE\":\"HOLD\"}"},
+    "fixture_radial": {"type": "string", "value": "{\"LEFT\":740,\"TOP\":20,\"WIDTH\":240,\"HEIGHT\":240,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"RADIAL_NAME\":\"Wheel\",\"RADIAL_SPEC\":\"F1=One\\nF2=Two\"}"},
+    "fixture_scroll": {"type": "string", "value": "{\"LEFT\":1000,\"TOP\":20,\"WIDTH\":80,\"HEIGHT\":80,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Up\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"SCROLL_STEP\":4,\"CONTINUOUS_SCROLL\":true,\"SCROLL_CADENCE_MS\":120,\"TRIGGER_MODE\":\"HOLD\"}"},
+    "fixture_combo": {"type": "string", "value": "{\"LEFT\":1100,\"TOP\":20,\"WIDTH\":80,\"HEIGHT\":80,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"LABEL\":\"Alt+1\",\"DESCRIPTION\":\"\",\"BUTTON_SHAPE\":\"CIRCLE\",\"COMBO_SPEC\":\"LeftAlt+1\",\"TRIGGER_MODE\":\"HOLD\"}"},
+    "fixture_ime": {"type": "string", "value": "{\"LEFT\":1200,\"TOP\":20,\"WIDTH\":80,\"HEIGHT\":80,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42}"},
+    "fixture_gyro": {"type": "string", "value": "{\"LEFT\":1300,\"TOP\":20,\"WIDTH\":80,\"HEIGHT\":80,\"ENABLED\":true,\"HIDDEN\":false,\"BACKGROUND_OPACITY\":42,\"GYRO_SENSITIVITY\":100,\"GYRO_DEADZONE\":0,\"GYRO_INVERT_X\":false,\"GYRO_INVERT_Y\":false,\"GYRO_TARGET\":\"mouse\",\"GYRO_FRAME\":\"screen\",\"GYRO_AXES\":\"yawPitch\"}"}
+  }
+}

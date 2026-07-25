@@ -1,0 +1,564 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://litchicore.example/schema/ligase-touch-layout-v2.schema.json",
+  "title": "Ligase Touch Layout v2 content artifact",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "schemaVersion",
+    "layoutId",
+    "revision",
+    "displayName",
+    "extensions",
+    "variants",
+    "contentHash"
+  ],
+  "properties": {
+    "format": {"const": "ligase-touch-layout"},
+    "schemaVersion": {"const": 2},
+    "layoutId": {"$ref": "#/$defs/uuidD"},
+    "revision": {"$ref": "#/$defs/safePositiveInteger"},
+    "displayName": {"$ref": "#/$defs/name80"},
+    "extensions": {"$ref": "#/$defs/extensionsRoot"},
+    "variants": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {"$ref": "#/$defs/variant"}
+    },
+    "contentHash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  },
+  "$defs": {
+    "uuidD": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "safeInteger": {
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
+    },
+    "safePositiveInteger": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "cleanString": {
+      "type": "string",
+      "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]*$"
+    },
+    "name80": {
+      "allOf": [
+        {"$ref": "#/$defs/cleanString"},
+        {"minLength": 1, "maxLength": 80}
+      ]
+    },
+    "label32": {
+      "allOf": [
+        {"$ref": "#/$defs/cleanString"},
+        {"minLength": 1, "maxLength": 32}
+      ]
+    },
+    "extensionsRoot": {
+      "type": "object",
+      "maxProperties": 32,
+      "propertyNames": {
+        "allOf": [
+          {"$ref": "#/$defs/cleanString"},
+          {"minLength": 1, "maxLength": 64}
+        ]
+      },
+      "additionalProperties": {"$ref": "#/$defs/extensionValue0"}
+    },
+    "extensionScalar": {
+      "oneOf": [
+        {"type": "null"},
+        {"type": "boolean"},
+        {"$ref": "#/$defs/safeInteger"},
+        {
+          "allOf": [
+            {"$ref": "#/$defs/cleanString"},
+            {"maxLength": 256}
+          ]
+        }
+      ]
+    },
+    "extensionValue0": {
+      "oneOf": [
+        {"$ref": "#/$defs/extensionScalar"},
+        {
+          "type": "array",
+          "maxItems": 32,
+          "items": {"$ref": "#/$defs/extensionValue1"}
+        },
+        {
+          "type": "object",
+          "maxProperties": 32,
+          "propertyNames": {
+            "allOf": [
+              {"$ref": "#/$defs/cleanString"},
+              {"minLength": 1, "maxLength": 64}
+            ]
+          },
+          "additionalProperties": {"$ref": "#/$defs/extensionValue1"}
+        }
+      ]
+    },
+    "extensionValue1": {
+      "oneOf": [
+        {"$ref": "#/$defs/extensionScalar"},
+        {
+          "type": "array",
+          "maxItems": 32,
+          "items": {"$ref": "#/$defs/extensionValue2"}
+        },
+        {
+          "type": "object",
+          "maxProperties": 32,
+          "propertyNames": {"allOf": [{"$ref": "#/$defs/cleanString"}, {"minLength": 1, "maxLength": 64}]},
+          "additionalProperties": {"$ref": "#/$defs/extensionValue2"}
+        }
+      ]
+    },
+    "extensionValue2": {
+      "oneOf": [
+        {"$ref": "#/$defs/extensionScalar"},
+        {
+          "type": "array",
+          "maxItems": 32,
+          "items": {"$ref": "#/$defs/extensionValue3"}
+        },
+        {
+          "type": "object",
+          "maxProperties": 32,
+          "propertyNames": {"allOf": [{"$ref": "#/$defs/cleanString"}, {"minLength": 1, "maxLength": 64}]},
+          "additionalProperties": {"$ref": "#/$defs/extensionValue3"}
+        }
+      ]
+    },
+    "extensionValue3": {
+      "oneOf": [
+        {"$ref": "#/$defs/extensionScalar"},
+        {
+          "type": "array",
+          "maxItems": 32,
+          "items": {"$ref": "#/$defs/extensionValue4"}
+        },
+        {
+          "type": "object",
+          "maxProperties": 32,
+          "propertyNames": {"allOf": [{"$ref": "#/$defs/cleanString"}, {"minLength": 1, "maxLength": 64}]},
+          "additionalProperties": {"$ref": "#/$defs/extensionValue4"}
+        }
+      ]
+    },
+    "extensionValue4": {
+      "oneOf": [
+        {"$ref": "#/$defs/extensionScalar"},
+        {
+          "type": "array",
+          "maxItems": 32,
+          "items": {"$ref": "#/$defs/extensionValue5"}
+        },
+        {
+          "type": "object",
+          "maxProperties": 32,
+          "propertyNames": {"allOf": [{"$ref": "#/$defs/cleanString"}, {"minLength": 1, "maxLength": 64}]},
+          "additionalProperties": {"$ref": "#/$defs/extensionValue5"}
+        }
+      ]
+    },
+    "extensionValue5": {
+      "oneOf": [
+        {"$ref": "#/$defs/extensionScalar"},
+        {
+          "type": "array",
+          "maxItems": 32,
+          "items": {"$ref": "#/$defs/extensionValue6"}
+        },
+        {
+          "type": "object",
+          "maxProperties": 32,
+          "propertyNames": {"allOf": [{"$ref": "#/$defs/cleanString"}, {"minLength": 1, "maxLength": 64}]},
+          "additionalProperties": {"$ref": "#/$defs/extensionValue6"}
+        }
+      ]
+    },
+    "extensionValue6": {
+      "$ref": "#/$defs/extensionScalar"
+    },
+    "ratio": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["numerator", "denominator"],
+      "properties": {
+        "numerator": {"type": "integer", "minimum": 1, "maximum": 32768},
+        "denominator": {"type": "integer", "minimum": 1, "maximum": 32768}
+      }
+    },
+    "resolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height"],
+      "properties": {
+        "width": {"type": "integer", "minimum": 1, "maximum": 32768},
+        "height": {"type": "integer", "minimum": 1, "maximum": 32768}
+      }
+    },
+    "recommendation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "preferredAspectRatio",
+        "minAspectRatio",
+        "maxAspectRatio",
+        "minShortestSideDp",
+        "minTouchTargetDp",
+        "safeAreaPolicy",
+        "referenceResolution"
+      ],
+      "properties": {
+        "preferredAspectRatio": {"$ref": "#/$defs/ratio"},
+        "minAspectRatio": {"$ref": "#/$defs/ratio"},
+        "maxAspectRatio": {"$ref": "#/$defs/ratio"},
+        "minShortestSideDp": {"type": "integer", "minimum": 1, "maximum": 4096},
+        "minTouchTargetDp": {"type": "integer", "minimum": 1, "maximum": 256},
+        "safeAreaPolicy": {
+          "enum": ["videoContent", "videoContentAndSystemInsets"]
+        },
+        "referenceDensityDpi": {"type": "integer", "minimum": 1, "maximum": 4096},
+        "referenceResolution": {"$ref": "#/$defs/resolution"}
+      }
+    },
+    "variant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "variantId",
+        "deviceClasses",
+        "orientations",
+        "recommendation",
+        "canvas",
+        "elements"
+      ],
+      "properties": {
+        "variantId": {"$ref": "#/$defs/uuidD"},
+        "deviceClasses": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {"enum": ["phone", "tablet"]}
+        },
+        "orientations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {"enum": ["portrait", "landscape"]}
+        },
+        "recommendation": {"$ref": "#/$defs/recommendation"},
+        "canvas": {"$ref": "#/$defs/resolution"},
+        "elements": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 512,
+          "items": {"$ref": "#/$defs/element"}
+        }
+      }
+    },
+    "rect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "width", "height"],
+      "properties": {
+        "x": {"type": "integer", "minimum": 0, "maximum": 32767},
+        "y": {"type": "integer", "minimum": 0, "maximum": 32767},
+        "width": {"type": "integer", "minimum": 1, "maximum": 32768},
+        "height": {"type": "integer", "minimum": 1, "maximum": 32768}
+      }
+    },
+    "appearance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "description", "shape", "showPhysicalKeyNames"],
+      "properties": {
+        "label": {
+          "allOf": [
+            {"$ref": "#/$defs/cleanString"},
+            {"maxLength": 32}
+          ]
+        },
+        "description": {
+          "allOf": [
+            {"$ref": "#/$defs/cleanString"},
+            {"maxLength": 80}
+          ]
+        },
+        "shape": {"enum": ["circle", "rectangle", "roundedrectangle"]},
+        "showPhysicalKeyNames": {"type": "boolean"}
+      }
+    },
+    "inputCode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["namespace", "code"],
+      "properties": {
+        "namespace": {"enum": ["androidKeyCode", "usbHidKeyboardUsage"]},
+        "code": {"type": "integer", "minimum": 0, "maximum": 65535}
+      }
+    },
+    "inputCodeList": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {"$ref": "#/$defs/inputCode"}
+    },
+    "trigger": {"enum": ["hold", "toggle", "tap", "timedHold"]},
+    "keyboardPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["payloadKind", "inputCode", "appearance", "trigger", "timedHoldMs"],
+      "properties": {
+        "payloadKind": {"const": "keyboard"},
+        "inputCode": {"$ref": "#/$defs/inputCode"},
+        "appearance": {"$ref": "#/$defs/appearance"},
+        "trigger": {"$ref": "#/$defs/trigger"},
+        "timedHoldMs": {"type": ["integer", "null"], "minimum": 1, "maximum": 60000}
+      }
+    },
+    "mousePayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["payloadKind", "button", "appearance", "trigger", "timedHoldMs"],
+      "properties": {
+        "payloadKind": {"const": "mouse"},
+        "button": {"enum": ["primary", "secondary", "middle", "back", "forward"]},
+        "appearance": {"$ref": "#/$defs/appearance"},
+        "trigger": {"$ref": "#/$defs/trigger"},
+        "timedHoldMs": {"type": ["integer", "null"], "minimum": 1, "maximum": 60000}
+      }
+    },
+    "directionalBase": {
+      "type": "object",
+      "required": ["payloadKind", "up", "down", "left", "right", "diagonalPolicy"],
+      "properties": {
+        "up": {"$ref": "#/$defs/inputCodeList"},
+        "down": {"$ref": "#/$defs/inputCodeList"},
+        "left": {"$ref": "#/$defs/inputCodeList"},
+        "right": {"$ref": "#/$defs/inputCodeList"},
+        "press": {"$ref": "#/$defs/inputCodeList"}
+      }
+    },
+    "analogPayload": {
+      "allOf": [
+        {"$ref": "#/$defs/directionalBase"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["payloadKind", "up", "down", "left", "right", "diagonalPolicy"],
+          "properties": {
+            "payloadKind": {"const": "analog"},
+            "up": {"$ref": "#/$defs/inputCodeList"},
+            "down": {"$ref": "#/$defs/inputCodeList"},
+            "left": {"$ref": "#/$defs/inputCodeList"},
+            "right": {"$ref": "#/$defs/inputCodeList"},
+            "press": {"$ref": "#/$defs/inputCodeList"},
+            "diagonalPolicy": {"const": "vector"}
+          }
+        }
+      ]
+    },
+    "dpadPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["payloadKind", "up", "down", "left", "right", "diagonalPolicy"],
+      "properties": {
+        "payloadKind": {"const": "dpad"},
+        "up": {"$ref": "#/$defs/inputCodeList"},
+        "down": {"$ref": "#/$defs/inputCodeList"},
+        "left": {"$ref": "#/$defs/inputCodeList"},
+        "right": {"$ref": "#/$defs/inputCodeList"},
+        "diagonalPolicy": {"enum": ["allowTwoDirections", "dominantAxis"]}
+      }
+    },
+    "chordPayloadProperties": {
+      "type": "object",
+      "properties": {
+        "keys": {"$ref": "#/$defs/inputCodeList"},
+        "pressOrder": {"const": "listed"},
+        "releaseOrder": {"const": "reverseListed"},
+        "trigger": {"$ref": "#/$defs/trigger"},
+        "timedHoldMs": {"type": ["integer", "null"], "minimum": 1, "maximum": 60000},
+        "appearance": {"$ref": "#/$defs/appearance"}
+      }
+    },
+    "customKeysPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "payloadKind", "keys", "pressOrder", "releaseOrder", "trigger",
+        "timedHoldMs", "appearance", "sticky"
+      ],
+      "properties": {
+        "payloadKind": {"const": "customKeys"},
+        "keys": {"$ref": "#/$defs/inputCodeList"},
+        "pressOrder": {"const": "listed"},
+        "releaseOrder": {"const": "reverseListed"},
+        "trigger": {"$ref": "#/$defs/trigger"},
+        "timedHoldMs": {"type": ["integer", "null"], "minimum": 1, "maximum": 60000},
+        "appearance": {"$ref": "#/$defs/appearance"},
+        "sticky": {"type": "boolean"}
+      }
+    },
+    "comboPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "payloadKind", "keys", "pressOrder", "releaseOrder", "trigger",
+        "timedHoldMs", "appearance"
+      ],
+      "properties": {
+        "payloadKind": {"const": "combo"},
+        "keys": {"$ref": "#/$defs/inputCodeList"},
+        "pressOrder": {"const": "listed"},
+        "releaseOrder": {"const": "reverseListed"},
+        "trigger": {"$ref": "#/$defs/trigger"},
+        "timedHoldMs": {"type": ["integer", "null"], "minimum": 1, "maximum": 60000},
+        "appearance": {"$ref": "#/$defs/appearance"}
+      }
+    },
+    "radialAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["keys", "label"],
+      "properties": {
+        "keys": {"$ref": "#/$defs/inputCodeList"},
+        "label": {"$ref": "#/$defs/label32"}
+      }
+    },
+    "radialPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "payloadKind", "label", "startAngleMilliDegrees", "direction",
+        "boundaryPolicy", "actions"
+      ],
+      "properties": {
+        "payloadKind": {"const": "radial"},
+        "label": {"$ref": "#/$defs/label32"},
+        "startAngleMilliDegrees": {"const": -90000},
+        "direction": {"const": "clockwise"},
+        "boundaryPolicy": {"const": "clockwiseInclusive"},
+        "actions": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 16,
+          "items": {"$ref": "#/$defs/radialAction"}
+        }
+      }
+    },
+    "scrollPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "payloadKind", "direction", "stepUnit", "step", "continuous",
+        "cadenceMs", "appearance", "trigger", "timedHoldMs"
+      ],
+      "properties": {
+        "payloadKind": {"const": "scroll"},
+        "direction": {
+          "enum": [
+            "verticalPositive", "verticalNegative",
+            "horizontalPositive", "horizontalNegative"
+          ]
+        },
+        "stepUnit": {"const": "wheelDetent"},
+        "step": {"type": "integer", "minimum": 1, "maximum": 120},
+        "continuous": {"type": "boolean"},
+        "cadenceMs": {"type": ["integer", "null"], "minimum": 16, "maximum": 1000},
+        "appearance": {"$ref": "#/$defs/appearance"},
+        "trigger": {"$ref": "#/$defs/trigger"},
+        "timedHoldMs": {"type": ["integer", "null"], "minimum": 1, "maximum": 60000}
+      }
+    },
+    "softKeyboardPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["payloadKind", "action", "executionScope"],
+      "properties": {
+        "payloadKind": {"const": "softKeyboard"},
+        "action": {"const": "openSystemIme"},
+        "executionScope": {"const": "androidLocal"}
+      }
+    },
+    "gyroPayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "payloadKind", "target", "frame", "axes", "scaleUnit", "scale",
+        "deadzoneMilliDegreesPerSecond", "invertX", "invertY"
+      ],
+      "properties": {
+        "payloadKind": {"const": "gyro"},
+        "target": {"enum": ["mouse", "rightStick"]},
+        "frame": {"enum": ["device", "screen"]},
+        "axes": {"enum": ["yawPitch", "yawPitchRoll"]},
+        "scaleUnit": {"const": "milliUnitsPerDegreePerSecond"},
+        "scale": {"type": "integer", "minimum": 1, "maximum": 100000},
+        "deadzoneMilliDegreesPerSecond": {"type": "integer", "minimum": 0, "maximum": 100000},
+        "invertX": {"type": "boolean"},
+        "invertY": {"type": "boolean"}
+      }
+    },
+    "payload": {
+      "oneOf": [
+        {"$ref": "#/$defs/keyboardPayload"},
+        {"$ref": "#/$defs/mousePayload"},
+        {"$ref": "#/$defs/analogPayload"},
+        {"$ref": "#/$defs/dpadPayload"},
+        {"$ref": "#/$defs/customKeysPayload"},
+        {"$ref": "#/$defs/radialPayload"},
+        {"$ref": "#/$defs/scrollPayload"},
+        {"$ref": "#/$defs/comboPayload"},
+        {"$ref": "#/$defs/softKeyboardPayload"},
+        {"$ref": "#/$defs/gyroPayload"}
+      ]
+    },
+    "element": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "elementId", "kind", "rect", "horizontalAnchor", "verticalAnchor",
+        "zOrder", "enabled", "hidden", "opacityPermille", "payload"
+      ],
+      "properties": {
+        "elementId": {"$ref": "#/$defs/uuidD"},
+        "kind": {
+          "enum": [
+            "keyboard", "mouse", "analog", "dpad", "customKeys",
+            "radial", "scroll", "combo", "softKeyboard", "gyro"
+          ]
+        },
+        "rect": {"$ref": "#/$defs/rect"},
+        "horizontalAnchor": {"enum": ["left", "center", "right"]},
+        "verticalAnchor": {"enum": ["top", "center", "bottom"]},
+        "zOrder": {"type": "integer", "minimum": -32768, "maximum": 32767},
+        "enabled": {"type": "boolean"},
+        "hidden": {"type": "boolean"},
+        "opacityPermille": {"type": "integer", "minimum": 0, "maximum": 1000},
+        "payload": {"$ref": "#/$defs/payload"},
+        "sourceReference": {
+          "allOf": [
+            {"$ref": "#/$defs/cleanString"},
+            {"minLength": 1, "maxLength": 160}
+          ]
+        }
+      }
+    }
+  }
+}
