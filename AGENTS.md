@@ -1,114 +1,89 @@
-# Ligase Android workspace rules
+# Ligase Android 仓库协作规则
 
-These rules apply to the whole Android repository.
+本文件适用于整个 Android 仓库。
 
-## Start from live state
+## 从实时状态开始
 
-- Read this file, `REQUEST.md`, relevant formal docs, the current branch, and
-  `git status`/`git diff` before changing files.
-- This is a shared checkout. Treat every unknown modification or untracked file
-  as another owner's work. Establish an exact file allowlist and coordinate
-  overlapping hunks before editing.
-- Do not use an isolated worktree unless the user explicitly requests one.
+- 修改文件前，必须读取本文件、`REQUEST.md`、相关正式文档，并检查当前分支、
+  `git status`、完整 diff 与未跟踪文件。
+- 当前 checkout 可能由多个任务共享。所有未知修改和未跟踪文件都视为其他 owner
+  的工作；先冻结精确文件 allowlist，发生文件或 hunk 重叠时先协调。
+- 除非用户明确要求，不得改用隔离 worktree。
 
-## Toolchain and device windows
+## 工具链与设备窗口
 
-- Use the D-drive Android SDK and Gradle user home configured for this
-  workstation. Keep machine-specific absolute paths out of committed source and
-  documentation.
-- Only one task may run Gradle, install an APK, or operate ADB at a time.
-  Announce and release the window when collaborating.
-- Prefer a connected physical device over an emulator. A device, Host, driver,
-  permission, or installation gate that is unavailable must be reported as a
-  precise `BLOCKED` or `SKIP`; never replace it with fabricated UI state,
-  fixtures, database injection, or a different product path.
+- 使用本机已配置的 D 盘 Android SDK 与 Gradle user home。不得把开发机绝对路径
+  写入提交的源码或文档。
+- 同一时间只允许一个任务运行 Gradle、安装 APK 或操作 ADB。协作时必须明确宣布
+  占用窗口，并在完成后立即释放。
+- 优先使用已连接的真实设备，不以模拟器替代。设备、Host、驱动、权限或安装条件
+  不可用时，必须精确报告 `BLOCKED` 或 `SKIP`；不得通过伪造 UI state、注入
+  fixture/数据库或更换产品路径冒充通过。
 
-## Architecture boundaries
+## 架构边界
 
-- `LigaseActivity` owns Android lifecycle and legacy composition bridges.
-  `app/root` composes feature routes, and `app/navigation` is the single owner
-  of product navigation state. Feature UI consumes immutable presentation state
-  and typed actions.
-- Do not create a second store, ViewModel, repository, session owner, or policy
-  in Compose to work around a missing application seam. Report the required
-  typed state/action contract first.
-- TouchKit v1 runtime and persistence remain separate from Touch Layout v2
-  catalog, journal, generation repository, and editor workspace. Do not
-  dual-write, infer identity from names or paths, or route v2 through legacy
-  SharedPreferences.
-- Do not change pairing cryptography, Host protocol/wire DTOs, GameStream/RTSP,
-  input dispatch, repository persistence, or machine-readable layout contracts
-  from a frontend task unless that scope is explicitly authorized.
-- Formal protocol/schema documents and their machine-readable assets are the
-  authority. Link to them; do not create a second copied authority in app code
-  or frontend docs.
+- `LigaseActivity` 负责 Android lifecycle 与 legacy composition bridge；
+  `app/root` 负责 feature route 组合；`app/navigation` 是产品导航状态的唯一 owner。
+  Feature UI 只消费 immutable presentation state 与 typed actions。
+- Compose 不得为了绕过缺失的 application seam 而新建第二套 store、ViewModel、
+  repository、session owner 或 policy。应先报告所需的 typed state/action contract。
+- TouchKit v1 runtime/persistence 与 Touch Layout v2/v3 的 catalog、journal、
+  generation repository、editor workspace 必须隔离。禁止双写、按名称或路径猜身份，
+  也不得把新布局写回 legacy SharedPreferences。
+- 前端任务未经明确授权，不得修改 pairing crypto、Host wire DTO、
+  GameStream/RTSP、input dispatch、repository persistence 或 machine-readable
+  layout contract。
+- 正式协议/schema 及其 machine-readable 资产是字段权威。应用代码与前端文档只做
+  链接和投影，不得复制第二份 authority。
 
-## Cross-repository collaboration
+## 跨仓库协作流程
 
-- When present, the coordination-root `AUTHORITY.md` is the owner and
-  field-location index for Android, Host, and Layouts Web. Read it before
-  cross-repository work and report stale paths or ownership conflicts to the
-  coordinator. The coordinator maintains that index; repository agents do not
-  edit it concurrently. It never replaces this repository's canonical schema,
-  API, tests, or owner documents.
-- The domain owner prepares a review snapshot with an exact allowlist, stable
-  byte sizes and SHA-256 values, machine validation, and explicit exclusions.
-  Review assets remain uncommitted and must be labelled `REVIEW`; older hashes
-  are invalid as soon as a revised snapshot is issued.
-- Every affected consumer performs an independent, read-only review and returns
-  `ACCEPT` or `NEEDS_REVISION` against the exact snapshot. Silence, an earlier
-  acceptance, unit tests, or a coordinator summary is not acceptance.
-- `NEEDS_REVISION` returns the snapshot to its owner. The owner changes only
-  review assets, publishes new hashes, and repeats every required review.
-  Production implementation, staging, and compatibility fallbacks are
-  prohibited while any required reviewer has not accepted.
-- After all required reviews accept, wait for explicit coordinator
-  authorization before staging the machine authority. Commit and push the
-  authority as an exact, reviewable change and report the remote SHA. Begin
-  production work only under a separately stated implementation scope, in
-  compile-safe dependency order.
-- Frontend and backend owners communicate typed seams and blockers directly,
-  but both report review verdicts, authorization needs, commit SHAs, runtime
-  mutations, and final evidence to the coordinator. A peer notification does
-  not itself authorize a broader action.
-- In a shared checkout, never stage, revert, format, or repair peer WIP. Reserve
-  Gradle and ADB windows explicitly, release them promptly, and rerun the final
-  gate after the source owner declares a frozen source state.
-- Cross-repository changes are separate commits in their owning repositories.
-  A provider commit precedes a consumer implementation when the consumer needs
-  the new authority or typed API. Reports must distinguish `REVIEW`, `FROZEN`,
-  `TRANSITIONAL`, implemented, device-tested, and blocked states.
+- 协调根存在 `AUTHORITY.md` 时，它是 Android、Host、Layouts Web 的 owner 与
+  字段位置索引。跨仓库任务开始前必须读取；发现路径过期或 ownership 冲突时报告
+  协调任务。该文件由协调任务统一维护，仓库任务不得并发修改。它不替代本仓库的
+  schema、API、测试或 owner 文档。
+- 领域 owner 提交审议前，必须形成精确 allowlist、稳定文件大小与 SHA-256、
+  machine validation 结果及明确排除项。审议资产保持未提交并标记为 `REVIEW`；
+  发布新快照即使全部旧 SHA 失效。
+- 每个受影响消费端都必须针对同一固定快照独立执行只读复核，并明确返回
+  `ACCEPT` 或 `NEEDS_REVISION`。沉默、旧版 ACCEPT、单元测试通过或协调摘要都不
+  构成接受。
+- 任一端返回 `NEEDS_REVISION` 后，快照退回 owner。owner 只能修订审议资产，
+  发布全新 SHA，并重新走所有必要审议。所有必要 reviewer 接受前，禁止生产实现、
+  stage authority、兼容兜底或通过其他路径绕过。
+- 所有必要 reviewer 均 ACCEPT 后，仍须等待协调任务明确授权，才能精确 stage、
+  commit、push machine authority 并回读 remote SHA。生产实现必须获得单独范围，
+  按可编译的依赖顺序分块提交。
+- 前后端可直接沟通 typed seam 和阻塞，但 review verdict、授权需求、commit SHA、
+  runtime mutation 与最终证据都必须同时回报协调任务。`PEER_ALREADY_NOTIFIED`
+  只表示已通知，不代表获得更大授权。
+- 共享 checkout 中不得 stage、revert、format 或修复 peer WIP。Gradle 与 ADB
+  窗口必须显式预约并及时释放；source owner 宣布冻结后，最终门必须基于同一冻结源
+  重跑。
+- 跨仓库变更必须留在各自 owner 仓库并独立提交。消费者依赖新 authority 或 typed
+  API 时，provider commit 必须先到达。报告中必须区分 `REVIEW`、`FROZEN`、
+  `TRANSITIONAL`、已实现、已真机验证与阻塞状态。
 
-## Safety and evidence
+## 安全与证据
 
-- Do not clear device data, delete paired computers, pair a device, start or
-  stop a Host, launch a stream, mutate Host settings, or change user preferences
-  unless the current task explicitly authorizes that action.
-- Automated tests, compilation, R8, lint, and assembly prove only their own
-  gates. They do not prove real pairing, network writes, streaming, accessibility
-  speech, persistence across process death, or phone/tablet UI behavior.
-- Device evidence must identify the exact frozen source/APK and distinguish
-  completed checks from blocked or skipped checks.
+- 未获当前任务明确授权，不得清除设备数据、删除已配对电脑、执行配对、启动或停止
+  Host、发起串流、修改 Host 设置或改变用户偏好。
+- 自动测试、编译、R8、lint 与 assemble 只证明对应自动门，不能证明真实配对、
+  网络写入、串流、TalkBack 语音、process-death 持久化或手机/平板 UI。
+- 设备证据必须标明精确冻结源码/APK，并明确区分已完成、阻塞和跳过的检查。
 
-## Git and reporting
+## Git、文档与回报
 
-- Every task final and commit handoff must declare
-  `DOC_IMPACT=UPDATED|NONE` with a reason. Changes to user behavior or wording,
-  architecture owners or dependency direction, storage/schema/protocol,
-  Activity/lifecycle, permissions/security, build/install instructions, or
-  device acceptance steps require the owner document in the same commit or a
-  frozen documentation contract first. Only mechanical refactors and test-only
-  strengthening normally qualify for `NONE`.
-- Documentation must link to the machine authority instead of copying it.
-  Planned work must not be described as implemented, and temporary SHAs or test
-  counts do not belong in stable architecture documents.
-- Preserve unrelated shared changes. Stage only the exact approved files;
-  `git add .` and broad staging are prohibited.
-- Keep structural moves, behavior changes, protocol/storage changes, and
-  evidence-only documentation in separate focused commits.
-- Before commit and push, run the proportional test gates, `git diff --check`,
-  allowlist review, and a secret/absolute-path scan. Read back the remote SHA and
-  report whether the worktree is clean for the submitted scope.
-- Report each phase structurally: phase/conclusion, exact file scope, evidence,
-  blockers or follow-up contract, external action required, commit/remote state,
-  and whether a peer was already notified.
+- 每个任务 final 与 commit handoff 必须声明 `DOC_IMPACT=UPDATED|NONE` 并说明
+  理由。用户行为或文案、架构 owner/依赖方向、storage/schema/protocol、
+  Activity/lifecycle、权限/安全、构建安装说明或设备验收步骤发生变化时，必须在同一
+  提交更新 owner 文档，或先冻结文档契约。通常只有纯机械重构和仅强化既有行为的
+  测试可以使用 `NONE`。
+- 文档应链接 machine authority，不复制其内容。不得把 planned 工作描述成已实现，
+  也不得把临时 SHA 或测试计数写进稳定架构文档。
+- 保留所有无关共享修改。只能精确 stage 已批准文件；禁止 `git add .` 和宽泛暂存。
+- 结构移动、行为变化、协议/storage 变化与纯证据文档应使用不同的聚焦提交。
+- commit/push 前运行与风险相称的测试、`git diff --check`、allowlist 复核及
+  secret/绝对路径扫描。push 后回读 remote SHA，并报告本任务 scope 是否 clean。
+- 每个阶段按结构化格式回报：阶段/结论、精确文件范围、验证证据、阻塞或后续契约、
+  是否需要外部动作、commit/remote 状态、`DOC_IMPACT` 及 peer 是否已通知。
