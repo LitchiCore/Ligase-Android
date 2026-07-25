@@ -45,6 +45,9 @@ import com.limelight.ligase.feature.input.layout.v2.data.LayoutCatalogV2LocalRep
 import com.limelight.ligase.feature.input.layout.v2.data.LayoutCatalogV2PackagedSource
 import com.limelight.ligase.feature.input.layout.v2.data.LayoutPreferredVariantV2Repository
 import com.limelight.ligase.feature.input.layout.v2.domain.LayoutCatalogV2UiState
+import com.limelight.ligase.feature.input.layout.v2.editor.LayoutV2EditorHandoffIssue
+import com.limelight.ligase.feature.input.layout.v2.editor.LayoutV2EditorHandoffResult
+import com.limelight.ligase.feature.input.layout.v2.ui.blackeditor.LayoutV2BlackEditorActivity
 import com.limelight.ligase.feature.library.application.LibraryHostCoordinator
 import com.limelight.ligase.feature.library.application.LibraryManualSortCoordinator
 import com.limelight.ligase.feature.library.application.LibraryStreamingSettingsCoordinator
@@ -137,6 +140,7 @@ class LigaseActivity : AppCompatActivity() {
     private var layoutV2CatalogRegistrationAttachment:
         LayoutV2CatalogRegistrationAttachment? = null
     private var layoutCatalogV2State by mutableStateOf(LayoutCatalogV2UiState())
+    private var layoutV2EditorLaunchInFlight = false
 
     private var managerBinder: ComputerManagerService.ComputerManagerBinder? = null
     private var serviceBound = false
@@ -449,6 +453,7 @@ class LigaseActivity : AppCompatActivity() {
                 onLayoutV2Save = layoutV2EditorWorkspaceViewModel::save,
                 onLayoutV2Discard = layoutV2EditorWorkspaceViewModel::discard,
                 onLayoutV2Leave = layoutV2EditorWorkspaceViewModel::leave,
+                onLayoutV2EditorLaunchRequested = ::launchLayoutV2Editor,
                 onGlobalResolutionClick = ::showGlobalResolutionSettings,
                 onPairingCancel = pairingViewModel::cancel,
                 onPairingDismiss = pairingViewModel::dismissStopped,
@@ -1069,8 +1074,41 @@ class LigaseActivity : AppCompatActivity() {
         Toast.makeText(this, message, Toast.LENGTH_LONG).show()
     }
 
+    private fun launchLayoutV2Editor(draftId: String) {
+        when (val result = layoutV2EditorWorkspaceViewModel.checkpointAndRelease(draftId)) {
+            is LayoutV2EditorHandoffResult.LaunchReady -> {
+                layoutV2EditorLaunchInFlight = true
+                startActivity(LayoutV2BlackEditorActivity.createIntent(this, result.draftId))
+            }
+            is LayoutV2EditorHandoffResult.Rejected -> toast(
+                when (result.issue) {
+                    LayoutV2EditorHandoffIssue.INVALID_DRAFT_ID ->
+                        R.string.ligase_layout_error_invalid_id
+                    LayoutV2EditorHandoffIssue.CHECKPOINT_FAILED ->
+                        R.string.ligase_layout_error_save
+                    LayoutV2EditorHandoffIssue.QUARANTINED ->
+                        R.string.ligase_layout_error_malformed
+                    LayoutV2EditorHandoffIssue.MISSING ->
+                        R.string.ligase_layout_error_not_found
+                    LayoutV2EditorHandoffIssue.NO_ACTIVE_DRAFT,
+                    LayoutV2EditorHandoffIssue.DRAFT_ID_MISMATCH,
+                    LayoutV2EditorHandoffIssue.ALREADY_OWNED,
+                    LayoutV2EditorHandoffIssue.CLOSED ->
+                        R.string.ligase_layout_error_no_draft
+                },
+            )
+        }
+    }
+
     override fun onResume() {
         super.onResume()
+        if (
+            layoutV2EditorLaunchInFlight &&
+            ::layoutV2EditorWorkspaceViewModel.isInitialized
+        ) {
+            layoutV2EditorLaunchInFlight = false
+            layoutV2EditorWorkspaceViewModel.refreshAfterEditorReturn()
+        }
         foreground = true
         refreshLocalHdrCapabilities()
         streamBitrateState.refresh(PreferenceConfiguration.getDefaultBitrate(this))

@@ -82,6 +82,12 @@ class LayoutV2EditorWorkspaceViewModel(application: Application) : AndroidViewMo
     fun refreshCatalog(): Boolean =
         catalogRegistration?.invoke(committedRecords()) ?: false
 
+    fun refreshAfterEditorReturn(): Boolean {
+        session.refreshRecoverableDrafts()
+        mutableState.value = mutableState.value.copy(editor = session.state)
+        return refreshCatalog()
+    }
+
     fun createBlank(displayName: String? = null) {
         when (val decision = blankCreationPolicy.create(displayName)) {
             is LayoutV2BlankCreationDecision.Ready ->

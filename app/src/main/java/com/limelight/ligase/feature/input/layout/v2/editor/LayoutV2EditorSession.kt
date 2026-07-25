@@ -190,6 +190,10 @@ class LayoutV2EditorSession(
         if (state.dirty) flushJournal()
     }
 
+    fun refreshRecoverableDrafts() {
+        publish(state.copy(recoverableDrafts = journal.summaries()))
+    }
+
     @Synchronized
     fun checkpointAndRelease(expectedDraftId: String): LayoutV2EditorHandoffResult {
         if (closed) {

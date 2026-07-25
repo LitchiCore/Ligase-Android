@@ -293,6 +293,69 @@ class LayoutV2EditorWorkspaceViewModelTest {
         assertEquals(2, currentCalls)
     }
 
+    @Test
+    fun refreshAfterEditorSaveRemovesRecoveryAndReenumeratesCommittedCatalog() {
+        val workspace = LayoutV2EditorWorkspaceViewModel(application)
+        var records = emptyList<LayoutCatalogV2RegisteredRecord>()
+        var refreshes = 0
+        workspace.attachCatalogRegistration {
+            records = it
+            refreshes++
+            true
+        }
+        workspace.createBlank("Editor save")
+        workspace.addElement(ControlKind.SOFT_KEYBOARD)
+        val draftId = workspace.state.value.editor.draft!!.identity.layoutId
+        assertTrue(
+            workspace.checkpointAndRelease(draftId) is
+                com.limelight.ligase.feature.input.layout.v2.editor.LayoutV2EditorHandoffResult.LaunchReady,
+        )
+
+        val editor = LayoutV2EditorActivityViewModel(
+            application,
+            draftId,
+            LayoutV2EditorProcessLeases.registry,
+        )
+        assertEquals(
+            com.limelight.ligase.feature.input.layout.v2.editor.LayoutV2EditorExitCode.SAVED,
+            editor.saveAndFinish().code,
+        )
+        assertTrue(workspace.refreshAfterEditorReturn())
+
+        assertNull(workspace.state.value.editor.draft)
+        assertTrue(workspace.state.value.editor.recoverableDrafts.isEmpty())
+        assertEquals(1, records.size)
+        assertEquals(draftId, records.single().descriptor.layoutId)
+        assertEquals(2, refreshes)
+    }
+
+    @Test
+    fun refreshAfterEditorDiscardRemovesStaleSummaryWithoutOpeningDraft() {
+        val workspace = LayoutV2EditorWorkspaceViewModel(application)
+        workspace.attachCatalogRegistration { true }
+        workspace.createBlank("Editor discard")
+        val draftId = workspace.state.value.editor.draft!!.identity.layoutId
+        assertTrue(
+            workspace.checkpointAndRelease(draftId) is
+                com.limelight.ligase.feature.input.layout.v2.editor.LayoutV2EditorHandoffResult.LaunchReady,
+        )
+        assertEquals(1, workspace.state.value.editor.recoverableDrafts.size)
+
+        val editor = LayoutV2EditorActivityViewModel(
+            application,
+            draftId,
+            LayoutV2EditorProcessLeases.registry,
+        )
+        assertEquals(
+            com.limelight.ligase.feature.input.layout.v2.editor.LayoutV2EditorExitCode.DISCARDED,
+            editor.discardAndFinish().code,
+        )
+        assertTrue(workspace.refreshAfterEditorReturn())
+
+        assertNull(workspace.state.value.editor.draft)
+        assertTrue(workspace.state.value.editor.recoverableDrafts.isEmpty())
+    }
+
     private fun cleanup() {
         listOf(
             "ligase-touch-layout-v2-drafts",
