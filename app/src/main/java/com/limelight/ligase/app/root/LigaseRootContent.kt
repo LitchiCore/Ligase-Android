@@ -59,6 +59,7 @@ import com.limelight.ligase.feature.layout.presentation.LayoutSaveNavigation
 import com.limelight.ligase.feature.layout.presentation.layoutSaveNavigation
 import com.limelight.ligase.feature.layout.ui.LayoutEditorScreen
 import com.limelight.ligase.feature.layout.ui.LayoutHallScreen
+import com.limelight.ligase.feature.input.layout.v2.domain.LayoutCatalogV2UiState
 import com.limelight.ligase.feature.library.ui.LibraryManualEditorUiState
 import com.limelight.ligase.feature.library.ui.LibraryRouteActions
 import com.limelight.ligase.feature.library.ui.LibraryRouteUiState
@@ -113,6 +114,7 @@ internal fun LigaseRootContent(
     libraryCanConfigureInput: Boolean,
     manualSortState: ManualLibrarySortActionState,
     layoutCatalogState: LayoutCatalogUiState,
+    layoutCatalogV2State: LayoutCatalogV2UiState,
     layoutEditorState: LayoutEditorSessionState,
     pairingState: AttendedPairingUiState,
     streamBitrateState: StreamBitrateUiState,
@@ -135,6 +137,9 @@ internal fun LigaseRootContent(
     onLibraryRetrySync: () -> Unit,
     onManualOrderSubmit: (List<String>) -> Unit,
     onLayoutCatalogRefresh: () -> Unit,
+    onLayoutCatalogV2Refresh: () -> Unit,
+    onLayoutVariantPreferred: (String, Long, String) -> Unit,
+    onLayoutVariantPreferenceCleared: (String) -> Unit,
     onLayoutSelect: (String) -> Unit,
     onLayoutPreview: (String) -> Unit,
     onLayoutCreateCopy: (String) -> Unit,
@@ -427,9 +432,13 @@ internal fun LigaseRootContent(
                         LigaseLayoutRoute.MAIN -> mainPageContent()
                         LigaseLayoutRoute.HALL -> LayoutHallScreen(
                             state = layoutCatalogState,
+                            v2State = layoutCatalogV2State,
                             actionError = layoutEditorState.error,
                             onBack = { layoutRoute = LigaseLayoutRoute.MAIN },
                             onRefresh = onLayoutCatalogRefresh,
+                            onV2Refresh = onLayoutCatalogV2Refresh,
+                            onV2PreferredVariant = onLayoutVariantPreferred,
+                            onV2ClearPreference = onLayoutVariantPreferenceCleared,
                             onSelect = onLayoutSelect,
                             onPreview = onLayoutPreview,
                             onEdit = { layoutId ->

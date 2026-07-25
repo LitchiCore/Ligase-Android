@@ -38,10 +38,13 @@ import com.limelight.ligase.feature.layout.domain.LayoutCatalogSource
 import com.limelight.ligase.feature.layout.domain.LayoutCatalogUiState
 import com.limelight.ligase.feature.layout.domain.LayoutEditorError
 import com.limelight.ligase.feature.layout.presentation.layoutHallColumns
+import com.limelight.ligase.feature.input.layout.v2.domain.LayoutCatalogV2UiState
+import com.limelight.ligase.feature.input.layout.v2.ui.LayoutCatalogV2Section
 
 @Composable
 fun LayoutHallScreen(
     state: LayoutCatalogUiState,
+    v2State: LayoutCatalogV2UiState = LayoutCatalogV2UiState(),
     actionError: LayoutEditorError? = null,
     onBack: () -> Unit,
     onRefresh: () -> Unit,
@@ -49,6 +52,9 @@ fun LayoutHallScreen(
     onPreview: (String) -> Unit,
     onEdit: (String) -> Unit,
     onCreateCopy: (String) -> Unit,
+    onV2Refresh: () -> Unit = {},
+    onV2PreferredVariant: (String, Long, String) -> Unit = { _, _, _ -> },
+    onV2ClearPreference: (String) -> Unit = {},
 ) {
     BackHandler(onBack = onBack)
     LigasePageScaffold(
@@ -58,15 +64,31 @@ fun LayoutHallScreen(
         BoxWithConstraints(pageModifier.fillMaxSize()) {
             val wide = maxWidth >= 720.dp
             when {
-                state.loading && state.items.isEmpty() -> {
+                state.loading && state.items.isEmpty() && v2State.items.isEmpty() -> {
                     CircularProgressIndicator(Modifier.align(Alignment.Center))
                 }
-                state.items.isEmpty() -> {
-                    LayoutHallEmptyState(
-                        error = state.error,
-                        onRefresh = onRefresh,
-                        modifier = Modifier.align(Alignment.Center),
-                    )
+                state.items.isEmpty() && v2State.items.isEmpty() -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(20.dp),
+                    ) {
+                        item {
+                            LayoutCatalogV2Section(
+                                state = v2State,
+                                onRefresh = onV2Refresh,
+                                onPreferredVariant = onV2PreferredVariant,
+                                onClearPreference = onV2ClearPreference,
+                            )
+                        }
+                        item {
+                            LayoutHallEmptyState(
+                                error = state.error,
+                                onRefresh = onRefresh,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                    }
                 }
                 wide -> {
                     val columns = layoutHallColumns(maxWidth.value)
@@ -77,6 +99,14 @@ fun LayoutHallScreen(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            LayoutCatalogV2Section(
+                                state = v2State,
+                                onRefresh = onV2Refresh,
+                                onPreferredVariant = onV2PreferredVariant,
+                                onClearPreference = onV2ClearPreference,
+                            )
+                        }
                         actionError?.let { error ->
                             item(span = { GridItemSpan(maxLineSpan) }) {
                                 LayoutErrorBanner(error)
@@ -101,6 +131,14 @@ fun LayoutHallScreen(
                         contentPadding = PaddingValues(20.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
+                        item {
+                            LayoutCatalogV2Section(
+                                state = v2State,
+                                onRefresh = onV2Refresh,
+                                onPreferredVariant = onV2PreferredVariant,
+                                onClearPreference = onV2ClearPreference,
+                            )
+                        }
                         actionError?.let { error ->
                             item { LayoutErrorBanner(error) }
                         }

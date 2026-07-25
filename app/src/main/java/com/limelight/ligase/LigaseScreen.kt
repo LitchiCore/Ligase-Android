@@ -25,6 +25,7 @@ import com.limelight.ligase.app.root.LigaseRootContent
 import com.limelight.ligase.feature.layout.domain.LayoutCatalogUiState
 import com.limelight.ligase.feature.layout.domain.LayoutControlKind
 import com.limelight.ligase.feature.layout.domain.LayoutEditorSessionState
+import com.limelight.ligase.feature.input.layout.v2.domain.LayoutCatalogV2UiState
 import com.limelight.ligase.feature.library.data.dto.LigaseResolutionDto
 import com.limelight.ligase.feature.library.domain.HostSortMode
 import com.limelight.ligase.feature.library.domain.LibraryHdrState
@@ -74,6 +75,7 @@ fun LigaseRoot(
     libraryCanConfigureInput: Boolean,
     manualSortState: ManualLibrarySortActionState,
     layoutCatalogState: LayoutCatalogUiState,
+    layoutCatalogV2State: LayoutCatalogV2UiState,
     layoutEditorState: LayoutEditorSessionState,
     pairingState: AttendedPairingUiState,
     streamBitrateState: StreamBitrateUiState,
@@ -96,6 +98,9 @@ fun LigaseRoot(
     onLibraryRetrySync: () -> Unit,
     onManualOrderSubmit: (List<String>) -> Unit,
     onLayoutCatalogRefresh: () -> Unit,
+    onLayoutCatalogV2Refresh: () -> Unit,
+    onLayoutVariantPreferred: (String, Long, String) -> Unit,
+    onLayoutVariantPreferenceCleared: (String) -> Unit,
     onLayoutSelect: (String) -> Unit,
     onLayoutPreview: (String) -> Unit,
     onLayoutCreateCopy: (String) -> Unit,
@@ -142,6 +147,7 @@ fun LigaseRoot(
     libraryCanConfigureInput = libraryCanConfigureInput,
     manualSortState = manualSortState,
     layoutCatalogState = layoutCatalogState,
+    layoutCatalogV2State = layoutCatalogV2State,
     layoutEditorState = layoutEditorState,
     pairingState = pairingState,
     streamBitrateState = streamBitrateState,
@@ -164,6 +170,9 @@ fun LigaseRoot(
     onLibraryRetrySync = onLibraryRetrySync,
     onManualOrderSubmit = onManualOrderSubmit,
     onLayoutCatalogRefresh = onLayoutCatalogRefresh,
+    onLayoutCatalogV2Refresh = onLayoutCatalogV2Refresh,
+    onLayoutVariantPreferred = onLayoutVariantPreferred,
+    onLayoutVariantPreferenceCleared = onLayoutVariantPreferenceCleared,
     onLayoutSelect = onLayoutSelect,
     onLayoutPreview = onLayoutPreview,
     onLayoutCreateCopy = onLayoutCreateCopy,
