@@ -1,7 +1,9 @@
 # Ligase Android 客户端设计
 
-本文档描述 `ligase/compose-client-redesign` 分支的当前产品结构和接口边界。
+本文档描述默认分支 `ligase/android` 的当前产品结构和接口边界。
 涉及导航、游戏库、Host 身份、偏好或验收流程的代码变更，应同步更新本文档。
+代码依赖方向、唯一状态 owner 与设备验收范围见
+[Android 架构文档](ANDROID_ARCHITECTURE.zh-CN.md)。
 
 ## 产品结构
 
@@ -15,7 +17,7 @@
   - 查看并切换所有已发现或手动添加的电脑；
   - 添加电脑；
   - 按 Host UUID 区分并移除旧电脑，删除前二次确认。
-- 手机使用底部导航，横屏和平板由 Material 3 adaptive navigation 自动切换为左侧导航。
+- 手机竖屏使用底部导航；手机横屏和平板由应用自己的响应式导航壳切换为左侧导航。
 - 手机底栏模式下，游戏库、输入和设置的可滚动内容统一预留底栏安全区；平板左栏
   模式不添加该底部留白。
 - 游戏库支持搜索、本机显示排序以及用户可选的列表/竖向海报布局。名称、添加时间和
@@ -81,21 +83,23 @@
   新副本使用 canonical lowercase UUID D 作为稳定 `layoutId`，初始 `revision=1`，
   并生成稳定的 canonical `variantId`。内建的 `OSC_Keyboard` 等旧标识只作为本机
   `legacySourceReference`，不得提升为未来跨端 layout identity。
-- 编辑器首版支持选择、移动、缩放和删除可识别控件，并允许新增键盘按键、鼠标按键、
-  模拟摇杆、方向键和软键盘入口。旧动态类型 4/5/6/7/9 及未知 JSON 字段会原样保留，
-  但以只读未知控件展示；不能证明无损时拒绝破坏性修改，不按类型名猜测。
-- 保存使用完整 SharedPreferences 事务写入；新副本只有在内容提交成功后才注册进
-  catalog，注册失败时清理不可见的孤立文件。取消编辑只丢弃内存草稿，不修改来源布局；
-  设为全局布局必须由用户在大厅明确选择，保存副本不会静默切换全局选择。
-- 本机 SharedPreferences map、TouchKit metadata key 和动态 descriptor 目前都不是
-  跨端 content schema。Android 只承诺继续兼容现有 formatVersion 2 运行时；在控件
-  4/5/6/7/9 的完整 payload、base/dynamic/deleted 合并语义、数值边界、canonical JSON、
-  扩展字段和 runtime compatibility 共同冻结前，Host 不应持久化或分发这些 bytes。
+- Touch Layout v2 的本机 Creator 使用独立的严格 schema、journal、generation repository
+  与 Workspace owner，不读写 v1 SharedPreferences。当前已验证空白布局、0/1/2/3/8
+  typed 控件、进程恢复、原子保存与重启后 `LOCAL_COPY / READY`；4/5/6/7/9 没有授权
+  生产来源时不注入 fixture，也不宣称真机编辑通过。
+- 当前 Compose 卡片式 v2 画布只作为阶段性实现，不再是最终产品方向。**计划中**的最终
+  编辑体验是独立 `sensorLandscape`、沉浸式黑色 TouchKit 画布：大厅 owner 先把草稿
+  checkpoint 到 journal 并释放，随后仅以 opaque draft ID 交给独立 Activity 独占恢复；
+  Intent 不携带 raw state、路径、hash 或扩展字段。该 handoff 在对应后端提交完成前只能
+  视为计划，不能写成已交付能力。
+- v1 TouchKit 仍服务现有串流运行态并继续读取旧布局；v2 Creator 不双写、不迁移、不删除
+  v1 用户数据。未来 runtime cutover 必须另行冻结并使用真实 decoded video viewport
+  重新校验，不能以手机 DPI 或物理屏幕替代。
 
 ## 跨端视觉颜色契约
 
 - Android 颜色语义以 Ligase Host `visual-color-tokens-v1.md` 为跨端权威；当前冻结
-  基线是 Host `ac35ee8a`。Android 不另建产品 palette，也不要求 WinUI 与 Material
+  基线是 Host `5d4a20d89a9ed283bed2b97de3c3bb2e72d0dd50`。Android 不另建产品 palette，也不要求 WinUI 与 Material
   逐像素一致。
 - `LigaseTheme.kt` 是 Compose 的单一颜色入口，显式映射 Material 3 1.4.0 的全部
   `ColorScheme` 槽位；未审议的新槽位禁止回退 Material factory default。
@@ -330,8 +334,9 @@ ARM64 APK：
 `com.limelight.root.debug`，应用标签是 Diana。Ligase 调试包的 applicationId
 是 `com.litchicore.ligase.debug`。
 
-设备验收至少覆盖 V2353A 手机与 AGS2-AL00 平板，只操作可识别的应用内控件。
-手机检查底部导航和内容不遮挡；平板横屏检查左侧导航与自适应游戏网格。
+设备验收以当前可授权设备为准，至少覆盖一台手机和一台宽屏/平板设备，只操作可识别的
+应用内控件。当前主设备矩阵是 Xiaomi M2007J17C 与 AGS2-AL00；历史 V2353A 证据
+仅用于对应旧提交，不能替代当前 APK 的手机验收。
 
 若在线 Host 尚未部署 Sync v1，只能验收“不兼容、升级、重试”状态，不能声称
 游戏库同步、分辨率写回、冲突恢复或 HDR 已端到端通过。部署新核心后还需

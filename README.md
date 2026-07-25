@@ -1,9 +1,15 @@
-# Artemis Android
+# Ligase Android
 
-Previously named Moonlight Noir
+Ligase Android 是面向 Ligase Host 的 Compose 客户端，同时保留 Moonlight /
+Artemis TouchKit 的串流传输与旧运行时兼容层。
 
-Ligase 客户端重构的产品结构、Host 接口边界与验收状态见
-[Ligase 客户端设计文档](docs/ligase/CLIENT_DESIGN.zh-CN.md)。
+- [产品与接口边界](docs/ligase/CLIENT_DESIGN.zh-CN.md)
+- [Android 架构、状态 owner 与验收矩阵](docs/ligase/ANDROID_ARCHITECTURE.zh-CN.md)
+- [TouchKit v1 运行时说明](docs/touchkit/README.zh-CN.md)
+- [Touch Layout v2 契约草案与实现边界](docs/ligase/LIGASE_TOUCH_LAYOUT_V2_DRAFT.md)
+
+下文的 Artemis / Moonlight Noir 内容用于记录上游来源和仍在复用的能力，不代表
+Ligase 产品 UI 或当前架构。
 
 An open source client for [Apollo](https://github.com/ClassicOldSong/Apollo)/[Sunshine](https://github.com/LizardByte/Sunshine).
 
@@ -71,15 +77,19 @@ The main repo had stayed silent for 5 months, with nobody actually responding to
 
 ## Downloads
 
-* [Download Artemis TouchKit releases](https://github.com/LitchiCore/moonlight-android/releases)
-* [Use Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://app/%7B%22id%22%3A%22com.litchicore.artemis.touchkit.noir%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2FLitchiCore%2Fmoonlight-android%22%2C%22author%22%3A%22LitchiCore%22%2C%22name%22%3A%22Artemis%20TouchKit%22%2C%22additionalSettings%22%3A%22%7B%5C%22apkFilterRegEx%5C%22%3A%5C%22nonRoot_game-arm64-v8a-release%5C%5C%5C%5C.apk%24%5C%22%2C%5C%22matchGroupToUse%5C%22%3A%5C%22%241%5C%22%2C%5C%22versionExtractionRegEx%5C%22%3A%5C%22v(.%2B)%5C%22%7D%22%7D) (recommended)
+Ligase 的正式下载入口随发布流程单独维护。不要沿用旧 Artemis 包名或旧仓库
+Obtainium 配置来判断当前 Ligase 构建。
 
 ## Building
 
 * Install Android Studio and the Android NDK
-* Run `git submodule update --init --recursive` from within `moonlight-android/`.
-* In `moonlight-android/`, create `local.properties` and set `ndk.dir` to your NDK directory.
-* Build the APK using Android Studio or gradle
+* Run `git submodule update --init --recursive` from this repository root.
+* Create `local.properties` with the local Android SDK/NDK paths. Do not commit
+  workstation-specific absolute paths.
+* Build the Ligase debug APK with
+  `.\gradlew.bat :app:assembleNonRoot_gameDebug`.
+* Run JVM tests with
+  `.\gradlew.bat :app:testNonRoot_gameDebugUnitTest`.
 * TouchKit maintainers should follow the [Chinese release and signing guide](docs/touchkit/RELEASE_GUIDE.zh-CN.md).
 
 ## Authors
