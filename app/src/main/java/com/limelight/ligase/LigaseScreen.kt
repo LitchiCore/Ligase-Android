@@ -1,49 +1,27 @@
 package com.limelight.ligase
 
-import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContent
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteDefaults
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -51,7 +29,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
@@ -67,6 +44,9 @@ import com.limelight.ligase.feature.library.domain.LibraryHdrState
 import com.limelight.ligase.feature.library.domain.LibraryLayoutMode
 import com.limelight.ligase.feature.library.domain.LigaseLibraryStatus
 import com.limelight.ligase.feature.library.domain.LigaseLibraryItem
+import com.limelight.ligase.app.navigation.LigaseNavigationPlacement
+import com.limelight.ligase.app.navigation.LigaseNavigationShell
+import com.limelight.ligase.app.navigation.currentLigaseNavigationPlacement
 import com.limelight.ligase.feature.layout.domain.LayoutCatalogUiState
 import com.limelight.ligase.feature.layout.domain.LayoutControlKind
 import com.limelight.ligase.feature.layout.domain.LayoutEditorSessionState
@@ -89,15 +69,6 @@ import com.limelight.ligase.input.LigaseTouchOverlayMode
 import com.limelight.ligase.pairing.AttendedPairingDialog
 import com.limelight.ligase.pairing.AttendedPairingUiState
 import com.limelight.nvstream.http.ComputerDetails
-
-enum class LigasePage(
-    @StringRes val label: Int,
-    @DrawableRes val icon: Int,
-) {
-    HOME(R.string.ligase_nav_home, R.drawable.ic_computer),
-    INPUT(R.string.ligase_nav_input, R.drawable.ic_ligase_gamepad),
-    SETTINGS(R.string.ligase_nav_settings, R.drawable.ic_settings),
-}
 
 private enum class LigaseLayoutRoute {
     MAIN,
@@ -200,17 +171,7 @@ fun LigaseRoot(
                     onTouchOverlayModeChanged = onTouchOverlayModeChanged,
                 )
             } else {
-                val configuration = LocalConfiguration.current
-                val navigationType = when (
-                    ligaseNavigationPlacement(
-                        configuration.screenWidthDp,
-                        configuration.orientation,
-                    )
-                ) {
-                    LigaseNavigationPlacement.BOTTOM -> NavigationSuiteType.NavigationBar
-                    LigaseNavigationPlacement.SIDE -> NavigationSuiteType.NavigationRail
-                }
-                val semanticColors = LigaseSemanticTheme.colors
+                val navigationPlacement = currentLigaseNavigationPlacement()
                 val libraryOnline = libraryConnectivity == LibraryConnectivity.ONLINE
                 var layoutRoute by rememberSaveable {
                     mutableStateOf(LigaseLayoutRoute.MAIN)
@@ -314,26 +275,6 @@ fun LigaseRoot(
                     layoutRoute = LigaseLayoutRoute.MAIN
                     onPageSelected(page)
                 }
-                val navigationItemColors = NavigationSuiteDefaults.itemColors(
-                    navigationBarItemColors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = semanticColors.textPrimary,
-                        selectedTextColor = semanticColors.textPrimary,
-                        indicatorColor = semanticColors.selected,
-                        unselectedIconColor = semanticColors.textSecondary,
-                        unselectedTextColor = semanticColors.textSecondary,
-                        disabledIconColor = semanticColors.disabled,
-                        disabledTextColor = semanticColors.disabled,
-                    ),
-                    navigationRailItemColors = NavigationRailItemDefaults.colors(
-                        selectedIconColor = semanticColors.textPrimary,
-                        selectedTextColor = semanticColors.textPrimary,
-                        indicatorColor = semanticColors.selected,
-                        unselectedIconColor = semanticColors.textSecondary,
-                        unselectedTextColor = semanticColors.textSecondary,
-                        disabledIconColor = semanticColors.disabled,
-                        disabledTextColor = semanticColors.disabled,
-                    ),
-                )
                 val mainPageContent: @Composable () -> Unit = {
                     AnimatedContent(
                         targetState = currentPage,
@@ -357,7 +298,7 @@ fun LigaseRoot(
                                 hasOperatePermission = libraryCanConfigureInput,
                                 actionsEnabled = libraryCanConfigureInput && libraryOnline,
                                 showTopBar =
-                                    navigationType != NavigationSuiteType.NavigationRail,
+                                    navigationPlacement != LigaseNavigationPlacement.SIDE,
                                 onSortModeChanged = onLibrarySortModeChanged,
                                 onLayoutModeChanged = onLibraryLayoutModeChanged,
                                 onHostSelected = onHostClick,
@@ -496,45 +437,13 @@ fun LigaseRoot(
                         )
                     }
                 }
-                if (navigationType == NavigationSuiteType.NavigationRail) {
-                    Row(modifier = Modifier.fillMaxSize()) {
-                        LigaseLandscapeSidebar(
-                            currentPage = currentPage,
-                            inputEnabled = libraryCanConfigureInput && libraryOnline,
-                            onPageSelected = navigateToMainPage,
-                        )
-                        Box(modifier = Modifier.weight(1f)) {
-                            pageContent()
-                        }
-                    }
-                } else {
-                    NavigationSuiteScaffold(
-                        layoutType = navigationType,
-                        navigationSuiteItems = {
-                            LigasePage.entries.forEach { destination ->
-                                val enabled =
-                                    destination != LigasePage.INPUT ||
-                                        libraryCanConfigureInput && libraryOnline
-                                item(
-                                    selected = currentPage == destination,
-                                    onClick = { navigateToMainPage(destination) },
-                                    enabled = enabled,
-                                    colors = navigationItemColors,
-                                    icon = {
-                                        Icon(
-                                            painter = painterResource(destination.icon),
-                                            contentDescription = stringResource(destination.label),
-                                            modifier = Modifier.size(24.dp),
-                                        )
-                                    },
-                                    label = { Text(stringResource(destination.label)) },
-                                )
-                            }
-                        },
-                        containerColor = MaterialTheme.colorScheme.background,
-                    ) {
-                        pageContent()
-                    }
+                LigaseNavigationShell(
+                    placement = navigationPlacement,
+                    currentPage = currentPage,
+                    inputEnabled = libraryCanConfigureInput && libraryOnline,
+                    onPageSelected = navigateToMainPage,
+                ) {
+                    pageContent()
                 }
             }
             AttendedPairingDialog(
@@ -542,90 +451,6 @@ fun LigaseRoot(
                 onCancel = onPairingCancel,
                 onDismiss = onPairingDismiss,
             )
-        }
-    }
-}
-
-@Composable
-private fun LigaseLandscapeSidebar(
-    currentPage: LigasePage,
-    inputEnabled: Boolean,
-    onPageSelected: (LigasePage) -> Unit,
-) {
-    val compactPhoneLandscape =
-        LocalConfiguration.current.screenHeightDp < 600
-    Surface(
-        modifier = Modifier
-            .width(if (compactPhoneLandscape) 156.dp else 184.dp)
-            .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.safeContent),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text(
-                text = stringResource(
-                    if (currentPage == LigasePage.HOME) {
-                        R.string.ligase_library_title
-                    } else {
-                        currentPage.label
-                    },
-                ),
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                style = if (compactPhoneLandscape) {
-                    MaterialTheme.typography.headlineSmall
-                } else {
-                    MaterialTheme.typography.headlineMedium
-                },
-                fontWeight = FontWeight.Bold,
-            )
-            Spacer(Modifier.height(10.dp))
-            LigasePage.entries.forEach { destination ->
-                val enabled = destination != LigasePage.INPUT || inputEnabled
-                val selected = currentPage == destination
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    color = if (selected) {
-                        LigaseSemanticTheme.colors.selected
-                    } else {
-                        MaterialTheme.colorScheme.surfaceContainerLow
-                    },
-                    contentColor = if (enabled) {
-                        MaterialTheme.colorScheme.onSurface
-                    } else {
-                        LigaseSemanticTheme.colors.disabled
-                    },
-                    onClick = { onPageSelected(destination) },
-                    enabled = enabled,
-                ) {
-                    Row(
-                        modifier = Modifier.padding(
-                            horizontal = 14.dp,
-                            vertical = if (compactPhoneLandscape) 10.dp else 13.dp,
-                        ),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Icon(
-                            painter = painterResource(destination.icon),
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp),
-                        )
-                        Text(
-                            text = stringResource(destination.label),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = if (selected) {
-                                FontWeight.SemiBold
-                            } else {
-                                FontWeight.Normal
-                            },
-                        )
-                    }
-                }
-            }
         }
     }
 }
