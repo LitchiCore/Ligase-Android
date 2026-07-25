@@ -1,0 +1,472 @@
+{
+  "contract": "ligase-touch-layout-v2-source-ingestion",
+  "schemaVersion": 1,
+  "status": "reviewDraft",
+  "authority": {
+    "sourceRegistryOwner": "LayoutCatalogV2SourceRegistry",
+    "descriptorAuthority": "LayoutDescriptorV1",
+    "contentContract": "ligase-touch-layout",
+    "contentSchemaVersion": 2
+  },
+  "ingestionInput": {
+    "allowedFields": [
+      "origin",
+      "workspace",
+      "descriptor",
+      "authorizedContentCandidate",
+      "sourceContext"
+    ],
+    "registryDerivedFields": [
+      "availability",
+      "contentVerified",
+      "issues"
+    ],
+    "sourceMayDeclareReady": false
+  },
+  "origins": [
+    {
+      "origin": "PACKAGED_BUILT_IN",
+      "contentCapability": "LOCAL_VERIFIED_CANDIDATE",
+      "trustAnchor": "APK_SIGNATURE_AND_MANIFEST_HASHES"
+    },
+    {
+      "origin": "LOCAL_COPY",
+      "contentCapability": "LOCAL_VERIFIED_CANDIDATE",
+      "trustAnchor": "ATOMIC_LOCAL_GENERATION"
+    },
+    {
+      "origin": "HOST_CATALOG",
+      "contentCapability": "METADATA_ONLY_NOT_LOCAL",
+      "trustAnchor": "FUTURE_AUTHORIZED_TYPED_HOST_METADATA"
+    }
+  ],
+  "sourcePhases": [
+    "UNAVAILABLE",
+    "LOADING",
+    "READY",
+    "PARTIAL",
+    "FAILED"
+  ],
+  "emptyReasons": [
+    "NO_AUTHORIZED_SOURCES",
+    "SOURCES_EMPTY",
+    "ALL_ENTRIES_REJECTED",
+    "REFRESH_FAILED_WITHOUT_CACHE"
+  ],
+  "contextEvaluation": {
+    "states": [
+      "ELIGIBLE",
+      "INELIGIBLE",
+      "CONTEXT_UNAVAILABLE"
+    ],
+    "noViewportReason": "NO_VIDEO_VIEWPORT",
+    "noViewportSelectResult": "CONTEXT_UNAVAILABLE",
+    "noViewportWrites": 0,
+    "selectionCode": "WAITING_FOR_CONTEXT_VALIDATION",
+    "selectionVariantId": null,
+    "selectedRow": false,
+    "selectEnabled": false,
+    "clearEnabled": false,
+    "allowsPendingPreferenceCreation": false,
+    "storedPreferenceProjection": "WAITING_FOR_CONTEXT_VALIDATION",
+    "storedPreferenceAutoApply": false,
+    "storedPreferenceAutoClear": false,
+    "supersedes": "pending-validation-preference-proposal"
+  },
+  "precedenceProposal": {
+    "key": [
+      "layoutId",
+      "revision"
+    ],
+    "descriptorMismatch": "CROSS_SOURCE_DESCRIPTOR_CONFLICT",
+    "packagedAndLocalSameKey": "LOCAL_ORIGIN_CONFLICT",
+    "exactHostDescriptorWithLocalRecord": "KEEP_LOCAL_AVAILABILITY_AND_SUMMARIZE_HOST_PRESENCE",
+    "differentRevisions": "COEXIST_NO_AUTOMATIC_WINNER",
+    "usesCompatibilityHintForPrecedence": false,
+    "usesArrivalOrderForPrecedence": false,
+    "requiresCoordinationFreeze": true
+  },
+  "refreshState": {
+    "fields": [
+      "initialLoading",
+      "refreshing",
+      "hasLoaded",
+      "stale",
+      "refreshOutcome",
+      "emptyReason",
+      "sourceSummaries",
+      "revisionSets",
+      "preferenceActionResult"
+    ],
+    "outcomeCodes": [
+      "NOT_STARTED",
+      "IN_PROGRESS",
+      "SUCCESS",
+      "PARTIAL_SUCCESS",
+      "FAILED_NO_CACHE",
+      "FAILED_USING_LAST_SUCCESS"
+    ],
+    "retainsLastSuccessOnFailure": true,
+    "generationExposedToUi": false,
+    "lateResultPolicy": "DISCARD"
+  },
+  "projectionShapes": {
+    "sourceSummary": {
+      "fields": [
+        "origin",
+        "phase",
+        "itemCount",
+        "stale",
+        "issueCode"
+      ],
+      "hostMetadataStatesRemainDistinct": [
+        "NOT_CONNECTED",
+        "AUTHORIZED_LOADING",
+        "AUTHORIZED_EMPTY",
+        "AUTHORIZED_METADATA_READY",
+        "PERMISSION_DENIED",
+        "FAILED"
+      ]
+    },
+    "revisionSet": {
+      "fields": [
+        "layoutId",
+        "revisions",
+        "storedPreferenceValidity"
+      ],
+      "infersReplacement": false,
+      "selectsHighestRevision": false,
+      "usesArrivalOrder": false
+    },
+    "preferenceActionResult": {
+      "fields": [
+        "layoutId",
+        "revision",
+        "variantId",
+        "code"
+      ],
+      "variantIdNullable": true,
+      "safeTargetOnly": true
+    }
+  },
+  "lifecycleStates": [
+    {
+      "state": "IDLE",
+      "initialLoading": false,
+      "refreshing": false,
+      "hasLoaded": false,
+      "stale": false,
+      "items": "EMPTY",
+      "emptyReason": null,
+      "refreshOutcome": "NOT_STARTED",
+      "retainedLastSuccess": false
+    },
+    {
+      "state": "INITIAL_LOADING",
+      "initialLoading": true,
+      "refreshing": true,
+      "hasLoaded": false,
+      "stale": false,
+      "items": "EMPTY",
+      "emptyReason": null,
+      "refreshOutcome": "IN_PROGRESS",
+      "retainedLastSuccess": false
+    },
+    {
+      "state": "LOADED_NON_EMPTY",
+      "initialLoading": false,
+      "refreshing": false,
+      "hasLoaded": true,
+      "stale": false,
+      "items": "CURRENT_NON_EMPTY",
+      "emptyReason": null,
+      "refreshOutcomeAllowed": [
+        "SUCCESS",
+        "PARTIAL_SUCCESS"
+      ],
+      "retainedLastSuccess": false
+    },
+    {
+      "state": "LOADED_VALID_EMPTY",
+      "initialLoading": false,
+      "refreshing": false,
+      "hasLoaded": true,
+      "stale": false,
+      "items": "EMPTY",
+      "emptyReasonConstraint": "ONE_OF_EMPTY_REASONS_EXCEPT_REFRESH_FAILED_WITHOUT_CACHE",
+      "refreshOutcomeAllowed": [
+        "SUCCESS",
+        "PARTIAL_SUCCESS"
+      ],
+      "retainedLastSuccess": false
+    },
+    {
+      "state": "REFRESHING_WITH_LAST_SUCCESS",
+      "initialLoading": false,
+      "refreshing": true,
+      "hasLoaded": true,
+      "stale": false,
+      "items": "LAST_SUCCESS",
+      "emptyReasonConstraint": "NULL_IF_RETAINED_ITEMS_NON_EMPTY_OTHERWISE_RETAIN_CLOSED_EMPTY_REASON",
+      "refreshOutcome": "IN_PROGRESS",
+      "retainedLastSuccess": true
+    },
+    {
+      "state": "FAILED_NO_CACHE",
+      "initialLoading": false,
+      "refreshing": false,
+      "hasLoaded": true,
+      "stale": false,
+      "items": "EMPTY",
+      "emptyReason": "REFRESH_FAILED_WITHOUT_CACHE",
+      "refreshOutcome": "FAILED_NO_CACHE",
+      "retainedLastSuccess": false
+    },
+    {
+      "state": "FAILED_WITH_LAST_SUCCESS",
+      "initialLoading": false,
+      "refreshing": false,
+      "hasLoaded": true,
+      "stale": true,
+      "items": "LAST_SUCCESS",
+      "emptyReasonConstraint": "NULL_IF_RETAINED_ITEMS_NON_EMPTY_OTHERWISE_RETAIN_CLOSED_EMPTY_REASON",
+      "refreshOutcome": "FAILED_USING_LAST_SUCCESS",
+      "retainedLastSuccess": true
+    }
+  ],
+  "hostCatalogStates": [
+    {
+      "state": "NOT_CONNECTED",
+      "sourcePhase": "UNAVAILABLE",
+      "issueCode": "HOST_DISCONNECTED"
+    },
+    {
+      "state": "AUTHORIZED_LOADING",
+      "sourcePhase": "LOADING",
+      "issueCode": null
+    },
+    {
+      "state": "AUTHORIZED_EMPTY",
+      "sourcePhase": "READY",
+      "issueCode": "HOST_AUTHORIZED_EMPTY"
+    },
+    {
+      "state": "AUTHORIZED_METADATA_READY",
+      "sourcePhaseWhenAllValid": "READY",
+      "issueCodeWhenAllValid": null,
+      "sourcePhaseWhenSomeRejected": "PARTIAL",
+      "issueCodeWhenSomeRejected": "APPLICABLE_SAFE_DESCRIPTOR_ISSUE"
+    },
+    {
+      "state": "PERMISSION_DENIED",
+      "sourcePhase": "FAILED",
+      "issueCode": "PERMISSION_DENIED"
+    },
+    {
+      "state": "FAILED",
+      "sourcePhase": "FAILED",
+      "issueCode": "HOST_SOURCE_FAILED"
+    }
+  ],
+  "crossFieldRules": [
+    {
+      "id": "empty-reason-visibility",
+      "rule": "emptyReason is non-null only when hasLoaded=true, initialLoading=false, and rendered items are empty; LAST_SUCCESS may retain its prior closed empty reason only when that retained snapshot is empty"
+    },
+    {
+      "id": "failure-with-cache",
+      "rule": "FAILED_USING_LAST_SUCCESS requires stale=true, retainedLastSuccess=true, and items=LAST_SUCCESS"
+    },
+    {
+      "id": "failure-without-cache",
+      "rule": "FAILED_NO_CACHE requires stale=false, retainedLastSuccess=false, items=EMPTY, and emptyReason=REFRESH_FAILED_WITHOUT_CACHE"
+    },
+    {
+      "id": "initial-loading",
+      "rule": "initialLoading=true requires refreshing=true, hasLoaded=false, items=EMPTY, and emptyReason=null"
+    },
+    {
+      "id": "context-unavailable",
+      "rule": "NO_VIDEO_VIEWPORT requires selectionCode=WAITING_FOR_CONTEXT_VALIDATION, selectionVariantId=null, selectedRow=false, selectEnabled=false, clearEnabled=false, and writes=0"
+    },
+    {
+      "id": "host-authorized-empty",
+      "rule": "HOST AUTHORIZED_EMPTY maps to sourcePhase=READY and issueCode=HOST_AUTHORIZED_EMPTY"
+    },
+    {
+      "id": "retained-empty-snapshot",
+      "rule": "When items=LAST_SUCCESS and that snapshot is empty, emptyReason retains the closed empty reason from that snapshot; otherwise emptyReason=null"
+    },
+    {
+      "id": "host-authorized-metadata-ready",
+      "rule": "HOST AUTHORIZED_METADATA_READY maps to READY with null issue when all descriptors validate, or PARTIAL with the applicable safe descriptor issue when at least one validates and at least one is rejected"
+    }
+  ],
+  "packagedManifestCandidate": {
+    "trustAnchor": "APK_SIGNATURE",
+    "entryFields": [
+      "layoutId",
+      "revision",
+      "descriptorAsset",
+      "descriptorSha256",
+      "artifactAsset",
+      "artifactSha256"
+    ],
+    "assetNamesMustBeRelativeAndConfined": true,
+    "rejectsTraversal": true
+  },
+  "localGenerationCandidate": {
+    "files": [
+      "descriptor",
+      "artifact",
+      "generationMetadata"
+    ],
+    "publishPoint": "ATOMIC_GENERATION_MARKER",
+    "requiresReadback": true,
+    "requiresDescriptorContentAlignment": true,
+    "failurePreservesPreviousGeneration": true
+  },
+  "sourceIssueCodes": [
+    "NO_VIDEO_VIEWPORT",
+    "SOURCE_UNAVAILABLE",
+    "HOST_DISCONNECTED",
+    "HOST_AUTHORIZED_EMPTY",
+    "HOST_SOURCE_FAILED",
+    "PERMISSION_DENIED",
+    "STORAGE_FAILURE",
+    "INVALID_MANIFEST",
+    "INVALID_DESCRIPTOR",
+    "CONTENT_HASH_MISMATCH",
+    "CONTENT_REJECTED",
+    "DESCRIPTOR_CONTENT_MISMATCH",
+    "DUPLICATE_SOURCE_RECORD",
+    "CROSS_SOURCE_DESCRIPTOR_CONFLICT",
+    "LOCAL_ORIGIN_CONFLICT",
+    "READBACK_FAILED",
+    "ROLLBACK_FAILED"
+  ],
+  "internalOnlyDiagnosticCodes": [
+    "STALE_RESULT",
+    "CANCELLED"
+  ],
+  "forbiddenUiFields": [
+    "raw",
+    "path",
+    "contentHash",
+    "exception",
+    "requestId",
+    "transportDetails"
+  ],
+  "automaticGcMayDelete": [
+    "UNREFERENCED_STAGING",
+    "FAILED_OR_CANCELLED_GENERATION_TEMPORARY_FILES",
+    "REBUILDABLE_TRANSIENT_FETCH_CACHE_NOT_COMMITTED_NOT_REFERENCED_AND_WITHOUT_READER"
+  ],
+  "automaticGcMustNotDelete": [
+    "VISIBLE_LOCAL_GENERATION",
+    "PREVIOUS_VALID_LOCAL_GENERATION",
+    "USER_CREATED_OR_IMPORTED_ARTIFACT",
+    "STORED_PREFERENCE",
+    "USER_EXPORT",
+    "PACKAGED_AUTHORITY_METADATA",
+    "COMMITTED_HOST_SNAPSHOT",
+    "CURRENT_AUTHORIZED_HOST_SNAPSHOT"
+  ],
+  "negativeScenarios": [
+    {
+      "id": "no-video-viewport-select",
+      "expected": "CONTEXT_UNAVAILABLE",
+      "writes": 0
+    },
+    {
+      "id": "no-video-viewport-stored-preference",
+      "expected": "WAITING_FOR_CONTEXT_VALIDATION",
+      "writes": 0
+    },
+    {
+      "id": "no-video-viewport-clear",
+      "expected": "CONTEXT_UNAVAILABLE",
+      "writes": 0
+    },
+    {
+      "id": "source-declares-ready",
+      "expected": "REJECT_UNTRUSTED_DERIVED_FIELD",
+      "ready": false
+    },
+    {
+      "id": "cross-source-descriptor-mismatch",
+      "expected": "CROSS_SOURCE_DESCRIPTOR_CONFLICT",
+      "ready": false
+    },
+    {
+      "id": "packaged-local-same-key",
+      "expected": "LOCAL_ORIGIN_CONFLICT",
+      "ready": false
+    },
+    {
+      "id": "host-metadata-without-content",
+      "expected": "NOT_LOCAL",
+      "downloadAction": false
+    },
+    {
+      "id": "refresh-failure-with-last-success",
+      "expected": "STALE_LAST_SUCCESS",
+      "itemsCleared": false
+    },
+    {
+      "id": "refreshing-last-success-marked-stale",
+      "expected": "REJECT_INVALID_LIFECYCLE_COMBINATION",
+      "requiredStale": false
+    },
+    {
+      "id": "late-generation-result",
+      "expected": "DISCARDED",
+      "stateChanged": false
+    },
+    {
+      "id": "internal-generation-diagnostic-published",
+      "expected": "REJECT_INTERNAL_DIAGNOSTIC_PROJECTION",
+      "stateChanged": false
+    },
+    {
+      "id": "placeholder-used-as-enum",
+      "expected": "REJECT_UNDECLARED_ENUM_VALUE",
+      "forbiddenValues": [
+        "SUCCESS_OR_PARTIAL_SUCCESS",
+        "SOURCE_DERIVED_NON_NULL",
+        "RETAIN_LAST_SUCCESS_VALUE"
+      ]
+    },
+    {
+      "id": "local-readback-failure",
+      "expected": "ROLLBACK_TO_PREVIOUS_GENERATION",
+      "partialGenerationVisible": false
+    },
+    {
+      "id": "garbage-collection-user-asset",
+      "expected": "PRESERVED",
+      "deleted": false
+    },
+    {
+      "id": "garbage-collection-current-host-snapshot",
+      "expected": "PRESERVED",
+      "deleted": false
+    },
+    {
+      "id": "empty-reason-before-first-load",
+      "expected": "REJECT_INVALID_LIFECYCLE_COMBINATION",
+      "emptyReason": null
+    }
+  ],
+  "notAuthorized": [
+    "RUNTIME_EXECUTION",
+    "EDITOR_EXECUTION",
+    "PREVIEW_EXECUTION",
+    "V1_CUTOVER",
+    "MIGRATION",
+    "HOST_SYNC",
+    "PUBLIC_WIRE",
+    "CONTENT_DOWNLOAD",
+    "PUBLICATION"
+  ]
+}
