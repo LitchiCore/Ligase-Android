@@ -1,0 +1,1936 @@
+{
+  "schemaVersion": 3,
+  "documentCases": [
+    {
+      "id": "uppercase-layout-uuid",
+      "mutations": [
+        {
+          "path": "/layoutId",
+          "value": "00000000-0000-0000-0000-00000000000A"
+        }
+      ],
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "non-d-layout-uuid",
+      "mutations": [
+        {
+          "path": "/layoutId",
+          "value": "{00000000-0000-0000-0000-000000000001}"
+        }
+      ],
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "unsafe-revision",
+      "mutations": [
+        {
+          "path": "/revision",
+          "value": 9007199254740992
+        }
+      ],
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "missing-next-keyboard-batch-ordinal",
+      "mutations": [
+        {
+          "op": "delete",
+          "path": "/nextKeyboardBatchOrdinal"
+        }
+      ],
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "zero-next-keyboard-batch-ordinal",
+      "mutations": [
+        {
+          "path": "/nextKeyboardBatchOrdinal",
+          "value": 0
+        }
+      ],
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "duplicate-variant",
+      "mutations": [
+        {
+          "op": "append",
+          "path": "/variants",
+          "valueFrom": "/variants/0"
+        }
+      ],
+      "rehash": true,
+      "expected": "invalidVariantId"
+    },
+    {
+      "id": "duplicate-element",
+      "mutations": [
+        {
+          "op": "append",
+          "path": "/variants/0/elements",
+          "valueFrom": "/variants/0/elements/0"
+        }
+      ],
+      "rehash": true,
+      "expected": "duplicateElementId"
+    },
+    {
+      "id": "noncanonical-variant-order",
+      "mutations": [
+        {
+          "op": "append",
+          "path": "/variants",
+          "valueFrom": "/variants/0"
+        },
+        {
+          "path": "/variants/0/variantId",
+          "value": "00000000-0000-0000-0000-000000000020"
+        },
+        {
+          "path": "/variants/1/variantId",
+          "value": "00000000-0000-0000-0000-000000000010"
+        }
+      ],
+      "rehash": true,
+      "expected": "nonCanonicalVariantOrder"
+    },
+    {
+      "id": "noncanonical-device-class-order",
+      "mutations": [
+        {
+          "path": "/variants/0/deviceClasses",
+          "value": [
+            "tablet",
+            "phone"
+          ]
+        }
+      ],
+      "rehash": true,
+      "expected": "nonCanonicalSetOrder"
+    },
+    {
+      "id": "noncanonical-orientation-order",
+      "mutations": [
+        {
+          "path": "/variants/0/orientations",
+          "value": [
+            "landscape",
+            "portrait"
+          ]
+        }
+      ],
+      "rehash": true,
+      "expected": "nonCanonicalSetOrder"
+    },
+    {
+      "id": "invalid-ratio-order",
+      "mutations": [
+        {
+          "path": "/variants/0/recommendation/minAspectRatio",
+          "value": {
+            "numerator": 4,
+            "denominator": 1
+          }
+        }
+      ],
+      "rehash": true,
+      "expected": "invalidAspectRange"
+    },
+    {
+      "id": "elements-513",
+      "mutations": [
+        {
+          "op": "repeatAppend",
+          "path": "/variants/0/elements",
+          "valueFrom": "/variants/0/elements/0",
+          "count": 503
+        }
+      ],
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "variants-33",
+      "mutations": [
+        {
+          "op": "repeatAppend",
+          "path": "/variants",
+          "valueFrom": "/variants/0",
+          "count": 32
+        }
+      ],
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "extensions-33",
+      "mutations": [
+        {
+          "op": "fillObject",
+          "path": "/extensions",
+          "value": true,
+          "count": 33
+        }
+      ],
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "extension-items-33",
+      "mutations": [
+        {
+          "op": "fillArray",
+          "path": "/extensions/x",
+          "value": true,
+          "count": 33
+        }
+      ],
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "extension-fraction",
+      "mutations": [
+        {
+          "path": "/extensions",
+          "value": {
+            "x": 1.5
+          }
+        }
+      ],
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "extension-unsafe-integer",
+      "mutations": [
+        {
+          "path": "/extensions",
+          "value": {
+            "x": 9007199254740992
+          }
+        }
+      ],
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "extension-depth-seven",
+      "mutations": [
+        {
+          "path": "/extensions",
+          "value": {
+            "a": {
+              "b": {
+                "c": {
+                  "d": {
+                    "e": {
+                      "f": {
+                        "g": {
+                          "h": true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "rehash": true,
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "invalid-unicode-surrogate",
+      "mutations": [
+        {
+          "path": "/displayName",
+          "value": "\ud800"
+        }
+      ],
+      "expected": "invalidString"
+    },
+    {
+      "id": "source-reference-too-long",
+      "mutations": [
+        {
+          "path": "/variants/0/elements/0/sourceReference",
+          "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      ],
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "unknown-input-namespace",
+      "mutations": [
+        {
+          "path": "/variants/0/elements/0/payload/inputCode/namespace",
+          "value": "windowsVirtualKey"
+        }
+      ],
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "missing-input-code",
+      "mutations": [
+        {
+          "op": "delete",
+          "path": "/variants/0/elements/0/payload/inputCode"
+        }
+      ],
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "invalid-mouse-button",
+      "mutations": [
+        {
+          "path": "/variants/0/elements/1/payload/button",
+          "value": 9
+        }
+      ],
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "analog-diagonal-policy",
+      "mutations": [
+        {
+          "path": "/variants/0/elements/2/payload/diagonalPolicy",
+          "value": "dominantAxis"
+        }
+      ],
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "dpad-missing-direction",
+      "mutations": [
+        {
+          "op": "delete",
+          "path": "/variants/0/elements/3/payload/right"
+        }
+      ],
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "sticky-trigger-conflict",
+      "mutations": [
+        {
+          "path": "/variants/0/elements/4/payload/sticky",
+          "value": true
+        },
+        {
+          "path": "/variants/0/elements/4/payload/trigger",
+          "value": "hold"
+        }
+      ],
+      "rehash": true,
+      "expected": "stickyTriggerConflict"
+    },
+    {
+      "id": "radial-boundary-unknown",
+      "mutations": [
+        {
+          "path": "/variants/0/elements/5/payload/boundaryPolicy",
+          "value": "nearest"
+        }
+      ],
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "scroll-continuous-missing-cadence",
+      "mutations": [
+        {
+          "path": "/variants/0/elements/6/payload/cadenceMs",
+          "value": null
+        }
+      ],
+      "rehash": true,
+      "expected": "invalidScrollCadence"
+    },
+    {
+      "id": "combo-release-order",
+      "mutations": [
+        {
+          "path": "/variants/0/elements/7/payload/releaseOrder",
+          "value": "listed"
+        }
+      ],
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "soft-keyboard-nonlocal",
+      "mutations": [
+        {
+          "path": "/variants/0/elements/8/payload/executionScope",
+          "value": "host"
+        }
+      ],
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "gyro-target-unknown",
+      "mutations": [
+        {
+          "path": "/variants/0/elements/9/payload/target",
+          "value": "leftStick"
+        }
+      ],
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "gyro-scale-out-of-range",
+      "mutations": [
+        {
+          "path": "/variants/0/elements/9/payload/scale",
+          "value": 100001
+        }
+      ],
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "timed-hold-missing-duration",
+      "mutations": [
+        {
+          "path": "/variants/0/elements/0/payload/trigger",
+          "value": "timedHold"
+        },
+        {
+          "path": "/variants/0/elements/0/payload/timedHoldMs",
+          "value": null
+        }
+      ],
+      "rehash": true,
+      "expected": "invalidTimedHold"
+    },
+    {
+      "id": "non-timed-hold-has-duration",
+      "mutations": [
+        {
+          "path": "/variants/0/elements/0/payload/timedHoldMs",
+          "value": 500
+        }
+      ],
+      "rehash": true,
+      "expected": "unexpectedTimedHold"
+    },
+    {
+      "id": "duplicate-z-order",
+      "mutations": [
+        {
+          "path": "/variants/0/elements/1/zOrder",
+          "value": 0
+        },
+        {
+          "path": "/variants/0/elements/1/rect",
+          "value": {
+            "width": 80,
+            "height": 80,
+            "horizontalOffset": -40,
+            "verticalOffset": 20
+          }
+        }
+      ],
+      "rehash": true,
+      "expected": "duplicateZOrder"
+    },
+    {
+      "id": "boundary-touch-is-not-overlap",
+      "mutations": [
+        {
+          "path": "/variants/0/elements/1/rect",
+          "value": {
+            "width": 80,
+            "height": 80,
+            "horizontalOffset": 1,
+            "verticalOffset": 20
+          }
+        }
+      ],
+      "rehash": true,
+      "expected": "accepted"
+    },
+    {
+      "id": "disabled-overlap-allowed",
+      "mutations": [
+        {
+          "path": "/variants/0/elements/1/enabled",
+          "value": false
+        },
+        {
+          "path": "/variants/0/elements/1/rect",
+          "value": {
+            "width": 80,
+            "height": 80,
+            "horizontalOffset": -40,
+            "verticalOffset": 20
+          }
+        }
+      ],
+      "rehash": true,
+      "expected": "accepted"
+    },
+    {
+      "id": "active-overlap-unique-z-accepted",
+      "mutations": [
+        {
+          "path": "/variants/0/elements/1/rect",
+          "value": {
+            "horizontalOffset": -40,
+            "verticalOffset": 20,
+            "width": 80,
+            "height": 80
+          }
+        }
+      ],
+      "rehash": true,
+      "expected": "accepted"
+    },
+    {
+      "id": "hash-mismatch",
+      "mutations": [
+        {
+          "path": "/displayName",
+          "value": "Changed"
+        }
+      ],
+      "expected": "contentHashMismatch"
+    }
+  ],
+  "rawCases": [
+    {
+      "id": "invalid-utf8",
+      "hex": "ff",
+      "expected": "invalidUtf8"
+    },
+    {
+      "id": "duplicate-core-field",
+      "hex": "7b22666f726d6174223a2278222c22666f726d6174223a2278227d",
+      "expected": "duplicateKey"
+    },
+    {
+      "id": "duplicate-nested-field",
+      "hex": "7b2276617269616e74223a7b226964223a312c226964223a317d7d",
+      "expected": "duplicateKey"
+    },
+    {
+      "id": "negative-zero-artifact-integer",
+      "hex": "7b227265766973696f6e223a2d307d",
+      "expected": "negativeZero"
+    },
+    {
+      "id": "negative-zero-nested-extension",
+      "hex": "7b22657874656e73696f6e73223a7b2278223a2d307d7d",
+      "expected": "negativeZero"
+    }
+  ],
+  "jcsCases": [
+    {
+      "id": "utf16-non-bmp-key-order",
+      "input": {
+        "\ue000": 1,
+        "\ud83d\ude00": 2
+      },
+      "expected": "{\"\ud83d\ude00\":2,\"\ue000\":1}"
+    },
+    {
+      "id": "integer-and-control-escape",
+      "input": {
+        "z": -5,
+        "a": "line\nfeed"
+      },
+      "expected": "{\"a\":\"line\\nfeed\",\"z\":-5}"
+    }
+  ],
+  "viewportCases": [
+    {
+      "id": "phone-to-tablet-left-top-40-30",
+      "canvas": {
+        "width": 1920,
+        "height": 1080
+      },
+      "orientation": "landscape",
+      "element": {
+        "rect": {
+          "horizontalOffset": 40,
+          "verticalOffset": 30,
+          "width": 100,
+          "height": 100
+        },
+        "anchorX": "LEFT",
+        "anchorY": "TOP"
+      },
+      "overlayBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 2560,
+        "height": 1600
+      },
+      "expectedRect": {
+        "x": 53,
+        "y": 44,
+        "width": 148,
+        "height": 148
+      }
+    },
+    {
+      "id": "phone-to-tablet-left-bottom-40-30",
+      "canvas": {
+        "width": 1920,
+        "height": 1080
+      },
+      "orientation": "landscape",
+      "element": {
+        "rect": {
+          "horizontalOffset": 40,
+          "verticalOffset": 30,
+          "width": 100,
+          "height": 100
+        },
+        "anchorX": "LEFT",
+        "anchorY": "BOTTOM"
+      },
+      "overlayBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 2560,
+        "height": 1600
+      },
+      "expectedRect": {
+        "x": 53,
+        "y": 1408,
+        "width": 148,
+        "height": 148
+      }
+    },
+    {
+      "id": "phone-to-tablet-center-top-40-30",
+      "canvas": {
+        "width": 1920,
+        "height": 1080
+      },
+      "orientation": "landscape",
+      "element": {
+        "rect": {
+          "horizontalOffset": 40,
+          "verticalOffset": 30,
+          "width": 100,
+          "height": 100
+        },
+        "anchorX": "CENTER",
+        "anchorY": "TOP"
+      },
+      "overlayBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 2560,
+        "height": 1600
+      },
+      "expectedRect": {
+        "x": 1259,
+        "y": 44,
+        "width": 148,
+        "height": 148
+      }
+    },
+    {
+      "id": "phone-to-tablet-center-bottom-40-30",
+      "canvas": {
+        "width": 1920,
+        "height": 1080
+      },
+      "orientation": "landscape",
+      "element": {
+        "rect": {
+          "horizontalOffset": 40,
+          "verticalOffset": 30,
+          "width": 100,
+          "height": 100
+        },
+        "anchorX": "CENTER",
+        "anchorY": "BOTTOM"
+      },
+      "overlayBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 2560,
+        "height": 1600
+      },
+      "expectedRect": {
+        "x": 1259,
+        "y": 1408,
+        "width": 148,
+        "height": 148
+      }
+    },
+    {
+      "id": "phone-to-tablet-right-top-40-30",
+      "canvas": {
+        "width": 1920,
+        "height": 1080
+      },
+      "orientation": "landscape",
+      "element": {
+        "rect": {
+          "horizontalOffset": 40,
+          "verticalOffset": 30,
+          "width": 100,
+          "height": 100
+        },
+        "anchorX": "RIGHT",
+        "anchorY": "TOP"
+      },
+      "overlayBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 2560,
+        "height": 1600
+      },
+      "expectedRect": {
+        "x": 2359,
+        "y": 44,
+        "width": 148,
+        "height": 148
+      }
+    },
+    {
+      "id": "phone-to-tablet-right-bottom-40-30",
+      "canvas": {
+        "width": 1920,
+        "height": 1080
+      },
+      "orientation": "landscape",
+      "element": {
+        "rect": {
+          "horizontalOffset": 40,
+          "verticalOffset": 30,
+          "width": 100,
+          "height": 100
+        },
+        "anchorX": "RIGHT",
+        "anchorY": "BOTTOM"
+      },
+      "overlayBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 2560,
+        "height": 1600
+      },
+      "expectedRect": {
+        "x": 2359,
+        "y": 1408,
+        "width": 148,
+        "height": 148
+      }
+    },
+    {
+      "id": "negative-right-bottom-gaps-partial-offscreen",
+      "canvas": {
+        "width": 1920,
+        "height": 1080
+      },
+      "orientation": "landscape",
+      "element": {
+        "rect": {
+          "horizontalOffset": -40,
+          "verticalOffset": -30,
+          "width": 100,
+          "height": 100
+        },
+        "anchorX": "RIGHT",
+        "anchorY": "BOTTOM"
+      },
+      "overlayBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 2560,
+        "height": 1600
+      },
+      "expectedRect": {
+        "x": 2465,
+        "y": 1496,
+        "width": 148,
+        "height": 148
+      }
+    },
+    {
+      "id": "negative-top-gap-partial-offscreen",
+      "canvas": {
+        "width": 1920,
+        "height": 1080
+      },
+      "orientation": "landscape",
+      "element": {
+        "rect": {
+          "horizontalOffset": 40,
+          "verticalOffset": -99,
+          "width": 100,
+          "height": 100
+        },
+        "anchorX": "LEFT",
+        "anchorY": "TOP"
+      },
+      "overlayBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 2560,
+        "height": 1600
+      },
+      "expectedRect": {
+        "x": 53,
+        "y": -147,
+        "width": 148,
+        "height": 148
+      }
+    },
+    {
+      "id": "circle-invariant-wide-tablet",
+      "canvas": {
+        "width": 1920,
+        "height": 1080
+      },
+      "orientation": "landscape",
+      "element": {
+        "rect": {
+          "horizontalOffset": 0,
+          "verticalOffset": 100,
+          "width": 100,
+          "height": 100
+        },
+        "anchorX": "CENTER",
+        "anchorY": "TOP"
+      },
+      "overlayBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 2560,
+        "height": 1600
+      },
+      "expectedRect": {
+        "x": 1206,
+        "y": 148,
+        "width": 148,
+        "height": 148
+      }
+    },
+    {
+      "id": "transient-system-bars-do-not-change-map",
+      "canvas": {
+        "width": 1920,
+        "height": 1080
+      },
+      "orientation": "landscape",
+      "element": {
+        "rect": {
+          "horizontalOffset": 40,
+          "verticalOffset": 30,
+          "width": 100,
+          "height": 100
+        },
+        "anchorX": "LEFT",
+        "anchorY": "TOP"
+      },
+      "overlayBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 2560,
+        "height": 1600
+      },
+      "systemInsets": {
+        "left": 0,
+        "top": 80,
+        "right": 0,
+        "bottom": 100
+      },
+      "expectedRect": {
+        "x": 53,
+        "y": 44,
+        "width": 148,
+        "height": 148
+      }
+    },
+    {
+      "id": "cutout-diagnostic-does-not-change-map",
+      "canvas": {
+        "width": 1920,
+        "height": 1080
+      },
+      "orientation": "landscape",
+      "element": {
+        "rect": {
+          "horizontalOffset": 40,
+          "verticalOffset": 30,
+          "width": 100,
+          "height": 100
+        },
+        "anchorX": "LEFT",
+        "anchorY": "TOP"
+      },
+      "overlayBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 2560,
+        "height": 1600
+      },
+      "occlusions": [
+        {
+          "x": 0,
+          "y": 0,
+          "width": 120,
+          "height": 80
+        }
+      ],
+      "expectedRect": {
+        "x": 53,
+        "y": 44,
+        "width": 148,
+        "height": 148
+      }
+    },
+    {
+      "id": "video-letterbox-does-not-change-map",
+      "canvas": {
+        "width": 1920,
+        "height": 1080
+      },
+      "orientation": "landscape",
+      "element": {
+        "rect": {
+          "horizontalOffset": 40,
+          "verticalOffset": 30,
+          "width": 100,
+          "height": 100
+        },
+        "anchorX": "LEFT",
+        "anchorY": "TOP"
+      },
+      "overlayBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 2560,
+        "height": 1600
+      },
+      "videoContentRect": {
+        "x": 0,
+        "y": 80,
+        "width": 2560,
+        "height": 1440
+      },
+      "expectedRect": {
+        "x": 53,
+        "y": 44,
+        "width": 148,
+        "height": 148
+      }
+    },
+    {
+      "id": "mapped-control-not-visible",
+      "canvas": {
+        "width": 1920,
+        "height": 1080
+      },
+      "orientation": "landscape",
+      "element": {
+        "rect": {
+          "horizontalOffset": 32767,
+          "verticalOffset": 30,
+          "width": 100,
+          "height": 100
+        },
+        "anchorX": "LEFT",
+        "anchorY": "TOP"
+      },
+      "overlayBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 800,
+        "height": 600
+      },
+      "expectedError": "targetNotVisible"
+    }
+  ],
+  "descriptorCases": [
+    {
+      "id": "descriptor-exact-touch-variant",
+      "descriptor": {
+        "layoutId": "00000000-0000-0000-0000-000000000001",
+        "revision": 1,
+        "variants": [
+          {
+            "variantId": "00000000-0000-0000-0000-000000000002",
+            "inputProfile": "touch",
+            "deviceClasses": [
+              "phone"
+            ],
+            "orientations": [
+              "landscape"
+            ]
+          },
+          {
+            "variantId": "00000000-0000-0000-0000-000000000099",
+            "inputProfile": "gamepad",
+            "deviceClasses": [
+              "phone"
+            ],
+            "orientations": [
+              "landscape"
+            ]
+          }
+        ]
+      },
+      "expected": "accepted"
+    },
+    {
+      "id": "descriptor-touch-variant-missing",
+      "descriptor": {
+        "layoutId": "00000000-0000-0000-0000-000000000001",
+        "revision": 1,
+        "variants": []
+      },
+      "expected": "descriptorVariantSetMismatch"
+    },
+    {
+      "id": "descriptor-device-class-mismatch",
+      "descriptor": {
+        "layoutId": "00000000-0000-0000-0000-000000000001",
+        "revision": 1,
+        "variants": [
+          {
+            "variantId": "00000000-0000-0000-0000-000000000002",
+            "inputProfile": "touch",
+            "deviceClasses": [
+              "tablet"
+            ],
+            "orientations": [
+              "landscape"
+            ]
+          }
+        ]
+      },
+      "expected": "descriptorEligibilityMismatch"
+    }
+  ],
+  "kindCases": [
+    {
+      "id": "keyboard-missing-code",
+      "elementIndex": 0,
+      "mutation": {
+        "op": "delete",
+        "path": "/inputCode"
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "keyboard-code-wrong-type",
+      "elementIndex": 0,
+      "mutation": {
+        "path": "/inputCode/code",
+        "value": "29"
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "keyboard-code-below-min",
+      "elementIndex": 0,
+      "mutation": {
+        "path": "/inputCode/code",
+        "value": -1
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "keyboard-code-above-max",
+      "elementIndex": 0,
+      "mutation": {
+        "path": "/inputCode/code",
+        "value": 65536
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "keyboard-unknown-trigger",
+      "elementIndex": 0,
+      "mutation": {
+        "path": "/trigger",
+        "value": "repeat"
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "mouse-missing-button",
+      "elementIndex": 1,
+      "mutation": {
+        "op": "delete",
+        "path": "/button"
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "mouse-button-wrong-type",
+      "elementIndex": 1,
+      "mutation": {
+        "path": "/button",
+        "value": 1
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "mouse-button-unknown",
+      "elementIndex": 1,
+      "mutation": {
+        "path": "/button",
+        "value": "side6"
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "analog-missing-up",
+      "elementIndex": 2,
+      "mutation": {
+        "op": "delete",
+        "path": "/up"
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "analog-direction-wrong-type",
+      "elementIndex": 2,
+      "mutation": {
+        "path": "/up",
+        "value": 51
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "analog-empty-direction",
+      "elementIndex": 2,
+      "mutation": {
+        "path": "/up",
+        "value": []
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "analog-unknown-diagonal",
+      "elementIndex": 2,
+      "mutation": {
+        "path": "/diagonalPolicy",
+        "value": "eightWay"
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "dpad-missing-right",
+      "elementIndex": 3,
+      "mutation": {
+        "op": "delete",
+        "path": "/right"
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "dpad-code-above-max",
+      "elementIndex": 3,
+      "mutation": {
+        "path": "/right/0/code",
+        "value": 65536
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "dpad-unknown-diagonal",
+      "elementIndex": 3,
+      "mutation": {
+        "path": "/diagonalPolicy",
+        "value": "vector"
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "custom-missing-keys",
+      "elementIndex": 4,
+      "mutation": {
+        "op": "delete",
+        "path": "/keys"
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "custom-empty-keys",
+      "elementIndex": 4,
+      "mutation": {
+        "path": "/keys",
+        "value": []
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "custom-sticky-wrong-type",
+      "elementIndex": 4,
+      "mutation": {
+        "path": "/sticky",
+        "value": 1
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "custom-sticky-hold-conflict",
+      "elementIndex": 4,
+      "mutation": {
+        "path": "/sticky",
+        "value": true
+      },
+      "rehash": true,
+      "expected": "stickyTriggerConflict"
+    },
+    {
+      "id": "radial-missing-actions",
+      "elementIndex": 5,
+      "mutation": {
+        "op": "delete",
+        "path": "/actions"
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "radial-actions-wrong-type",
+      "elementIndex": 5,
+      "mutation": {
+        "path": "/actions",
+        "value": {}
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "radial-actions-below-min",
+      "elementIndex": 5,
+      "mutation": {
+        "path": "/actions",
+        "value": [
+          {
+            "keys": [
+              {
+                "namespace": "androidKeyCode",
+                "code": 29
+              }
+            ],
+            "label": "One"
+          }
+        ]
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "radial-unknown-direction",
+      "elementIndex": 5,
+      "mutation": {
+        "path": "/direction",
+        "value": "counterclockwise"
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "scroll-missing-step",
+      "elementIndex": 6,
+      "mutation": {
+        "op": "delete",
+        "path": "/step"
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "scroll-step-wrong-type",
+      "elementIndex": 6,
+      "mutation": {
+        "path": "/step",
+        "value": "4"
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "scroll-step-below-min",
+      "elementIndex": 6,
+      "mutation": {
+        "path": "/step",
+        "value": 0
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "scroll-step-above-max",
+      "elementIndex": 6,
+      "mutation": {
+        "path": "/step",
+        "value": 121
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "scroll-continuous-without-cadence",
+      "elementIndex": 6,
+      "mutation": {
+        "path": "/cadenceMs",
+        "value": null
+      },
+      "rehash": true,
+      "expected": "invalidScrollCadence"
+    },
+    {
+      "id": "combo-missing-keys",
+      "elementIndex": 7,
+      "mutation": {
+        "op": "delete",
+        "path": "/keys"
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "combo-empty-keys",
+      "elementIndex": 7,
+      "mutation": {
+        "path": "/keys",
+        "value": []
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "combo-unknown-release-order",
+      "elementIndex": 7,
+      "mutation": {
+        "path": "/releaseOrder",
+        "value": "parallel"
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "soft-keyboard-missing-action",
+      "elementIndex": 8,
+      "mutation": {
+        "op": "delete",
+        "path": "/action"
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "soft-keyboard-unknown-action",
+      "elementIndex": 8,
+      "mutation": {
+        "path": "/action",
+        "value": "sendHostKey"
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "gyro-missing-target",
+      "elementIndex": 9,
+      "mutation": {
+        "op": "delete",
+        "path": "/target"
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "gyro-scale-wrong-type",
+      "elementIndex": 9,
+      "mutation": {
+        "path": "/scale",
+        "value": "1000"
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "gyro-scale-below-min",
+      "elementIndex": 9,
+      "mutation": {
+        "path": "/scale",
+        "value": 0
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "gyro-scale-above-max",
+      "elementIndex": 9,
+      "mutation": {
+        "path": "/scale",
+        "value": 100001
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "gyro-unknown-frame",
+      "elementIndex": 9,
+      "mutation": {
+        "path": "/frame",
+        "value": "world"
+      },
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "gyro-unknown-axes",
+      "elementIndex": 9,
+      "mutation": {
+        "path": "/axes",
+        "value": "rollOnly"
+      },
+      "expected": "schemaRejected"
+    }
+  ],
+  "variantCreationCases": [
+    {
+      "id": "full-immersive-landscape",
+      "targetViewport": {
+        "widthPx": 2560,
+        "heightPx": 1600,
+        "orientation": "landscape"
+      },
+      "expectedCanvas": {
+        "width": 2560,
+        "height": 1600
+      }
+    },
+    {
+      "id": "full-immersive-portrait",
+      "targetViewport": {
+        "widthPx": 1200,
+        "heightPx": 1920,
+        "orientation": "portrait"
+      },
+      "expectedCanvas": {
+        "width": 1200,
+        "height": 1920
+      }
+    },
+    {
+      "id": "orientation-mismatch",
+      "targetViewport": {
+        "widthPx": 2560,
+        "heightPx": 1600,
+        "orientation": "portrait"
+      },
+      "expectedError": "viewportOrientationMismatch"
+    },
+    {
+      "id": "viewport-too-wide",
+      "targetViewport": {
+        "widthPx": 32769,
+        "heightPx": 1600,
+        "orientation": "landscape"
+      },
+      "expectedError": "viewportOutOfRange"
+    }
+  ],
+  "anchorRebaseCases": [
+    {
+      "id": "outside-left-top",
+      "canvas": {
+        "width": 1000,
+        "height": 600
+      },
+      "resolvedRect": {
+        "x": -60,
+        "y": 20,
+        "width": 100,
+        "height": 100
+      },
+      "expected": {
+        "anchorX": "LEFT",
+        "anchorY": "TOP",
+        "horizontalOffset": -60,
+        "verticalOffset": 20
+      }
+    },
+    {
+      "id": "exact-x40-center",
+      "canvas": {
+        "width": 1000,
+        "height": 600
+      },
+      "resolvedRect": {
+        "x": 350,
+        "y": 20,
+        "width": 100,
+        "height": 100
+      },
+      "expected": {
+        "anchorX": "CENTER",
+        "anchorY": "TOP",
+        "horizontalOffset": -100,
+        "verticalOffset": 20
+      }
+    },
+    {
+      "id": "signed-center-top",
+      "canvas": {
+        "width": 1000,
+        "height": 600
+      },
+      "resolvedRect": {
+        "x": 475,
+        "y": 20,
+        "width": 100,
+        "height": 100
+      },
+      "expected": {
+        "anchorX": "CENTER",
+        "anchorY": "TOP",
+        "horizontalOffset": 25,
+        "verticalOffset": 20
+      }
+    },
+    {
+      "id": "exact-x60-center",
+      "canvas": {
+        "width": 1000,
+        "height": 600
+      },
+      "resolvedRect": {
+        "x": 550,
+        "y": 20,
+        "width": 100,
+        "height": 100
+      },
+      "expected": {
+        "anchorX": "CENTER",
+        "anchorY": "TOP",
+        "horizontalOffset": 100,
+        "verticalOffset": 20
+      }
+    },
+    {
+      "id": "outside-right-bottom",
+      "canvas": {
+        "width": 1000,
+        "height": 600
+      },
+      "resolvedRect": {
+        "x": 960,
+        "y": 540,
+        "width": 100,
+        "height": 100
+      },
+      "expected": {
+        "anchorX": "RIGHT",
+        "anchorY": "BOTTOM",
+        "horizontalOffset": -60,
+        "verticalOffset": -40
+      }
+    },
+    {
+      "id": "y-below-half-top",
+      "canvas": {
+        "width": 1000,
+        "height": 600
+      },
+      "resolvedRect": {
+        "x": 100,
+        "y": 249,
+        "width": 100,
+        "height": 100
+      },
+      "expected": {
+        "anchorX": "LEFT",
+        "anchorY": "TOP",
+        "horizontalOffset": 100,
+        "verticalOffset": 249
+      }
+    },
+    {
+      "id": "y-exact-half-bottom",
+      "canvas": {
+        "width": 1000,
+        "height": 600
+      },
+      "resolvedRect": {
+        "x": 100,
+        "y": 250,
+        "width": 100,
+        "height": 100
+      },
+      "expected": {
+        "anchorX": "LEFT",
+        "anchorY": "BOTTOM",
+        "horizontalOffset": 100,
+        "verticalOffset": 250
+      }
+    }
+  ],
+  "targetSceneCases": [
+    {
+      "id": "narrow-aspect-overlap-valid",
+      "canvas": {
+        "width": 1920,
+        "height": 1080
+      },
+      "orientation": "landscape",
+      "overlayBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 1200,
+        "height": 1080
+      },
+      "elements": [
+        {
+          "rect": {
+            "horizontalOffset": 700,
+            "verticalOffset": 100,
+            "width": 200,
+            "height": 200
+          },
+          "anchorX": "LEFT",
+          "anchorY": "TOP",
+          "zOrder": 0,
+          "enabled": true,
+          "hidden": false
+        },
+        {
+          "rect": {
+            "horizontalOffset": 700,
+            "verticalOffset": 100,
+            "width": 200,
+            "height": 200
+          },
+          "anchorX": "RIGHT",
+          "anchorY": "TOP",
+          "zOrder": 1,
+          "enabled": true,
+          "hidden": false
+        }
+      ],
+      "expectedRects": [
+        {
+          "x": 438,
+          "y": 100,
+          "width": 200,
+          "height": 200
+        },
+        {
+          "x": 562,
+          "y": 100,
+          "width": 200,
+          "height": 200
+        }
+      ]
+    },
+    {
+      "id": "minimum-target-fail-closed",
+      "canvas": {
+        "width": 1920,
+        "height": 1080
+      },
+      "orientation": "landscape",
+      "overlayBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 960,
+        "height": 540
+      },
+      "minimumTargetPx": 60,
+      "elements": [
+        {
+          "rect": {
+            "horizontalOffset": 40,
+            "verticalOffset": 30,
+            "width": 100,
+            "height": 100
+          },
+          "anchorX": "LEFT",
+          "anchorY": "TOP",
+          "zOrder": 0,
+          "enabled": true,
+          "hidden": false
+        }
+      ],
+      "expectedError": "targetBelowMinimum"
+    }
+  ],
+  "hitTestCases": [
+    {
+      "id": "topmost-wins",
+      "point": {
+        "x": 50,
+        "y": 50
+      },
+      "elements": [
+        {
+          "elementId": "lower",
+          "zOrder": 0,
+          "enabled": true,
+          "hidden": false,
+          "visibleRect": {
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 100
+          }
+        },
+        {
+          "elementId": "upper",
+          "zOrder": 1,
+          "enabled": true,
+          "hidden": false,
+          "visibleRect": {
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 100
+          }
+        }
+      ],
+      "expectedElementId": "upper"
+    },
+    {
+      "id": "reorder-changes-winner",
+      "point": {
+        "x": 50,
+        "y": 50
+      },
+      "elements": [
+        {
+          "elementId": "lower",
+          "zOrder": 2,
+          "enabled": true,
+          "hidden": false,
+          "visibleRect": {
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 100
+          }
+        },
+        {
+          "elementId": "upper",
+          "zOrder": 1,
+          "enabled": true,
+          "hidden": false,
+          "visibleRect": {
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 100
+          }
+        }
+      ],
+      "expectedElementId": "lower"
+    },
+    {
+      "id": "disabled-hidden-fallthrough",
+      "point": {
+        "x": 50,
+        "y": 50
+      },
+      "elements": [
+        {
+          "elementId": "base",
+          "zOrder": 0,
+          "enabled": true,
+          "hidden": false,
+          "visibleRect": {
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 100
+          }
+        },
+        {
+          "elementId": "disabled",
+          "zOrder": 2,
+          "enabled": false,
+          "hidden": false,
+          "visibleRect": {
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 100
+          }
+        },
+        {
+          "elementId": "hidden",
+          "zOrder": 3,
+          "enabled": true,
+          "hidden": true,
+          "visibleRect": {
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 100
+          }
+        }
+      ],
+      "expectedElementId": "base"
+    }
+  ],
+  "keyboardBatchCases": [
+    {
+      "id": "canonical-center-stack",
+      "layoutId": "00000000-0000-0000-0000-000000000001",
+      "batchOrdinal": 1,
+      "canvas": {
+        "width": 1920,
+        "height": 1080
+      },
+      "baseZOrder": 10,
+      "input": [
+        {
+          "namespace": "usbHidKeyboardUsage",
+          "code": 4
+        },
+        {
+          "namespace": "androidKeyCode",
+          "code": 51
+        },
+        {
+          "namespace": "androidKeyCode",
+          "code": 29
+        },
+        {
+          "namespace": "androidKeyCode",
+          "code": 29
+        }
+      ],
+      "expected": [
+        {
+          "inputCode": {
+            "namespace": "androidKeyCode",
+            "code": 29
+          },
+          "elementId": "3964593b-4c3d-53ea-9f4c-fca879599257",
+          "zOrder": 10,
+          "anchorX": "CENTER",
+          "anchorY": "BOTTOM",
+          "horizontalOffset": 0,
+          "verticalOffset": 492,
+          "width": 96,
+          "height": 96,
+          "resolvedRect": {
+            "x": 912,
+            "y": 492,
+            "width": 96,
+            "height": 96
+          },
+          "shape": "circle",
+          "trigger": "hold",
+          "timedHoldMs": null
+        },
+        {
+          "inputCode": {
+            "namespace": "androidKeyCode",
+            "code": 51
+          },
+          "elementId": "fe0fcb82-64fd-527b-8aeb-4b3b4aae6685",
+          "zOrder": 11,
+          "anchorX": "CENTER",
+          "anchorY": "BOTTOM",
+          "horizontalOffset": 0,
+          "verticalOffset": 492,
+          "width": 96,
+          "height": 96,
+          "resolvedRect": {
+            "x": 912,
+            "y": 492,
+            "width": 96,
+            "height": 96
+          },
+          "shape": "circle",
+          "trigger": "hold",
+          "timedHoldMs": null
+        },
+        {
+          "inputCode": {
+            "namespace": "usbHidKeyboardUsage",
+            "code": 4
+          },
+          "elementId": "9b2c9b21-b436-57f5-96a4-84eb2c09c148",
+          "zOrder": 12,
+          "anchorX": "CENTER",
+          "anchorY": "BOTTOM",
+          "horizontalOffset": 0,
+          "verticalOffset": 492,
+          "width": 96,
+          "height": 96,
+          "resolvedRect": {
+            "x": 912,
+            "y": 492,
+            "width": 96,
+            "height": 96
+          },
+          "shape": "circle",
+          "trigger": "hold",
+          "timedHoldMs": null
+        }
+      ],
+      "formalSave": "accepted",
+      "initialNextKeyboardBatchOrdinal": 1,
+      "resultNextKeyboardBatchOrdinal": 2
+    },
+    {
+      "id": "save-reopen-second-same-keys",
+      "reopenedContentNextKeyboardBatchOrdinal": 2,
+      "journalDeleted": true,
+      "input": [
+        {
+          "namespace": "androidKeyCode",
+          "code": 51
+        },
+        {
+          "namespace": "androidKeyCode",
+          "code": 29
+        }
+      ],
+      "expected": [
+        {
+          "inputCode": {
+            "namespace": "androidKeyCode",
+            "code": 29
+          },
+          "elementId": "aa8bc924-476b-5055-ae4a-72e4a03b77c3"
+        },
+        {
+          "inputCode": {
+            "namespace": "androidKeyCode",
+            "code": 51
+          },
+          "elementId": "b8f56982-2bb0-5d2c-b1c0-8917430e5a10"
+        }
+      ],
+      "mustDifferFromFirstBatchIds": true,
+      "resultNextKeyboardBatchOrdinal": 3
+    },
+    {
+      "id": "batch-limit",
+      "count": 33,
+      "expectedError": "tooManyKeys"
+    },
+    {
+      "id": "atomic-failure-zero-created",
+      "failure": "zOrderExhausted",
+      "createdCount": 0,
+      "ordinalConsumed": false
+    }
+  ],
+  "roundingCases": [
+    {
+      "id": "positive-half",
+      "numerator": 1,
+      "denominator": 2,
+      "expected": 1
+    },
+    {
+      "id": "positive-one-half",
+      "numerator": 3,
+      "denominator": 2,
+      "expected": 2
+    },
+    {
+      "id": "negative-half",
+      "numerator": -1,
+      "denominator": 2,
+      "expected": 0
+    },
+    {
+      "id": "negative-one-half",
+      "numerator": -3,
+      "denominator": 2,
+      "expected": -1
+    },
+    {
+      "id": "negative-non-tie",
+      "numerator": -4,
+      "denominator": 3,
+      "expected": -1
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "contract": "ligase-touch-layout-v3-cutover",
+  "schemaVersion": 1,
+  "marker": {
+    "fileName": "ligase-touch-layout-v3-cutover.json",
+    "format": "ligase-touch-layout-v3-cutover",
+    "version": 1,
+    "terminalState": "V3_READY"
+  },
+  "states": [
+    {
+      "state": "NOT_STARTED",
+      "v3RepositoriesOpen": false,
+      "next": ["QUARANTINING", "FAILED_CLOSED"]
+    },
+    {
+      "state": "QUARANTINING",
+      "v3RepositoriesOpen": false,
+      "next": ["VERIFYING", "FAILED_CLOSED"]
+    },
+    {
+      "state": "VERIFYING",
+      "v3RepositoriesOpen": false,
+      "next": ["V3_READY", "FAILED_CLOSED"]
+    },
+    {
+      "state": "FAILED_CLOSED",
+      "v3RepositoriesOpen": false,
+      "next": ["QUARANTINING"]
+    },
+    {
+      "state": "V3_READY",
+      "v3RepositoriesOpen": true,
+      "next": ["V3_READY"]
+    }
+  ],
+  "quarantineTargets": {
+    "directories": [
+      "ligase-touch-layout-v2",
+      "ligase-touch-layout-v2-drafts",
+      "ligase-touch-layout-v2-generations"
+    ],
+    "sharedPreferencesFile": "ligase_touch_layout_v2_preferences",
+    "preferenceKeyPrefix": "preferred:"
+  },
+  "mustNotTouch": [
+    "computers4.db",
+    "client.crt",
+    "client.key",
+    "ligase_product_preferences.xml",
+    "touchkit_layout_names.xml",
+    "touchkit_layout_registry.xml",
+    "touchkit_game_layouts.xml",
+    "profiles"
+  ],
+  "negativeScenarios": [
+    {
+      "id": "unknown-target",
+      "expected": "FAILED_CLOSED",
+      "markerWritten": false
+    },
+    {
+      "id": "target-outside-app-private-root",
+      "expected": "FAILED_CLOSED",
+      "markerWritten": false
+    },
+    {
+      "id": "quarantine-move-failure",
+      "expected": "FAILED_CLOSED",
+      "markerWritten": false
+    },
+    {
+      "id": "original-target-remains",
+      "expected": "FAILED_CLOSED",
+      "markerWritten": false
+    },
+    {
+      "id": "marker-readback-failure",
+      "expected": "FAILED_CLOSED",
+      "markerWritten": false
+    },
+    {
+      "id": "non-layout-preference-key",
+      "expected": "PRESERVED",
+      "markerWritten": false
+    },
+    {
+      "id": "v3-repository-before-ready",
+      "expected": "REJECTED",
+      "markerWritten": false
+    },
+    {
+      "id": "repeat-after-partial-quarantine",
+      "expected": "V3_READY",
+      "markerWritten": true
+    }
+  ]
+}

@@ -1,0 +1,412 @@
+{
+  "format": "ligase-touch-layout",
+  "schemaVersion": 3,
+  "layoutId": "00000000-0000-0000-0000-000000000001",
+  "revision": 1,
+  "nextKeyboardBatchOrdinal": 1,
+  "displayName": "Built-in all-types conversion fixture",
+  "extensions": {},
+  "variants": [
+    {
+      "variantId": "00000000-0000-0000-0000-000000000002",
+      "deviceClasses": [
+        "phone"
+      ],
+      "orientations": [
+        "landscape"
+      ],
+      "recommendation": {
+        "preferredAspectRatio": {
+          "numerator": 1920,
+          "denominator": 1080
+        },
+        "minAspectRatio": {
+          "numerator": 4,
+          "denominator": 3
+        },
+        "maxAspectRatio": {
+          "numerator": 32,
+          "denominator": 9
+        },
+        "minShortestSideDp": 320,
+        "minTouchTargetDp": 48,
+        "referenceResolution": {
+          "width": 1920,
+          "height": 1080
+        }
+      },
+      "canvas": {
+        "width": 1920,
+        "height": 1080
+      },
+      "elements": [
+        {
+          "elementId": "5db18bf5-23dc-5034-93ae-4e2d54183a0f",
+          "kind": "keyboard",
+          "rect": {
+            "width": 80,
+            "height": 80,
+            "horizontalOffset": -79,
+            "verticalOffset": 20
+          },
+          "anchorX": "LEFT",
+          "zOrder": 0,
+          "enabled": true,
+          "hidden": false,
+          "opacityPermille": 420,
+          "payload": {
+            "payloadKind": "keyboard",
+            "inputCode": {
+              "namespace": "androidKeyCode",
+              "code": 29
+            },
+            "appearance": {
+              "label": "A",
+              "description": "",
+              "shape": "circle",
+              "showPhysicalKeyNames": false
+            },
+            "trigger": "hold",
+            "timedHoldMs": null
+          },
+          "sourceReference": "fixture_key",
+          "anchorY": "TOP"
+        },
+        {
+          "elementId": "e16e87ef-1006-57da-b601-a88433caabe0",
+          "kind": "mouse",
+          "rect": {
+            "width": 80,
+            "height": 80,
+            "horizontalOffset": 120,
+            "verticalOffset": 20
+          },
+          "anchorX": "LEFT",
+          "zOrder": 1,
+          "enabled": true,
+          "hidden": false,
+          "opacityPermille": 420,
+          "payload": {
+            "payloadKind": "mouse",
+            "button": "primary",
+            "appearance": {
+              "label": "ML",
+              "description": "",
+              "shape": "circle",
+              "showPhysicalKeyNames": false
+            },
+            "trigger": "hold",
+            "timedHoldMs": null
+          },
+          "sourceReference": "fixture_mouse",
+          "anchorY": "TOP"
+        },
+        {
+          "elementId": "7691f37a-0b80-5353-af48-dd06fe3ae9f2",
+          "kind": "analog",
+          "rect": {
+            "width": 180,
+            "height": 180,
+            "horizontalOffset": 220,
+            "verticalOffset": 20
+          },
+          "anchorX": "LEFT",
+          "zOrder": 2,
+          "enabled": true,
+          "hidden": false,
+          "opacityPermille": 420,
+          "payload": {
+            "payloadKind": "analog",
+            "up": [
+              {
+                "namespace": "androidKeyCode",
+                "code": 51
+              }
+            ],
+            "down": [
+              {
+                "namespace": "androidKeyCode",
+                "code": 47
+              }
+            ],
+            "left": [
+              {
+                "namespace": "androidKeyCode",
+                "code": 29
+              }
+            ],
+            "right": [
+              {
+                "namespace": "androidKeyCode",
+                "code": 32
+              }
+            ],
+            "press": [
+              {
+                "namespace": "androidKeyCode",
+                "code": 62
+              }
+            ],
+            "diagonalPolicy": "vector"
+          },
+          "sourceReference": "fixture_analog",
+          "anchorY": "TOP"
+        },
+        {
+          "elementId": "3ef9a0dc-9fad-53a4-bb65-79ad3e7c6180",
+          "kind": "dpad",
+          "rect": {
+            "width": 180,
+            "height": 180,
+            "horizontalOffset": 420,
+            "verticalOffset": 20
+          },
+          "anchorX": "LEFT",
+          "zOrder": 3,
+          "enabled": true,
+          "hidden": false,
+          "opacityPermille": 420,
+          "payload": {
+            "payloadKind": "dpad",
+            "up": [
+              {
+                "namespace": "androidKeyCode",
+                "code": 51
+              }
+            ],
+            "down": [
+              {
+                "namespace": "androidKeyCode",
+                "code": 47
+              }
+            ],
+            "left": [
+              {
+                "namespace": "androidKeyCode",
+                "code": 29
+              }
+            ],
+            "right": [
+              {
+                "namespace": "androidKeyCode",
+                "code": 32
+              }
+            ],
+            "diagonalPolicy": "allowTwoDirections"
+          },
+          "sourceReference": "fixture_dpad",
+          "anchorY": "TOP"
+        },
+        {
+          "elementId": "849de629-d68e-5e4e-909b-8526f3c19104",
+          "kind": "customKeys",
+          "rect": {
+            "width": 100,
+            "height": 100,
+            "horizontalOffset": 620,
+            "verticalOffset": 20
+          },
+          "anchorX": "LEFT",
+          "zOrder": 4,
+          "enabled": true,
+          "hidden": false,
+          "opacityPermille": 420,
+          "payload": {
+            "payloadKind": "customKeys",
+            "keys": [
+              {
+                "namespace": "androidKeyCode",
+                "code": 29
+              },
+              {
+                "namespace": "androidKeyCode",
+                "code": 32
+              }
+            ],
+            "pressOrder": "listed",
+            "releaseOrder": "reverseListed",
+            "trigger": "hold",
+            "timedHoldMs": null,
+            "appearance": {
+              "label": "Pair",
+              "description": "",
+              "shape": "rectangle",
+              "showPhysicalKeyNames": false
+            },
+            "sticky": false
+          },
+          "sourceReference": "fixture_custom",
+          "anchorY": "TOP"
+        },
+        {
+          "elementId": "c815be33-8d6d-5427-aad7-d77a748729df",
+          "kind": "radial",
+          "rect": {
+            "width": 240,
+            "height": 240,
+            "horizontalOffset": 740,
+            "verticalOffset": 20
+          },
+          "anchorX": "LEFT",
+          "zOrder": 5,
+          "enabled": true,
+          "hidden": false,
+          "opacityPermille": 420,
+          "payload": {
+            "payloadKind": "radial",
+            "label": "Wheel",
+            "startAngleMilliDegrees": -90000,
+            "direction": "clockwise",
+            "boundaryPolicy": "clockwiseInclusive",
+            "actions": [
+              {
+                "keys": [
+                  {
+                    "namespace": "androidKeyCode",
+                    "code": 131
+                  }
+                ],
+                "label": "One"
+              },
+              {
+                "keys": [
+                  {
+                    "namespace": "androidKeyCode",
+                    "code": 132
+                  }
+                ],
+                "label": "Two"
+              }
+            ]
+          },
+          "sourceReference": "fixture_radial",
+          "anchorY": "TOP"
+        },
+        {
+          "elementId": "ec59e228-5eab-53c4-9df5-e659f42f3737",
+          "kind": "scroll",
+          "rect": {
+            "width": 80,
+            "height": 80,
+            "horizontalOffset": 1000,
+            "verticalOffset": 20
+          },
+          "anchorX": "LEFT",
+          "zOrder": 6,
+          "enabled": true,
+          "hidden": false,
+          "opacityPermille": 420,
+          "payload": {
+            "payloadKind": "scroll",
+            "direction": "verticalPositive",
+            "stepUnit": "wheelDetent",
+            "step": 4,
+            "continuous": true,
+            "cadenceMs": 120,
+            "appearance": {
+              "label": "Up",
+              "description": "",
+              "shape": "circle",
+              "showPhysicalKeyNames": false
+            },
+            "trigger": "hold",
+            "timedHoldMs": null
+          },
+          "sourceReference": "fixture_scroll",
+          "anchorY": "TOP"
+        },
+        {
+          "elementId": "7bc1cc6e-446b-5916-ac21-e731e18a13e1",
+          "kind": "combo",
+          "rect": {
+            "width": 80,
+            "height": 80,
+            "horizontalOffset": 1100,
+            "verticalOffset": 20
+          },
+          "anchorX": "LEFT",
+          "zOrder": 7,
+          "enabled": true,
+          "hidden": false,
+          "opacityPermille": 420,
+          "payload": {
+            "payloadKind": "combo",
+            "keys": [
+              {
+                "namespace": "androidKeyCode",
+                "code": 57
+              },
+              {
+                "namespace": "androidKeyCode",
+                "code": 8
+              }
+            ],
+            "pressOrder": "listed",
+            "releaseOrder": "reverseListed",
+            "trigger": "hold",
+            "timedHoldMs": null,
+            "appearance": {
+              "label": "Alt+1",
+              "description": "",
+              "shape": "circle",
+              "showPhysicalKeyNames": false
+            }
+          },
+          "sourceReference": "fixture_combo",
+          "anchorY": "TOP"
+        },
+        {
+          "elementId": "500104c3-2e45-5206-bf03-67c03d190707",
+          "kind": "softKeyboard",
+          "rect": {
+            "width": 80,
+            "height": 80,
+            "horizontalOffset": 1200,
+            "verticalOffset": 20
+          },
+          "anchorX": "LEFT",
+          "zOrder": 8,
+          "enabled": true,
+          "hidden": false,
+          "opacityPermille": 420,
+          "payload": {
+            "payloadKind": "softKeyboard",
+            "action": "openSystemIme",
+            "executionScope": "androidLocal"
+          },
+          "sourceReference": "fixture_ime",
+          "anchorY": "TOP"
+        },
+        {
+          "elementId": "3591eeea-0599-5c44-8d4b-03ed4ec3e715",
+          "kind": "gyro",
+          "rect": {
+            "width": 80,
+            "height": 80,
+            "horizontalOffset": 1300,
+            "verticalOffset": 20
+          },
+          "anchorX": "LEFT",
+          "zOrder": 9,
+          "enabled": true,
+          "hidden": false,
+          "opacityPermille": 420,
+          "payload": {
+            "payloadKind": "gyro",
+            "target": "mouse",
+            "frame": "screen",
+            "axes": "yawPitch",
+            "scaleUnit": "milliUnitsPerDegreePerSecond",
+            "scale": 100000,
+            "deadzoneMilliDegreesPerSecond": 0,
+            "invertX": false,
+            "invertY": false
+          },
+          "sourceReference": "fixture_gyro",
+          "anchorY": "TOP"
+        }
+      ]
+    }
+  ],
+  "contentHash": "sha256:94657f0cb6f86945fa47b3229cda1242a1a4e891bdacf6cdfa828f13590f2e67"
+}
