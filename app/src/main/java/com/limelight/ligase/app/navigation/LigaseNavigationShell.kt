@@ -90,10 +90,15 @@ fun LigaseNavigationShell(
         layoutType = NavigationSuiteType.NavigationBar,
         navigationSuiteItems = {
             LigasePage.entries.forEach { destination ->
+                val enabled = ligaseNavigationDestinationEnabled(destination, inputEnabled)
                 item(
                     selected = currentPage == destination,
                     onClick = { onPageSelected(destination) },
-                    enabled = ligaseNavigationDestinationEnabled(destination, inputEnabled),
+                    modifier = Modifier.ligaseNavigationFocusIndicator(
+                        enabled = enabled,
+                        shape = RoundedCornerShape(18.dp),
+                    ),
+                    enabled = enabled,
                     colors = navigationItemColors,
                     icon = {
                         Icon(
@@ -144,9 +149,15 @@ private fun LigaseLandscapeSidebar(
             LigasePage.entries.forEach { destination ->
                 val enabled = ligaseNavigationDestinationEnabled(destination, inputEnabled)
                 val selected = currentPage == destination
+                val itemShape = RoundedCornerShape(18.dp)
                 Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .ligaseNavigationFocusIndicator(
+                            enabled = enabled,
+                            shape = itemShape,
+                        ),
+                    shape = itemShape,
                     color = if (selected) {
                         LigaseSemanticTheme.colors.selected
                     } else {
