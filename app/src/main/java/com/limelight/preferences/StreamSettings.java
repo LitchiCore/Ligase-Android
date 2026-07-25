@@ -51,6 +51,7 @@ import com.limelight.BuildConfig;
 import com.limelight.GameMenu;
 import com.limelight.LimeLog;
 import com.limelight.ligase.LigaseActivity;
+import com.limelight.ligase.feature.stream.infrastructure.StreamBitratePreferences;
 import com.limelight.R;
 import com.limelight.TouchKitLayoutEditorActivity;
 import com.limelight.TouchKitLayoutNames;
@@ -316,10 +317,9 @@ public class StreamSettings extends AppCompatActivity {
                 fps = prefs.getString(PreferenceConfiguration.FPS_PREF_STRING, PreferenceConfiguration.DEFAULT_FPS);
             }
 
-            prefs.edit()
-                    .putInt(PreferenceConfiguration.BITRATE_PREF_STRING,
-                            PreferenceConfiguration.getDefaultBitrate(res, fps))
-                    .apply();
+            StreamBitratePreferences.initializeDefaultIfMissing(
+                    prefs,
+                    PreferenceConfiguration.getDefaultBitrate(res, fps));
         }
 
         @NonNull
@@ -933,10 +933,14 @@ public class StreamSettings extends AppCompatActivity {
                         Toast.makeText(getActivity(), getString(R.string.pref_enter_value_0_9999), Toast.LENGTH_SHORT).show();
                         return false;
                     }
-                    float bitrateValue = Float.parseFloat(value) * 1000;
-                    int bitrate = (int) bitrateValue;
                     SharedPreferences prefs = getPrefs();
-                    prefs.edit().putInt(PreferenceConfiguration.BITRATE_PREF_STRING, bitrate).apply();
+                    if (!StreamBitratePreferences.saveCustomMbpsText(prefs, value)) {
+                        Toast.makeText(
+                                getActivity(),
+                                getString(R.string.ligase_stream_bitrate_invalid_number),
+                                Toast.LENGTH_SHORT).show();
+                        return false;
+                    }
                     Toast.makeText(getActivity(), getString(R.string.pref_set_success), Toast.LENGTH_SHORT).show();
                     return true;
                 });

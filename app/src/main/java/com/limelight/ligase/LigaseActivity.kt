@@ -67,7 +67,11 @@ import com.limelight.ligase.feature.stream.application.StreamLaunchCoordinator
 import com.limelight.ligase.feature.stream.application.StreamLaunchExecutionResult
 import com.limelight.ligase.feature.stream.application.StreamLaunchPlanningResult
 import com.limelight.ligase.feature.stream.application.StreamLaunchRequest
+import com.limelight.ligase.feature.stream.application.StreamBitrateState
+import com.limelight.ligase.feature.stream.application.StreamBitrateUiState
+import com.limelight.ligase.feature.stream.domain.StreamBitratePresetId
 import com.limelight.ligase.feature.stream.infrastructure.LegacyGameStreamLauncher
+import com.limelight.ligase.feature.stream.infrastructure.StreamBitratePreferences
 import com.limelight.ligase.library.LibraryConnectivity
 import com.limelight.ligase.library.LibrarySessionError
 import com.limelight.ligase.library.LibrarySessionViewModel
@@ -109,6 +113,8 @@ class LigaseActivity : AppCompatActivity() {
     private lateinit var hostPairingCoordinator: HostPairingCoordinator
     private lateinit var hostEndpointCoordinator: HostEndpointCoordinator
     private lateinit var streamLaunchCoordinator: StreamLaunchCoordinator
+    private lateinit var streamBitrateState: StreamBitrateState
+    private var streamBitrateUiState by mutableStateOf<StreamBitrateUiState?>(null)
     private lateinit var hdrCapabilityProbe: AndroidHdrCapabilityProbe
     private lateinit var librarySessionViewModel: LibrarySessionViewModel
     private lateinit var libraryHostCoordinator: LibraryHostCoordinator
@@ -161,6 +167,13 @@ class LigaseActivity : AppCompatActivity() {
         hdrCapabilityProbe = AndroidHdrCapabilityProbe(this)
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false)
         localHdrCapabilities = hdrCapabilityProbe.probe()
+        streamBitrateState = StreamBitrateState(
+            preferences = StreamBitratePreferences(
+                PreferenceManager.getDefaultSharedPreferences(this),
+            ),
+            defaultKbps = PreferenceConfiguration.getDefaultBitrate(this),
+            onStateChanged = { state -> streamBitrateUiState = state },
+        )
 
         inputSelectionCoordinator = InputSelectionCoordinator(this) { state ->
             inputSelectionState = state
@@ -271,6 +284,9 @@ class LigaseActivity : AppCompatActivity() {
             }
             LigaseRoot(
                 themeMode = themeMode,
+                streamBitrateState = checkNotNull(streamBitrateUiState),
+                onStreamBitratePresetSelected = ::selectStreamBitratePreset,
+                onStreamBitrateCustomSubmitted = ::submitCustomStreamBitrate,
                 onboarding = checkNotNull(inputSelectionState).onboarding,
                 currentPage = currentPage,
                 selectedInput = checkNotNull(inputSelectionState).selectedMode,
@@ -414,6 +430,14 @@ class LigaseActivity : AppCompatActivity() {
         LigasePreferences.setLanguageMode(this, mode)
         UiHelper.setLocale(this)
         recreate()
+    }
+
+    private fun selectStreamBitratePreset(id: StreamBitratePresetId) {
+        streamBitrateState.setStreamBitratePreset(id)
+    }
+
+    private fun submitCustomStreamBitrate(rawMbps: String) {
+        streamBitrateState.submitCustomMbps(rawMbps)
     }
 
     private fun selectPage(page: LigasePage) {
@@ -983,6 +1007,7 @@ class LigaseActivity : AppCompatActivity() {
         super.onResume()
         foreground = true
         refreshLocalHdrCapabilities()
+        streamBitrateState.refresh(PreferenceConfiguration.getDefaultBitrate(this))
         inputSelectionCoordinator.refreshLayouts()
         inputSelectionCoordinator.start()
         hostEndpointCoordinator.onForeground(::handleHostUpdate)

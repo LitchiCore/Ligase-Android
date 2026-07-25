@@ -7,6 +7,7 @@ import android.os.Build;
 import android.view.Display;
 
 import com.limelight.nvstream.jni.MoonBridge;
+import com.limelight.ligase.feature.stream.infrastructure.StreamBitratePreferences;
 import com.limelight.profiles.ProfilesManager;
 
 public class PreferenceConfiguration {
@@ -839,10 +840,9 @@ private static int getFramePacingValue(Context context) {
         }
 
         // This must happen after the preferences migration to ensure the preferences are populated
-        config.bitrate = prefs.getInt(BITRATE_PREF_STRING, prefs.getInt(BITRATE_PREF_OLD_STRING, 0) * 1000);
-        if (config.bitrate == 0) {
-            config.bitrate = getDefaultBitrate(context);
-        }
+        config.bitrate = StreamBitratePreferences.readLaunchKbps(
+                prefs,
+                getDefaultBitrate(context));
 
         config.meteredBitrate = prefs.getInt((METERED_BITRATE_PREF_STRING), 0);
         if (config.meteredBitrate == 0) {
