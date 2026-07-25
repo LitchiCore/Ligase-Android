@@ -119,6 +119,34 @@ enum class LayoutV2EditorIssue {
     REGISTRATION_FAILED, ROLLBACK_FAILED,
 }
 
+enum class LayoutV2EditorHandoffIssue {
+    INVALID_DRAFT_ID,
+    NO_ACTIVE_DRAFT,
+    DRAFT_ID_MISMATCH,
+    CHECKPOINT_FAILED,
+    ALREADY_OWNED,
+    MISSING,
+    QUARANTINED,
+    CLOSED,
+}
+
+sealed interface LayoutV2EditorHandoffResult {
+    data class LaunchReady(val draftId: String) : LayoutV2EditorHandoffResult {
+        override fun toString(): String = "LayoutV2EditorHandoffResult.LaunchReady(draftId=redacted)"
+    }
+
+    data class Rejected(val issue: LayoutV2EditorHandoffIssue) : LayoutV2EditorHandoffResult
+}
+
+enum class LayoutV2EditorExitCode { SAVED, DISCARDED, LEFT_RECOVERABLE, FAILED }
+
+data class LayoutV2EditorExitResult(
+    val code: LayoutV2EditorExitCode,
+    val issue: LayoutV2EditorIssue? = null,
+) {
+    override fun toString(): String = "LayoutV2EditorExitResult(code=$code,issue=$issue)"
+}
+
 sealed interface LayoutV2EditResult {
     data object Applied : LayoutV2EditResult
     data class Rejected(val issue: LayoutV2EditorIssue, val elementId: String? = null) :

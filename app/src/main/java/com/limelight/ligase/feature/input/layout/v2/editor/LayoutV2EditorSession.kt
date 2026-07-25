@@ -48,6 +48,7 @@ class LayoutV2EditorSession(
         Thread(task, "layout-v2-draft-journal").apply { isDaemon = true }
     }
     private var closed = false
+    private var sessionGeneration = 0L
 
     fun createBlank(request: LayoutV2CreateBlankRequest): LayoutV2EditResult {
         if (
@@ -88,7 +89,12 @@ class LayoutV2EditorSession(
     fun resumeRecoverableDraft(draftId: String): LayoutV2EditResult =
         when (val result = journal.read(draftId)) {
             is LayoutV2JournalReadResult.Ready ->
-                activate(result.entry.document, result.entry.identity, dirty = true)
+                activate(
+                    result.entry.document,
+                    result.entry.identity,
+                    dirty = true,
+                    recoveryAlreadySaved = true,
+                )
             LayoutV2JournalReadResult.Missing -> reject(LayoutV2EditorIssue.SOURCE_NOT_READY)
             is LayoutV2JournalReadResult.Quarantined ->
                 reject(LayoutV2EditorIssue.VALIDATION_FAILED)
@@ -157,6 +163,7 @@ class LayoutV2EditorSession(
         return replaceElements(variant.elements + element)
     }
 
+    @Synchronized
     fun flushJournal(): LayoutV2JournalWriteResult {
         journalWrite?.cancel(false)
         val active = document ?: return LayoutV2JournalWriteResult.INVALID
@@ -181,6 +188,37 @@ class LayoutV2EditorSession(
 
     fun onStop() {
         if (state.dirty) flushJournal()
+    }
+
+    @Synchronized
+    fun checkpointAndRelease(expectedDraftId: String): LayoutV2EditorHandoffResult {
+        if (closed) {
+            return LayoutV2EditorHandoffResult.Rejected(LayoutV2EditorHandoffIssue.CLOSED)
+        }
+        val activeDraftId = state.draft?.identity?.layoutId
+            ?: return LayoutV2EditorHandoffResult.Rejected(
+                LayoutV2EditorHandoffIssue.NO_ACTIVE_DRAFT,
+            )
+        if (activeDraftId != expectedDraftId) {
+            return LayoutV2EditorHandoffResult.Rejected(
+                LayoutV2EditorHandoffIssue.DRAFT_ID_MISMATCH,
+            )
+        }
+        if (
+            state.recoveryProtection != LayoutV2RecoveryProtection.SAVED &&
+            flushJournal() != LayoutV2JournalWriteResult.SAVED
+        ) {
+            return LayoutV2EditorHandoffResult.Rejected(
+                LayoutV2EditorHandoffIssue.CHECKPOINT_FAILED,
+            )
+        }
+        releaseInMemoryDraft()
+        return LayoutV2EditorHandoffResult.LaunchReady(activeDraftId)
+    }
+
+    @Synchronized
+    fun releaseWithoutCheckpoint() {
+        releaseInMemoryDraft()
     }
 
     fun validateDraft(): Boolean {
@@ -253,10 +291,12 @@ class LayoutV2EditorSession(
         return discarded
     }
 
+    @Synchronized
     override fun close() {
         if (closed) return
         if (state.dirty) flushJournal()
         closed = true
+        sessionGeneration++
         journalExecutor.shutdown()
     }
 
@@ -300,7 +340,9 @@ class LayoutV2EditorSession(
         value: TouchLayoutV2Document,
         identity: LayoutV2DraftIdentity,
         dirty: Boolean = true,
+        recoveryAlreadySaved: Boolean = false,
     ): LayoutV2EditResult {
+        sessionGeneration++
         document = value
         candidateHash = draftRaw(value)?.let { TouchLayoutV2Codec.decodeDraft(it).contentHash }
         publish(LayoutV2EditorState(
@@ -308,10 +350,14 @@ class LayoutV2EditorSession(
             draft = value.toEditorDraft(identity),
             dirty = dirty,
             candidateReady = catalogRaw(value) != null,
-            recoveryProtection = LayoutV2RecoveryProtection.PENDING,
+            recoveryProtection = if (recoveryAlreadySaved) {
+                LayoutV2RecoveryProtection.SAVED
+            } else {
+                LayoutV2RecoveryProtection.PENDING
+            },
             recoverableDrafts = journal.summaries(),
         ))
-        scheduleJournal()
+        if (!recoveryAlreadySaved) scheduleJournal()
         return LayoutV2EditResult.Applied
     }
 
@@ -359,11 +405,32 @@ class LayoutV2EditorSession(
     }
     private fun scheduleJournal() {
         journalWrite?.cancel(false)
+        val scheduledGeneration = sessionGeneration
         journalWrite = journalExecutor.schedule(
-            { if (!closed && state.dirty) flushJournal() },
+            { flushScheduledJournal(scheduledGeneration) },
             JOURNAL_DEBOUNCE_MILLIS,
             TimeUnit.MILLISECONDS,
         )
+    }
+
+    @Synchronized
+    private fun flushScheduledJournal(scheduledGeneration: Long) {
+        if (
+            !closed &&
+            scheduledGeneration == sessionGeneration &&
+            state.dirty
+        ) {
+            flushJournal()
+        }
+    }
+
+    private fun releaseInMemoryDraft() {
+        sessionGeneration++
+        journalWrite?.cancel(false)
+        journalWrite = null
+        document = null
+        candidateHash = null
+        publish(LayoutV2EditorState(recoverableDrafts = journal.summaries()))
     }
     private fun draftRaw(value: TouchLayoutV2Document): ByteArray? = runCatching {
         val raw = TouchLayoutV2Encoder.encode(value)

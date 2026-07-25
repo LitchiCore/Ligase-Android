@@ -10,6 +10,7 @@ import com.limelight.ligase.feature.input.layout.v2.editor.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.util.UUID
 
 enum class LayoutV2WorkspaceActionCode {
     APPLIED, REJECTED, SAVED, DISCARDED, RECOVERY_DISCARDED, VALID,
@@ -44,6 +45,9 @@ class LayoutV2EditorWorkspaceViewModel(application: Application) : AndroidViewMo
     private var catalogRegistrationGeneration = 0L
     private val mutableState = MutableStateFlow(LayoutV2EditorWorkspaceUiState())
     val state: StateFlow<LayoutV2EditorWorkspaceUiState> = mutableState.asStateFlow()
+    private val leaseRegistry = LayoutV2EditorProcessLeases.registry
+    private val leaseOwnerToken = UUID.randomUUID().toString()
+    private var draftLease: LayoutV2DraftLease? = null
 
     private val session = LayoutV2EditorSession(
         journal,
@@ -81,7 +85,7 @@ class LayoutV2EditorWorkspaceViewModel(application: Application) : AndroidViewMo
     fun createBlank(displayName: String? = null) {
         when (val decision = blankCreationPolicy.create(displayName)) {
             is LayoutV2BlankCreationDecision.Ready ->
-                publish(session.createBlank(decision.request))
+                publishActivated(session.createBlank(decision.request))
             LayoutV2BlankCreationDecision.InvalidDisplayName ->
                 publishRejected(LayoutV2EditorIssue.INVALID_PAYLOAD, null)
         }
@@ -102,7 +106,7 @@ class LayoutV2EditorWorkspaceViewModel(application: Application) : AndroidViewMo
             publishRejected(LayoutV2EditorIssue.VALIDATION_FAILED, layoutId)
             return
         }
-        publish(
+        publishActivated(
             session.createFromLocalCopy(
                 LayoutV2CreatorSource(
                     generation.descriptor,
@@ -116,7 +120,24 @@ class LayoutV2EditorWorkspaceViewModel(application: Application) : AndroidViewMo
         )
     }
 
-    fun resumeRecovery(draftId: String) = publish(session.resumeRecoverableDraft(draftId))
+    fun resumeRecovery(draftId: String) =
+        publishActivated(session.resumeRecoverableDraft(draftId))
+
+    fun checkpointAndRelease(draftId: String): LayoutV2EditorHandoffResult {
+        val lease = draftLease
+        if (lease == null || !leaseRegistry.isCurrent(lease)) {
+            return LayoutV2EditorHandoffResult.Rejected(
+                LayoutV2EditorHandoffIssue.ALREADY_OWNED,
+            )
+        }
+        val result = session.checkpointAndRelease(draftId)
+        if (result is LayoutV2EditorHandoffResult.LaunchReady) {
+            leaseRegistry.release(lease)
+            draftLease = null
+            mutableState.value = mutableState.value.copy(editor = session.state)
+        }
+        return result
+    }
 
     fun discardRecovery(draftId: String) {
         val discarded = session.discardRecoverableDraft(draftId)
@@ -193,6 +214,7 @@ class LayoutV2EditorWorkspaceViewModel(application: Application) : AndroidViewMo
 
     fun discard() {
         val discarded = session.discardDraft()
+        releaseDraftLease()
         mutableState.value = mutableState.value.copy(
             editor = session.state,
             lastAction = LayoutV2WorkspaceActionResult(
@@ -217,6 +239,7 @@ class LayoutV2EditorWorkspaceViewModel(application: Application) : AndroidViewMo
         catalogRegistrationGeneration++
         catalogRegistration = null
         session.close()
+        releaseDraftLease()
     }
 
     private fun committedRecords(): List<LayoutCatalogV2RegisteredRecord> =
@@ -243,6 +266,33 @@ class LayoutV2EditorWorkspaceViewModel(application: Application) : AndroidViewMo
                     )
             },
         )
+    }
+
+    private fun publishActivated(result: LayoutV2EditResult) {
+        if (result is LayoutV2EditResult.Applied) {
+            val draftId = session.state.draft?.identity?.layoutId
+            val currentLease = draftLease
+            val ownsDraft = if (draftId == null) {
+                false
+            } else if (currentLease?.draftId == draftId && leaseRegistry.isCurrent(currentLease)) {
+                true
+            } else {
+                releaseDraftLease()
+                leaseRegistry.acquire(draftId, leaseOwnerToken)
+                    ?.also { draftLease = it } != null
+            }
+            if (!ownsDraft) {
+                session.releaseWithoutCheckpoint()
+                publishRejected(LayoutV2EditorIssue.STALE_SOURCE_GENERATION, draftId)
+                return
+            }
+        }
+        publish(result)
+    }
+
+    private fun releaseDraftLease() {
+        draftLease?.let(leaseRegistry::release)
+        draftLease = null
     }
 
     private fun publishRejected(issue: LayoutV2EditorIssue, target: String?) {

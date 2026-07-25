@@ -44,6 +44,13 @@ class LayoutV2DraftJournal internal constructor(
     fun write(
         identity: LayoutV2DraftIdentity,
         documentRaw: ByteArray,
+    ): LayoutV2JournalWriteResult = synchronized(IO_LOCK) {
+        writeLocked(identity, documentRaw)
+    }
+
+    private fun writeLocked(
+        identity: LayoutV2DraftIdentity,
+        documentRaw: ByteArray,
     ): LayoutV2JournalWriteResult {
         if (!validIdentity(identity)) return LayoutV2JournalWriteResult.INVALID
         val verified = runCatching { TouchLayoutV2Codec.decodeDraft(documentRaw) }.getOrNull()
@@ -92,14 +99,14 @@ class LayoutV2DraftJournal internal constructor(
         return LayoutV2JournalWriteResult.SAVED
     }
 
-    fun read(draftId: String): LayoutV2JournalReadResult {
+    fun read(draftId: String): LayoutV2JournalReadResult = synchronized(IO_LOCK) {
         val file = target(draftId) ?: return LayoutV2JournalReadResult.Missing
         if (!file.isFile) return LayoutV2JournalReadResult.Missing
         val raw = readBounded(file)
         val decoded = raw?.let(::decode)
         if (decoded != null) return LayoutV2JournalReadResult.Ready(decoded)
         quarantine(file)
-        return LayoutV2JournalReadResult.Quarantined(LayoutV2RecoveryIssue.QUARANTINED_CORRUPT)
+        LayoutV2JournalReadResult.Quarantined(LayoutV2RecoveryIssue.QUARANTINED_CORRUPT)
     }
 
     fun summaries(): List<RecoverableDraftSummary> {
@@ -124,9 +131,9 @@ class LayoutV2DraftJournal internal constructor(
             )
     }
 
-    fun discard(draftId: String): Boolean {
+    fun discard(draftId: String): Boolean = synchronized(IO_LOCK) {
         val target = target(draftId) ?: return false
-        return !target.exists() || target.delete()
+        !target.exists() || target.delete()
     }
 
     private fun decode(raw: ByteArray): LayoutV2JournalEntry? = runCatching {
@@ -235,5 +242,6 @@ class LayoutV2DraftJournal internal constructor(
         const val SUFFIX = ".draft.json"
         const val MAX_BYTES = 1_048_576
         const val MAX_EPOCH_MILLIS = 253_402_300_799_999L
+        val IO_LOCK = Any()
     }
 }
