@@ -12,6 +12,8 @@ object TouchLayoutV3Encoder {
         return TouchLayoutV3Jcs.canonicalBytes(complete)
     }
 
+    internal fun encodeDraft(document: TouchLayoutV3Document): ByteArray = encode(document)
+
     private fun documentObject(
         document: TouchLayoutV3Document,
         contentHash: String,

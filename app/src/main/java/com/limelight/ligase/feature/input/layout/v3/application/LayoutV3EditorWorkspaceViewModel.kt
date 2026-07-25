@@ -1,0 +1,356 @@
+package com.limelight.ligase.feature.input.layout.v3.application
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import com.limelight.ligase.feature.input.layout.v3.data.LayoutV3DraftJournal
+import com.limelight.ligase.feature.input.layout.v3.data.LayoutV3GenerationRepository
+import com.limelight.ligase.feature.input.layout.v3.serialization.LayoutV3ContentVerificationResult
+import com.limelight.ligase.feature.input.layout.v3.serialization.TouchLayoutV3ContentVerifier
+import com.limelight.ligase.feature.input.layout.v3.domain.*
+import com.limelight.ligase.feature.input.layout.v3.editor.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import java.util.UUID
+
+enum class LayoutV3WorkspaceActionCode {
+    APPLIED, REJECTED, SAVED, DISCARDED, RECOVERY_DISCARDED, VALID,
+}
+
+enum class LayoutV3WorkspaceLaunchPhase { IDLE, AWAITING_VIEWPORT, EDITING }
+
+data class LayoutV3WorkspaceActionResult(
+    val code: LayoutV3WorkspaceActionCode,
+    val issue: LayoutV3EditorIssue? = null,
+    val targetId: String? = null,
+) {
+    override fun toString(): String =
+        "LayoutV3WorkspaceActionResult(code=$code,issue=$issue,target=redacted)"
+}
+
+data class LayoutV3EditorWorkspaceUiState(
+    val editor: LayoutV3EditorState = LayoutV3EditorState(),
+    val lastAction: LayoutV3WorkspaceActionResult? = null,
+    val launchPhase: LayoutV3WorkspaceLaunchPhase = LayoutV3WorkspaceLaunchPhase.IDLE,
+)
+
+@JvmInline
+value class LayoutV3CatalogRegistrationAttachment internal constructor(
+    internal val generation: Long,
+)
+
+class LayoutV3EditorWorkspaceViewModel(application: Application) : AndroidViewModel(application) {
+    private val generations = LayoutV3GenerationRepository(application)
+    private val journal = LayoutV3DraftJournal(application)
+    private val blankCreationPolicy = LayoutV3BlankCreationPolicy()
+    private val elementCreationPolicy = LayoutV3ElementCreationPolicy()
+    private var catalogRegistration:
+        ((List<LayoutV3RegisteredGeneration>) -> Boolean)? = null
+    private var catalogRegistrationGeneration = 0L
+    private val mutableState = MutableStateFlow(LayoutV3EditorWorkspaceUiState())
+    val state: StateFlow<LayoutV3EditorWorkspaceUiState> = mutableState.asStateFlow()
+    private val leaseRegistry = LayoutV3EditorProcessLeases.registry
+    private val leaseOwnerToken = UUID.randomUUID().toString()
+    private var draftLease: LayoutV3DraftLease? = null
+    private var pendingBlankDisplayName: String? = null
+
+    private val session = LayoutV3EditorSession(
+        journal,
+        generations,
+        registerCommitted = {
+            val callback = catalogRegistration ?: return@LayoutV3EditorSession false
+            callback(committedRecords())
+        },
+        onStateChanged = { editor ->
+            mutableState.value = mutableState.value.copy(editor = editor)
+        },
+    )
+
+    init {
+        mutableState.value = LayoutV3EditorWorkspaceUiState(session.state)
+    }
+
+    fun attachCatalogRegistration(
+        callback: (List<LayoutV3RegisteredGeneration>) -> Boolean,
+    ): LayoutV3CatalogRegistrationAttachment {
+        val attachment = LayoutV3CatalogRegistrationAttachment(++catalogRegistrationGeneration)
+        catalogRegistration = callback
+        callback(committedRecords())
+        return attachment
+    }
+
+    fun detachCatalogRegistration(attachment: LayoutV3CatalogRegistrationAttachment) {
+        if (attachment.generation != catalogRegistrationGeneration) return
+        catalogRegistration = null
+    }
+
+    fun refreshCatalog(): Boolean =
+        catalogRegistration?.invoke(committedRecords()) ?: false
+
+    fun refreshAfterEditorReturn(): Boolean {
+        session.refreshRecoverableDrafts()
+        mutableState.value = mutableState.value.copy(editor = session.state)
+        return refreshCatalog()
+    }
+
+    fun beginNewV3(displayName: String? = null) {
+        if (session.state.draft != null) {
+            publishRejected(LayoutV3EditorIssue.INVALID_PAYLOAD, null)
+            return
+        }
+        pendingBlankDisplayName = displayName
+        mutableState.value = mutableState.value.copy(
+            launchPhase = LayoutV3WorkspaceLaunchPhase.AWAITING_VIEWPORT,
+            lastAction = null,
+        )
+    }
+
+    fun initializeNewV3(viewport: EditorTargetViewport) {
+        if (mutableState.value.launchPhase != LayoutV3WorkspaceLaunchPhase.AWAITING_VIEWPORT) {
+            publishRejected(LayoutV3EditorIssue.STALE_SOURCE_GENERATION, null)
+            return
+        }
+        val displayName = pendingBlankDisplayName
+        when (val decision = blankCreationPolicy.create(displayName, viewport)) {
+            is LayoutV3BlankCreationDecision.Ready ->
+                publishActivated(session.createBlank(decision.request)).also {
+                    if (session.state.draft != null) {
+                        pendingBlankDisplayName = null
+                        mutableState.value = mutableState.value.copy(
+                            launchPhase = LayoutV3WorkspaceLaunchPhase.EDITING,
+                        )
+                    }
+                }
+            LayoutV3BlankCreationDecision.InvalidDisplayName ->
+                publishRejected(LayoutV3EditorIssue.INVALID_PAYLOAD, null)
+            LayoutV3BlankCreationDecision.InvalidViewport ->
+                publishRejected(LayoutV3EditorIssue.INVALID_PAYLOAD, null)
+        }
+    }
+
+    fun createFromPackaged(layoutId: String, revision: Long, variantId: String) {
+        publishRejected(LayoutV3EditorIssue.SOURCE_NOT_READY, layoutId)
+    }
+
+    fun createFromLocal(layoutId: String, revision: Long, variantId: String) {
+        val generation = generations.read(layoutId, revision)
+        if (generation == null) {
+            publishRejected(LayoutV3EditorIssue.SOURCE_NOT_READY, layoutId)
+            return
+        }
+        val verified = TouchLayoutV3ContentVerifier.verify(generation.artifact)
+        if (verified !is LayoutV3ContentVerificationResult.Verified) {
+            publishRejected(LayoutV3EditorIssue.VALIDATION_FAILED, layoutId)
+            return
+        }
+        publishActivated(
+            session.createFromLocalCopy(
+                LayoutV3CreatorSource(
+                    generation.descriptor,
+                    verified.content,
+                    LayoutV3DraftOrigin.LOCAL_COPY,
+                    true,
+                    LayoutV3WorkspaceState.DRAFT,
+                ),
+                variantId,
+            ),
+        )
+    }
+
+    fun resumeRecovery(draftId: String) =
+        publishActivated(session.resumeRecoverableDraft(draftId))
+
+    fun checkpointAndRelease(draftId: String): LayoutV3EditorHandoffResult {
+        val lease = draftLease
+        if (lease == null || !leaseRegistry.isCurrent(lease)) {
+            return LayoutV3EditorHandoffResult.Rejected(
+                LayoutV3EditorHandoffIssue.ALREADY_OWNED,
+            )
+        }
+        val result = session.checkpointAndRelease(draftId)
+        if (result is LayoutV3EditorHandoffResult.LaunchReady) {
+            leaseRegistry.release(lease)
+            draftLease = null
+            mutableState.value = mutableState.value.copy(editor = session.state)
+        }
+        return result
+    }
+
+    fun discardRecovery(draftId: String) {
+        val discarded = session.discardRecoverableDraft(draftId)
+        mutableState.value = mutableState.value.copy(
+            editor = session.state,
+            lastAction = LayoutV3WorkspaceActionResult(
+                if (discarded) LayoutV3WorkspaceActionCode.RECOVERY_DISCARDED
+                else LayoutV3WorkspaceActionCode.REJECTED,
+                if (discarded) null else LayoutV3EditorIssue.JOURNAL_WRITE_FAILED,
+                draftId,
+            ),
+        )
+    }
+
+    fun selectElement(elementId: String) = publish(session.selectElement(elementId))
+    fun moveElement(elementId: String, x: Int, y: Int) =
+        publish(session.moveElement(elementId, x, y))
+    fun resizeElement(elementId: String, width: Int, height: Int) =
+        publish(session.resizeElement(elementId, width, height))
+    fun nudgeElement(elementId: String, deltaX: Int, deltaY: Int) =
+        publish(session.nudgeElement(elementId, deltaX, deltaY))
+    fun rebaseElement(elementId: String) =
+        publish(session.rebaseElement(elementId))
+    fun setAnchors(
+        elementId: String,
+        horizontal: HorizontalAnchor,
+        vertical: VerticalAnchor,
+    ) = publish(session.setAnchors(elementId, horizontal, vertical))
+    fun setZOrder(elementId: String, zOrder: Int) =
+        publish(session.setZOrder(elementId, zOrder))
+    fun deleteElement(elementId: String) = publish(session.deleteElement(elementId))
+    fun updateProperties(elementId: String, properties: LayoutV3EditableProperties) =
+        publish(session.updateProperties(elementId, properties))
+    fun addKeyboardKeys(keys: Set<InputCode>) =
+        publish(session.addKeyboardKeys(keys))
+    fun addElement(kind: ControlKind) {
+        val draft = session.state.draft
+        if (draft == null) {
+            publishRejected(LayoutV3EditorIssue.NO_ACTIVE_DRAFT, null)
+            return
+        }
+        when (val decision = elementCreationPolicy.create(draft, kind)) {
+            is LayoutV3ElementCreationDecision.Ready ->
+                publish(session.addElement(kind, decision.rect, decision.properties))
+            LayoutV3ElementCreationDecision.UnsupportedKind ->
+                publishRejected(LayoutV3EditorIssue.READ_ONLY_KIND, null)
+            LayoutV3ElementCreationDecision.NoSafePlacement ->
+                publishRejected(LayoutV3EditorIssue.LIMIT_EXCEEDED, null)
+        }
+    }
+
+    fun validate() {
+        val valid = session.validateDraft()
+        mutableState.value = mutableState.value.copy(
+            editor = session.state,
+            lastAction = LayoutV3WorkspaceActionResult(
+                if (valid) LayoutV3WorkspaceActionCode.VALID
+                else LayoutV3WorkspaceActionCode.REJECTED,
+                if (valid) null else LayoutV3EditorIssue.VALIDATION_FAILED,
+            ),
+        )
+    }
+
+    fun save() {
+        val result = session.saveDraft()
+        mutableState.value = mutableState.value.copy(
+            editor = session.state,
+            lastAction = when (result) {
+                is LayoutV3SaveResult.Saved -> LayoutV3WorkspaceActionResult(
+                    LayoutV3WorkspaceActionCode.SAVED,
+                    targetId = result.layoutId,
+                )
+                is LayoutV3SaveResult.Rejected -> LayoutV3WorkspaceActionResult(
+                    LayoutV3WorkspaceActionCode.REJECTED,
+                    result.issue,
+                )
+            },
+        )
+    }
+
+    fun discard() {
+        val discarded = session.discardDraft()
+        releaseDraftLease()
+        mutableState.value = mutableState.value.copy(
+            editor = session.state,
+            launchPhase = LayoutV3WorkspaceLaunchPhase.IDLE,
+            lastAction = LayoutV3WorkspaceActionResult(
+                if (discarded) LayoutV3WorkspaceActionCode.DISCARDED
+                else LayoutV3WorkspaceActionCode.REJECTED,
+                if (discarded) null else LayoutV3EditorIssue.JOURNAL_WRITE_FAILED,
+            ),
+        )
+    }
+
+    fun leave() {
+        session.leaveEditor()
+        mutableState.value = mutableState.value.copy(editor = session.state)
+    }
+
+    fun onStop() {
+        session.onStop()
+        mutableState.value = mutableState.value.copy(editor = session.state)
+    }
+
+    override fun onCleared() {
+        catalogRegistrationGeneration++
+        catalogRegistration = null
+        session.close()
+        releaseDraftLease()
+    }
+
+    private fun committedRecords(): List<LayoutV3RegisteredGeneration> =
+        generations.listCommitted().map {
+            LayoutV3RegisteredGeneration(
+                it.descriptor,
+                LayoutV3LocalOrigin.LOCAL_COPY,
+                LayoutV3WorkspaceState.DRAFT,
+                it.artifact,
+            )
+        }
+
+    private fun publish(result: LayoutV3EditResult) {
+        mutableState.value = mutableState.value.copy(
+            editor = session.state,
+            lastAction = when (result) {
+                LayoutV3EditResult.Applied ->
+                    LayoutV3WorkspaceActionResult(LayoutV3WorkspaceActionCode.APPLIED)
+                is LayoutV3EditResult.Rejected ->
+                    LayoutV3WorkspaceActionResult(
+                        LayoutV3WorkspaceActionCode.REJECTED,
+                        result.issue,
+                        result.elementId,
+                    )
+            },
+        )
+    }
+
+    private fun publishActivated(result: LayoutV3EditResult) {
+        if (result is LayoutV3EditResult.Applied) {
+            val draftId = session.state.draft?.identity?.layoutId
+            val currentLease = draftLease
+            val ownsDraft = if (draftId == null) {
+                false
+            } else if (currentLease?.draftId == draftId && leaseRegistry.isCurrent(currentLease)) {
+                true
+            } else {
+                releaseDraftLease()
+                leaseRegistry.acquire(draftId, leaseOwnerToken)
+                    ?.also { draftLease = it } != null
+            }
+            if (!ownsDraft) {
+                session.releaseWithoutCheckpoint()
+                publishRejected(LayoutV3EditorIssue.STALE_SOURCE_GENERATION, draftId)
+                return
+            }
+        }
+        publish(result)
+        if (result is LayoutV3EditResult.Applied) {
+            mutableState.value = mutableState.value.copy(
+                launchPhase = LayoutV3WorkspaceLaunchPhase.EDITING,
+            )
+        }
+    }
+
+    private fun releaseDraftLease() {
+        draftLease?.let(leaseRegistry::release)
+        draftLease = null
+    }
+
+    private fun publishRejected(issue: LayoutV3EditorIssue, target: String?) {
+        mutableState.value = mutableState.value.copy(
+            lastAction = LayoutV3WorkspaceActionResult(
+                LayoutV3WorkspaceActionCode.REJECTED,
+                issue,
+                target,
+            ),
+        )
+    }
+}

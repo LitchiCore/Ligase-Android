@@ -177,3 +177,28 @@ data class MappedElementRect(
     val elementId: String,
     val rect: IntRect,
 )
+
+data class VerifiedTouchLayoutV3Content(
+    val document: TouchLayoutV3Document,
+    val canonicalBytes: ByteArray,
+) {
+    override fun equals(other: Any?): Boolean =
+        other is VerifiedTouchLayoutV3Content &&
+            document == other.document &&
+            canonicalBytes.contentEquals(other.canonicalBytes)
+    override fun hashCode(): Int = 31 * document.hashCode() + canonicalBytes.contentHashCode()
+    override fun toString(): String = "VerifiedTouchLayoutV3Content(content=redacted)"
+}
+
+enum class LayoutV3LocalOrigin { LOCAL_COPY }
+enum class LayoutV3WorkspaceState { NONE, DRAFT }
+
+data class LayoutV3RegisteredGeneration(
+    val descriptor: com.limelight.ligase.layout.LayoutDescriptorV1,
+    val origin: LayoutV3LocalOrigin,
+    val workspace: LayoutV3WorkspaceState,
+    val artifact: ByteArray,
+) {
+    override fun toString(): String =
+        "LayoutV3RegisteredGeneration(layoutId=${descriptor.layoutId},revision=${descriptor.revision},artifact=redacted)"
+}
