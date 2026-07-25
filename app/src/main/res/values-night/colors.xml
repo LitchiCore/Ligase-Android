@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Ligase visual-color-tokens-v1, Host commit cc1065dc (dark). -->
+    <!-- Ligase visual-color-tokens-v1, Host commit 5d4a20d8 (dark). -->
     <color name="ligase_brand_primary">#B8B1FF</color>
     <color name="ligase_brand_secondary">#6ED6E4</color>
     <color name="ligase_background">#15171D</color>
@@ -13,7 +13,7 @@
     <color name="ligase_success">#56D19B</color>
     <color name="ligase_warning">#F4B860</color>
     <color name="ligase_error_danger">#FF7B72</color>
-    <color name="ligase_disabled">#8D96A6</color>
+    <color name="ligase_disabled">#B8C0CE</color>
     <color name="ligase_focus">#B8B1FF</color>
     <color name="ligase_scrim">#15171D</color>
     <color name="ligase_shadow">#15171D</color>

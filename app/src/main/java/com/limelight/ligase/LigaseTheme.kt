@@ -13,7 +13,7 @@ import androidx.compose.ui.graphics.Color
 /**
  * The Android projection of Ligase visual-color-tokens-v1.
  *
- * Keep this file aligned with Ligase Host commit ac35ee8a. Product UI must use
+ * Keep this file aligned with Ligase Host commit 5d4a20d8. Product UI must use
  * this theme or [LigaseSemanticTheme.colors], rather than introducing a local
  * palette. Stream, video artwork overlays, and TouchKit intentionally remain
  * outside this contract.
@@ -49,7 +49,7 @@ internal val LigaseLightSemanticColors = LigaseSemanticColors(
     success = Color(0xFF13795B),
     warning = Color(0xFF8A4F00),
     errorDanger = Color(0xFFB42318),
-    disabled = Color(0xFF6B7382),
+    disabled = Color(0xFF555D6D),
     focus = Color(0xFF4F46C7),
 )
 
@@ -66,7 +66,7 @@ internal val LigaseDarkSemanticColors = LigaseSemanticColors(
     success = Color(0xFF56D19B),
     warning = Color(0xFFF4B860),
     errorDanger = Color(0xFFFF7B72),
-    disabled = Color(0xFF8D96A6),
+    disabled = Color(0xFFB8C0CE),
     focus = Color(0xFFB8B1FF),
 )
 

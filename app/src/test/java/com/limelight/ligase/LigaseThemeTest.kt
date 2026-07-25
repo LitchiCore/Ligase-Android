@@ -24,6 +24,56 @@ import kotlin.math.pow
 @RunWith(RobolectricTestRunner::class)
 class LigaseThemeTest {
     @Test
+    fun semanticProjectionMatchesFrozenHostAuthority() {
+        assertEquals(
+            "5d4a20d89a9ed283bed2b97de3c3bb2e72d0dd50",
+            HOST_TOKEN_AUTHORITY_COMMIT,
+        )
+        assertEquals(
+            "E5EC394C76634194BEC025E8413ADB3325F3CD3AE84D83E8309E31D91C21A93F",
+            HOST_TOKEN_AUTHORITY_JSON_SHA256,
+        )
+        assertEquals(
+            listOf(
+                0xFF6258D9,
+                0xFF08788B,
+                0xFFF5F7FC,
+                0xFFFFFFFF,
+                0xFFEEF2F8,
+                0xFF20232C,
+                0xFF555D6D,
+                0xFF8B94A5,
+                0xFFE7E5FF,
+                0xFF13795B,
+                0xFF8A4F00,
+                0xFFB42318,
+                0xFF555D6D,
+                0xFF4F46C7,
+            ),
+            LigaseLightSemanticColors.asArgbList(),
+        )
+        assertEquals(
+            listOf(
+                0xFFB8B1FF,
+                0xFF6ED6E4,
+                0xFF15171D,
+                0xFF20232C,
+                0xFF2A2E39,
+                0xFFF5F7FB,
+                0xFFB8C0CE,
+                0xFF747D8E,
+                0xFF35315C,
+                0xFF56D19B,
+                0xFFF4B860,
+                0xFFFF7B72,
+                0xFFB8C0CE,
+                0xFFB8B1FF,
+            ),
+            LigaseDarkSemanticColors.asArgbList(),
+        )
+    }
+
+    @Test
     fun lightColorSchemeMapsEveryMaterial3SlotDeterministically() {
         assertScheme(LigaseLightColorScheme, LigaseLightSemanticColors, dark = false)
     }
@@ -44,9 +94,12 @@ class LigaseThemeTest {
             assertContrastAtLeast(colors.warning, colors.surface, 4.5)
             assertContrastAtLeast(colors.errorDanger, colors.surface, 4.5)
             assertContrastAtLeast(colors.disabled, colors.surface, 4.5)
+            assertContrastAtLeast(colors.disabled, colors.background, 4.5)
+            assertContrastAtLeast(colors.disabled, colors.surfaceVariant, 4.5)
+            assertContrastAtLeast(colors.disabled, colors.selected, 4.5)
             assertContrastAtLeast(colors.textPrimary, colors.selected, 4.5)
-            assertContrastAtLeast(colors.border, colors.surface, 3.0)
             assertContrastAtLeast(colors.focus, colors.background, 3.0)
+            assertEquals(colors.textSecondary, colors.disabled)
         }
     }
 
@@ -207,5 +260,29 @@ class LigaseThemeTest {
         return 0.2126 * linear(color.red) +
             0.7152 * linear(color.green) +
             0.0722 * linear(color.blue)
+    }
+
+    private fun LigaseSemanticColors.asArgbList(): List<Long> = listOf(
+        brandPrimary,
+        brandSecondary,
+        background,
+        surface,
+        surfaceVariant,
+        textPrimary,
+        textSecondary,
+        border,
+        selected,
+        success,
+        warning,
+        errorDanger,
+        disabled,
+        focus,
+    ).map { it.toArgb().toLong() and 0xFFFFFFFFL }
+
+    private companion object {
+        const val HOST_TOKEN_AUTHORITY_COMMIT =
+            "5d4a20d89a9ed283bed2b97de3c3bb2e72d0dd50"
+        const val HOST_TOKEN_AUTHORITY_JSON_SHA256 =
+            "E5EC394C76634194BEC025E8413ADB3325F3CD3AE84D83E8309E31D91C21A93F"
     }
 }

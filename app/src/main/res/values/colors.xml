@@ -2,7 +2,7 @@
 <resources>
     <color name="profileAccent">#FF4081</color>
 
-    <!-- Ligase visual-color-tokens-v1, Host commit cc1065dc (light). -->
+    <!-- Ligase visual-color-tokens-v1, Host commit 5d4a20d8 (light). -->
     <color name="ligase_brand_primary">#6258D9</color>
     <color name="ligase_brand_secondary">#08788B</color>
     <color name="ligase_background">#F5F7FC</color>
@@ -15,7 +15,7 @@
     <color name="ligase_success">#13795B</color>
     <color name="ligase_warning">#8A4F00</color>
     <color name="ligase_error_danger">#B42318</color>
-    <color name="ligase_disabled">#6B7382</color>
+    <color name="ligase_disabled">#555D6D</color>
     <color name="ligase_focus">#4F46C7</color>
     <color name="ligase_scrim">#20232C</color>
     <color name="ligase_shadow">#20232C</color>
