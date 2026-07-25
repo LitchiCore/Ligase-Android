@@ -12,8 +12,8 @@ import com.limelight.ligase.feature.library.ui.components.LibraryEmptyState
 import com.limelight.ligase.feature.library.ui.components.LibraryGamePosterCard
 import com.limelight.ligase.feature.library.ui.components.LibraryGameRowCard
 import com.limelight.ligase.feature.library.ui.components.LibraryGamesToolbar
-import com.limelight.ligase.feature.library.ui.components.LibraryHostStatus
-import com.limelight.ligase.feature.library.ui.components.LibraryNoHostSelected
+import com.limelight.ligase.feature.host.ui.LibraryHostStatus
+import com.limelight.ligase.feature.host.ui.LibraryNoHostSelected
 import com.limelight.ligase.feature.library.ui.components.LibraryPreservedContentBanner
 import com.limelight.ligase.feature.library.ui.components.LibrarySearchField
 import com.limelight.ligase.feature.library.ui.manual.ManualLibraryEditBar

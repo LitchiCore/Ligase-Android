@@ -1,4 +1,4 @@
-package com.limelight.ligase.feature.library.ui.components
+package com.limelight.ligase.feature.host.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -43,9 +43,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.limelight.R
 import com.limelight.ligase.LigaseSemanticTheme
+import com.limelight.ligase.feature.host.presentation.HostManagementStatus
+import com.limelight.ligase.feature.host.presentation.hostManagementPresentation
+import com.limelight.ligase.feature.host.presentation.hostManagementStatus
 import com.limelight.ligase.library.LibraryConnectivity
 import com.limelight.nvstream.http.ComputerDetails
-import com.limelight.nvstream.http.PairingManager
 
 @Composable
 fun LibraryHostStatus(
@@ -58,6 +60,7 @@ fun LibraryHostStatus(
     onRetry: () -> Unit,
 ) {
     var managingHosts by remember { mutableStateOf(false) }
+    val presentation = hostManagementPresentation(hosts, selectedHost?.uuid)
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -105,7 +108,7 @@ fun LibraryHostStatus(
                                 if (connectivity == LibraryConnectivity.OFFLINE) {
                                     R.string.ligase_host_offline_explicit
                                 } else {
-                                    hostStatusLabel(it)
+                                    hostStatusLabel(hostManagementStatus(it))
                                 },
                             )
                         } ?: stringResource(R.string.ligase_manage_computers),
@@ -163,11 +166,11 @@ fun LibraryHostStatus(
                             .weight(1f, fill = false),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        items(hosts, key = { it.uuid ?: it.name }) { host ->
-                            val selected = host.uuid.equals(
-                                selectedHost?.uuid,
-                                ignoreCase = true,
-                            )
+                        items(
+                            items = presentation.rows,
+                            key = { it.stableKey.revealForComposeKey() },
+                        ) { row ->
+                            val host = hosts[row.sourceIndex]
                             Surface(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -176,7 +179,7 @@ fun LibraryHostStatus(
                                         onHostSelected(host)
                                     },
                                 shape = RoundedCornerShape(18.dp),
-                                color = if (selected) {
+                                color = if (row.selected) {
                                     MaterialTheme.colorScheme.primaryContainer
                                 } else {
                                     MaterialTheme.colorScheme.surface
@@ -189,7 +192,7 @@ fun LibraryHostStatus(
                                     Box(
                                         modifier = Modifier
                                             .size(9.dp)
-                                            .background(hostStatusColor(host), CircleShape),
+                                            .background(hostStatusColor(row.status), CircleShape),
                                     )
                                     Column(
                                         modifier = Modifier
@@ -197,13 +200,13 @@ fun LibraryHostStatus(
                                             .padding(14.dp),
                                     ) {
                                         Text(
-                                            text = host.name,
+                                            text = row.name,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
                                             fontWeight = FontWeight.SemiBold,
                                         )
                                         Text(
-                                            text = stringResource(hostStatusLabel(host)),
+                                            text = stringResource(hostStatusLabel(row.status)),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
@@ -283,20 +286,20 @@ fun LibraryNoHostSelected(onAddHost: () -> Unit) {
     }
 }
 
-private fun hostStatusLabel(host: ComputerDetails): Int = when {
-    host.state == ComputerDetails.State.UNKNOWN -> R.string.ligase_host_checking
-    host.state == ComputerDetails.State.OFFLINE -> R.string.ligase_host_offline
-    host.pairState != PairingManager.PairState.PAIRED -> R.string.ligase_host_pair_required
-    else -> R.string.ligase_host_online
+private fun hostStatusLabel(status: HostManagementStatus): Int = when (status) {
+    HostManagementStatus.CHECKING -> R.string.ligase_host_checking
+    HostManagementStatus.OFFLINE -> R.string.ligase_host_offline
+    HostManagementStatus.PAIR_REQUIRED -> R.string.ligase_host_pair_required
+    HostManagementStatus.ONLINE -> R.string.ligase_host_online
 }
 
 @Composable
-private fun hostStatusColor(host: ComputerDetails): Color {
+private fun hostStatusColor(status: HostManagementStatus): Color {
     val colors = LigaseSemanticTheme.colors
-    return when {
-        host.state == ComputerDetails.State.UNKNOWN -> colors.disabled
-        host.state == ComputerDetails.State.OFFLINE -> colors.errorDanger
-        host.pairState != PairingManager.PairState.PAIRED -> colors.warning
-        else -> colors.success
+    return when (status) {
+        HostManagementStatus.CHECKING -> colors.disabled
+        HostManagementStatus.OFFLINE -> colors.errorDanger
+        HostManagementStatus.PAIR_REQUIRED -> colors.warning
+        HostManagementStatus.ONLINE -> colors.success
     }
 }
