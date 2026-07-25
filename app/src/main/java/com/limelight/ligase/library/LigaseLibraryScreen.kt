@@ -14,9 +14,10 @@ import com.limelight.ligase.feature.library.ui.components.LibraryHostStatus
 import com.limelight.ligase.feature.library.ui.components.LibraryNoHostSelected
 import com.limelight.ligase.feature.library.ui.components.LibraryPreservedContentBanner
 import com.limelight.ligase.feature.library.ui.components.LibrarySearchField
+import com.limelight.ligase.feature.library.ui.manual.ManualLibraryEditBar
+import com.limelight.ligase.feature.library.ui.manual.manualLibraryReorderModifier
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,7 +38,6 @@ import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -51,33 +51,23 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.CustomAccessibilityAction
-import androidx.compose.ui.semantics.customActions
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.limelight.R
 import com.limelight.grid.assets.CachedAppAssetLoader
 import com.limelight.ligase.ligaseNavigationContentBottomPadding
 import com.limelight.nvstream.http.ComputerDetails
 import com.limelight.nvstream.http.PairingManager
-import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -154,7 +144,7 @@ fun LigaseLibraryPage(
         },
         bottomBar = {
             manualOrderDraft?.let { draft ->
-                ManualSortEditBar(
+                ManualLibraryEditBar(
                     draft = draft,
                     saving = manualSortSaving,
                     editingEnabled = manualSortEditingEnabled,
@@ -317,7 +307,7 @@ fun LigaseLibraryPage(
                             items = visibleItems,
                             key = { it.key.stableValue },
                         ) { item ->
-                            val reorderModifier = manualReorderModifier(
+                            val reorderModifier = manualLibraryReorderModifier(
                                 item = item,
                                 draft = manualOrderDraft,
                                 enabled = manualSortEditingEnabled && !manualSortSaving,
@@ -390,211 +380,4 @@ fun LigaseLibraryPage(
             }
         }
     }
-}
-
-@Composable
-private fun ManualSortEditBar(
-    draft: ManualLibraryOrderDraft,
-    saving: Boolean,
-    editingEnabled: Boolean,
-    errorMessage: Int?,
-    onSave: () -> Unit,
-    onCancel: () -> Unit,
-) {
-    val compactLandscape = LocalConfiguration.current.screenWidthDp >= 600 &&
-        LocalConfiguration.current.screenHeightDp < 600
-    val statusText = stringResource(
-        if (draft.isDirty) {
-            R.string.ligase_manual_sort_unsaved
-        } else {
-            R.string.ligase_manual_sort_summary
-        },
-    )
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        shadowElevation = 8.dp,
-    ) {
-        if (compactLandscape && errorMessage == null) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Text(
-                    text = statusText,
-                    modifier = Modifier.weight(1f),
-                    color = if (draft.isDirty) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (draft.isDirty) {
-                        FontWeight.SemiBold
-                    } else {
-                        FontWeight.Normal
-                    },
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                androidx.compose.material3.OutlinedButton(
-                    onClick = onCancel,
-                    enabled = !saving,
-                ) {
-                    Text(stringResource(R.string.ligase_manual_sort_cancel))
-                }
-                androidx.compose.material3.Button(
-                    onClick = onSave,
-                    enabled = draft.isDirty && editingEnabled && !saving,
-                ) {
-                    Text(
-                        stringResource(
-                            if (saving) {
-                                R.string.ligase_manual_sort_saving
-                            } else {
-                                R.string.ligase_manual_sort_save
-                            },
-                        ),
-                        maxLines = 1,
-                    )
-                }
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-            ) {
-            Text(
-                text = statusText,
-                color = if (draft.isDirty) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (draft.isDirty) FontWeight.SemiBold else FontWeight.Normal,
-            )
-            if (errorMessage != null) {
-                Text(
-                    text = stringResource(errorMessage),
-                    modifier = Modifier.padding(top = 6.dp),
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                androidx.compose.material3.OutlinedButton(
-                    onClick = onCancel,
-                    enabled = !saving,
-                    modifier = Modifier.weight(0.8f),
-                ) {
-                    Text(stringResource(R.string.ligase_manual_sort_cancel))
-                }
-                androidx.compose.material3.Button(
-                    onClick = onSave,
-                    enabled = draft.isDirty && editingEnabled && !saving,
-                    modifier = Modifier.weight(1.4f),
-                ) {
-                    if (saving) {
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .padding(end = 8.dp)
-                                .size(18.dp),
-                            strokeWidth = 2.dp,
-                        )
-                    }
-                    Text(
-                        stringResource(
-                            if (saving) {
-                                R.string.ligase_manual_sort_saving
-                            } else {
-                                R.string.ligase_manual_sort_save
-                            },
-                        ),
-                        maxLines = 1,
-                    )
-                }
-            }
-            }
-        }
-    }
-}
-
-@Composable
-private fun manualReorderModifier(
-    item: LigaseLibraryItem,
-    draft: ManualLibraryOrderDraft?,
-    enabled: Boolean,
-    onMove: (movingUuid: String, targetUuid: String) -> Unit,
-): Modifier {
-    val uuid = item.hostAppUuid ?: return Modifier
-    if (draft == null) return Modifier
-    var dragOffset by remember(uuid) { mutableFloatStateOf(0f) }
-    val moveThreshold = with(LocalDensity.current) { 48.dp.toPx() }
-    val previousUuid = draft.adjacentMovableUuid(uuid, -1)
-    val nextUuid = draft.adjacentMovableUuid(uuid, 1)
-    val moveUpLabel = stringResource(R.string.ligase_manual_sort_move_up)
-    val moveDownLabel = stringResource(R.string.ligase_manual_sort_move_down)
-
-    return Modifier
-        .graphicsLayer { translationY = dragOffset }
-        .then(
-            if (dragOffset != 0f) {
-                Modifier.shadow(8.dp, RoundedCornerShape(22.dp))
-            } else {
-                Modifier
-            },
-        )
-        .semantics {
-            customActions = buildList {
-                if (enabled && previousUuid != null) {
-                    add(
-                        CustomAccessibilityAction(moveUpLabel) {
-                            onMove(uuid, previousUuid)
-                            true
-                        },
-                    )
-                }
-                if (enabled && nextUuid != null) {
-                    add(
-                        CustomAccessibilityAction(moveDownLabel) {
-                            onMove(uuid, nextUuid)
-                            true
-                        },
-                    )
-                }
-            }
-        }
-        .then(
-            if (!enabled) {
-                Modifier
-            } else {
-                Modifier.pointerInput(uuid, draft.entries.map(ManualLibraryOrderEntry::uuid)) {
-                    detectDragGesturesAfterLongPress(
-                        onDragStart = { dragOffset = 0f },
-                        onDragCancel = { dragOffset = 0f },
-                        onDragEnd = { dragOffset = 0f },
-                        onDrag = { change, amount ->
-                            change.consume()
-                            dragOffset += amount.y
-                            if (abs(dragOffset) >= moveThreshold) {
-                                val direction = if (dragOffset > 0f) 1 else -1
-                                draft.adjacentMovableUuid(uuid, direction)?.let { targetUuid ->
-                                    onMove(uuid, targetUuid)
-                                }
-                                dragOffset = 0f
-                            }
-                        },
-                    )
-                }
-            },
-        )
 }
