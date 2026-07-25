@@ -175,6 +175,7 @@ internal fun LigaseRootContent(
     onLayoutV2Save: () -> Unit,
     onLayoutV2Discard: () -> Unit,
     onLayoutV2Leave: () -> Unit,
+    onLayoutV2EditorLaunchRequested: (String) -> Unit = {},
     onGlobalResolutionClick: () -> Unit,
     onStreamBitratePresetSelected: (StreamBitratePresetId) -> Unit,
     onStreamBitrateCustomSubmitted: (String) -> Unit,
@@ -243,7 +244,11 @@ internal fun LigaseRootContent(
                         layoutV2EditorWorkspaceState.editor.draft != null
                     ) {
                         pendingV2EditorOpen = false
-                        layoutRoute = LigaseLayoutRoute.V2_EDITOR
+                        onLayoutV2EditorLaunchRequested(
+                            checkNotNull(
+                                layoutV2EditorWorkspaceState.editor.draft
+                            ).identity.layoutId,
+                        )
                     } else if (
                         pendingV2EditorOpen &&
                         layoutV2EditorWorkspaceState.editor.issue != null

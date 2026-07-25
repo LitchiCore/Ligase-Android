@@ -196,6 +196,14 @@
             android:screenOrientation="sensorLandscape"
             android:theme="@style/StreamTheme" />
         <activity
+            android:name=".feature.input.layout.v2.ui.blackeditor.LayoutV2BlackEditorActivity"
+            android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|uiMode|orientation|screenSize|smallestScreenSize|layoutDirection"
+            android:exported="false"
+            android:label="@string/title_touchkit_layout_editor"
+            android:resizeableActivity="true"
+            android:screenOrientation="sensorLandscape"
+            android:theme="@style/StreamTheme" />
+        <activity
             android:name=".preferences.AddComputerManually"
             android:exported="true"
             android:resizeableActivity="true"
