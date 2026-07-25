@@ -887,6 +887,7 @@
     <string name="ligase_no_touch_layout">当前没有可用的 TouchKit 布局，请在高级设置中创建或导入。</string>
     <string name="ligase_layout_reselect_required">需要重新选择布局</string>
     <string name="ligase_touch_layout_reselect_before_stream">请先选择一个可用的触控布局</string>
+    <string name="ligase_touch_layout_runtime_unavailable">版本 3 布局控件暂不可用于串流</string>
     <string name="ligase_layout_edit_future">布局编辑将在后续开放</string>
     <string name="ligase_connect_selected_controller">请先连接并选择一个手柄</string>
     <string name="ligase_connect_selected_keyboard_mouse">请先连接并选择键盘或鼠标</string>

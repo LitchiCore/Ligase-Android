@@ -101,43 +101,32 @@ class LigaseInputModelsTest {
 
     @Test
     fun `three modes map deterministically to launch overlay decisions`() {
-        val layouts = setOf("OSC_Keyboard_1")
         val touch = LigaseInputLaunchPolicy.resolve(
             com.limelight.ligase.InputDeviceMode.TOUCH,
-            "OSC_Keyboard_1",
-            layouts,
+            LigaseTouchOverlayMode.VIRTUAL_GAMEPAD,
         )!!
         val gamepad = LigaseInputLaunchPolicy.resolve(
             com.limelight.ligase.InputDeviceMode.GAMEPAD,
-            "OSC_Keyboard_1",
-            layouts,
         )!!
         val keyboardMouse = LigaseInputLaunchPolicy.resolve(
             com.limelight.ligase.InputDeviceMode.KEYBOARD_MOUSE,
-            "OSC_Keyboard_1",
-            layouts,
         )!!
 
         assertTrue(touch.showTouchControls)
-        assertFalse(touch.showVirtualGamepad)
-        assertTrue(touch.showTouchKitKeyboard)
-        assertEquals("OSC_Keyboard_1", touch.touchLayoutId)
+        assertTrue(touch.showVirtualGamepad)
         assertFalse(gamepad.showTouchControls)
-        assertNull(gamepad.touchLayoutId)
         assertFalse(keyboardMouse.showTouchControls)
-        assertNull(keyboardMouse.touchLayoutId)
         assertEquals(true, LigaseInputLaunchPolicy.showTouchControls("touch"))
         assertEquals(false, LigaseInputLaunchPolicy.showTouchControls("gamepad"))
         assertNull(LigaseInputLaunchPolicy.showTouchControls("unknown"))
     }
 
     @Test
-    fun `missing global touch layout fails closed`() {
+    fun `v3 layout runtime fails closed while not implemented`() {
         assertNull(
             LigaseInputLaunchPolicy.resolve(
                 com.limelight.ligase.InputDeviceMode.TOUCH,
-                "deleted-layout",
-                setOf("available-layout"),
+                LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD,
             ),
         )
     }
@@ -146,40 +135,27 @@ class LigaseInputModelsTest {
     fun `touch screen control modes are mutually exclusive`() {
         val gamepadOnly = LigaseInputLaunchPolicy.resolve(
             mode = com.limelight.ligase.InputDeviceMode.TOUCH,
-            selectedTouchLayoutId = null,
-            availableTouchLayoutIds = emptySet(),
             overlayMode = LigaseTouchOverlayMode.VIRTUAL_GAMEPAD,
         )!!
         val keyboardOnly = LigaseInputLaunchPolicy.resolve(
             mode = com.limelight.ligase.InputDeviceMode.TOUCH,
-            selectedTouchLayoutId = "layout",
-            availableTouchLayoutIds = setOf("layout"),
             overlayMode = LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD,
-        )!!
+        )
         val gesturesOnly = LigaseInputLaunchPolicy.resolve(
             mode = com.limelight.ligase.InputDeviceMode.TOUCH,
-            selectedTouchLayoutId = null,
-            availableTouchLayoutIds = emptySet(),
             overlayMode = LigaseTouchOverlayMode.GESTURES_ONLY,
         )!!
 
         assertTrue(gamepadOnly.showVirtualGamepad)
-        assertFalse(gamepadOnly.showTouchKitKeyboard)
-        assertNull(gamepadOnly.touchLayoutId)
-        assertFalse(keyboardOnly.showVirtualGamepad)
-        assertTrue(keyboardOnly.showTouchKitKeyboard)
-        assertEquals("layout", keyboardOnly.touchLayoutId)
+        assertNull(keyboardOnly)
         assertFalse(gesturesOnly.showTouchControls)
-        assertNull(gesturesOnly.touchLayoutId)
     }
 
     @Test
-    fun `keyboard overlay still requires exact available layout`() {
+    fun `keyboard overlay cannot use legacy layout availability`() {
         assertNull(
             LigaseInputLaunchPolicy.resolve(
                 mode = com.limelight.ligase.InputDeviceMode.TOUCH,
-                selectedTouchLayoutId = "missing",
-                availableTouchLayoutIds = emptySet(),
                 overlayMode = LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD,
             ),
         )

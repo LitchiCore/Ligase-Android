@@ -1,15 +1,15 @@
 package com.limelight.ligase.input
 
 import com.limelight.ligase.InputDeviceMode
+import com.limelight.ligase.feature.input.layout.v3.application.LayoutV3RuntimeDecision
+import com.limelight.ligase.feature.input.layout.v3.application.LayoutV3RuntimeGate
 
 data class LigaseInputLaunchDecision(
     val modeValue: String,
     val showVirtualGamepad: Boolean,
-    val showTouchKitKeyboard: Boolean,
-    val touchLayoutId: String?,
 ) {
     val showTouchControls: Boolean
-        get() = showVirtualGamepad || showTouchKitKeyboard
+        get() = showVirtualGamepad
 }
 
 object LigaseInputLaunchPolicy {
@@ -24,29 +24,19 @@ object LigaseInputLaunchPolicy {
 
     fun resolve(
         mode: InputDeviceMode,
-        selectedTouchLayoutId: String?,
-        availableTouchLayoutIds: Set<String>,
         overlayMode: LigaseTouchOverlayMode = LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD,
     ): LigaseInputLaunchDecision? = when (mode) {
         InputDeviceMode.GAMEPAD -> LigaseInputLaunchDecision(
             modeValue = mode.storedValue,
             showVirtualGamepad = false,
-            showTouchKitKeyboard = false,
-            touchLayoutId = null,
         )
         InputDeviceMode.KEYBOARD_MOUSE -> LigaseInputLaunchDecision(
             modeValue = mode.storedValue,
             showVirtualGamepad = false,
-            showTouchKitKeyboard = false,
-            touchLayoutId = null,
         )
         InputDeviceMode.TOUCH -> {
-            if (
-                overlayMode == LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD &&
-                (
-                    selectedTouchLayoutId == null ||
-                        selectedTouchLayoutId !in availableTouchLayoutIds
-                )
+            if (overlayMode == LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD &&
+                LayoutV3RuntimeGate.current() is LayoutV3RuntimeDecision.Unavailable
             ) {
                 null
             } else {
@@ -54,12 +44,6 @@ object LigaseInputLaunchPolicy {
                     modeValue = mode.storedValue,
                     showVirtualGamepad =
                         overlayMode == LigaseTouchOverlayMode.VIRTUAL_GAMEPAD,
-                    showTouchKitKeyboard =
-                        overlayMode == LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD,
-                    touchLayoutId = selectedTouchLayoutId
-                        .takeIf {
-                            overlayMode == LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD
-                        },
                 )
             }
         }

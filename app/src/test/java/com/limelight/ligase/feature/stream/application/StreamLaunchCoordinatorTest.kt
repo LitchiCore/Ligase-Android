@@ -76,17 +76,8 @@ class StreamLaunchCoordinatorTest {
     }
 
     @Test
-    fun `touch screen controls remain exactly one of keyboard gamepad or none`() {
+    fun `touch screen controls allow virtual gamepad or gestures without legacy layout`() {
         val fixture = fixture()
-        val keyboard = ready(
-            fixture.coordinator.plan(
-                request(
-                    overlay = LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD,
-                    selectedLayout = "layout-1",
-                    layouts = setOf("layout-1"),
-                ),
-            ),
-        )
         val gamepad = ready(
             fixture.coordinator.plan(
                 request(overlay = LigaseTouchOverlayMode.VIRTUAL_GAMEPAD),
@@ -98,26 +89,19 @@ class StreamLaunchCoordinatorTest {
             ),
         )
 
-        assertTrue(keyboard.input.showTouchKitKeyboard)
-        assertFalse(keyboard.input.showVirtualGamepad)
-        assertEquals("layout-1", keyboard.input.touchLayoutId)
         assertTrue(gamepad.input.showVirtualGamepad)
-        assertFalse(gamepad.input.showTouchKitKeyboard)
         assertFalse(none.input.showTouchControls)
-        assertEquals(null, none.input.touchLayoutId)
     }
 
     @Test
-    fun `missing TouchKit layout fails closed`() {
+    fun `v3 layout runtime fails closed while unavailable`() {
         val result = fixture().coordinator.plan(
             request(
                 overlay = LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD,
-                selectedLayout = "deleted",
-                layouts = emptySet(),
             ),
         )
 
-        assertBlocked(result, StreamLaunchBlockReason.TOUCH_LAYOUT_UNAVAILABLE)
+        assertBlocked(result, StreamLaunchBlockReason.V3_LAYOUT_RUNTIME_UNAVAILABLE)
     }
 
     @Test
@@ -207,8 +191,6 @@ class StreamLaunchCoordinatorTest {
         selectedKeyboard: String? = null,
         selectedMouse: String? = null,
         devices: List<LigaseInputDevice> = emptyList(),
-        selectedLayout: String? = null,
-        layouts: Set<String> = emptySet(),
         overlay: LigaseTouchOverlayMode = LigaseTouchOverlayMode.GESTURES_ONLY,
         virtualDisplay: Boolean = false,
     ) = StreamLaunchRequest(
@@ -220,8 +202,6 @@ class StreamLaunchCoordinatorTest {
         selectedKeyboardKey = selectedKeyboard,
         selectedMouseKey = selectedMouse,
         connectedInputDevices = devices,
-        selectedTouchLayoutId = selectedLayout,
-        availableTouchLayoutIds = layouts,
         overlayMode = overlay,
         preferVirtualDisplay = virtualDisplay,
     )

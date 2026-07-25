@@ -61,5 +61,19 @@ layout-owned v2 test-data targets before opening v3 repositories.
 
 Preview/runtime rendering, Game/input dispatch, Host transport, Sync,
 publication, download, and real-keyboard selection UI remain outside this
-block. TouchKit v1 runtime and persistence remain physically separate and are
-not deletion targets.
+block. The former TouchKit v1 layout runtime and persistence are test-only
+residuals scheduled for exact deletion; they are not a product fallback.
+
+## Product runtime gate
+
+The product launch path is v3-only. Until a separate runtime task implements
+v3 rendering and input dispatch, `LayoutV3RuntimeGate` returns the typed
+`Unavailable(NOT_IMPLEMENTED)` state. Activity/input selection and Game launch
+do not read a v1 layout selection, pass a v1 layout Intent extra, load an OSC
+profile, or fall back to per-game/default TouchKit layout storage. Virtual
+gamepad and gesture-only touch input remain independent of layout execution.
+
+The unreachable v1 catalog/editor/storage classes are removed in the
+subsequent residual deletion block after the frontend removes its old typed
+surface. Their presence during that compile-safe dependency step is not a
+runtime fallback.

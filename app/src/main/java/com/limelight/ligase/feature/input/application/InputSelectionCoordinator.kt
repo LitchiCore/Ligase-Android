@@ -6,8 +6,6 @@ import com.limelight.ligase.feature.input.infrastructure.LegacyInputSelectionPre
 import com.limelight.ligase.input.LigaseInputCategory
 import com.limelight.ligase.input.LigaseInputDevice
 import com.limelight.ligase.input.LigaseInputDeviceRepository
-import com.limelight.ligase.input.LigaseTouchLayout
-import com.limelight.ligase.input.LigaseTouchLayoutRepository
 import com.limelight.ligase.input.LigaseTouchOverlayMode
 
 data class InputSelectionState(
@@ -17,8 +15,6 @@ data class InputSelectionState(
     val selectedGamepadKey: String?,
     val selectedKeyboardKey: String?,
     val selectedMouseKey: String?,
-    val touchLayouts: List<LigaseTouchLayout>,
-    val selectedTouchLayoutId: String?,
     val overlayMode: LigaseTouchOverlayMode,
 )
 
@@ -28,11 +24,8 @@ internal class InputDeviceSession(
 )
 
 /**
- * Owns input selection state, existing v1 preference writes, and the bounded
+ * Owns input selection state, local preference writes, and the bounded
  * Android input-device enumeration lifecycle.
- *
- * Touch layout bytes and global layout persistence remain owned by
- * [LigaseTouchLayoutRepository].
  */
 class InputSelectionCoordinator private constructor(
     private val hasInputMode: () -> Boolean,
@@ -42,9 +35,6 @@ class InputSelectionCoordinator private constructor(
     private val writeSelectedDevice: (LigaseInputCategory, String) -> Unit,
     private val readOverlayMode: () -> LigaseTouchOverlayMode,
     private val writeOverlayMode: (LigaseTouchOverlayMode) -> Unit,
-    private val loadLayouts: () -> List<LigaseTouchLayout>,
-    private val initializeLayout: (List<LigaseTouchLayout>) -> String?,
-    private val selectLayout: (String, List<LigaseTouchLayout>) -> Boolean,
     private val createDeviceSession: ((List<LigaseInputDevice>) -> Unit) -> InputDeviceSession,
     private val onStateChanged: (InputSelectionState) -> Unit,
 ) {
@@ -53,7 +43,6 @@ class InputSelectionCoordinator private constructor(
         onStateChanged: (InputSelectionState) -> Unit,
     ) : this(
         preferences = LegacyInputSelectionPreferences(context),
-        touchLayouts = LigaseTouchLayoutRepository(context),
         createDeviceSession = { callback ->
             val repository = LigaseInputDeviceRepository(context, callback)
             InputDeviceSession(repository::start, repository::stop)
@@ -63,7 +52,6 @@ class InputSelectionCoordinator private constructor(
 
     private constructor(
         preferences: LegacyInputSelectionPreferences,
-        touchLayouts: LigaseTouchLayoutRepository,
         createDeviceSession: ((List<LigaseInputDevice>) -> Unit) -> InputDeviceSession,
         onStateChanged: (InputSelectionState) -> Unit,
     ) : this(
@@ -74,9 +62,6 @@ class InputSelectionCoordinator private constructor(
         writeSelectedDevice = preferences::setSelectedDevice,
         readOverlayMode = preferences::overlayMode,
         writeOverlayMode = preferences::setOverlayMode,
-        loadLayouts = touchLayouts::layouts,
-        initializeLayout = touchLayouts::initializeSelection,
-        selectLayout = touchLayouts::select,
         createDeviceSession = createDeviceSession,
         onStateChanged = onStateChanged,
     )
@@ -89,9 +74,6 @@ class InputSelectionCoordinator private constructor(
         writeSelectedDevice: (LigaseInputCategory, String) -> Unit,
         readOverlayMode: () -> LigaseTouchOverlayMode,
         writeOverlayMode: (LigaseTouchOverlayMode) -> Unit,
-        loadLayouts: () -> List<LigaseTouchLayout>,
-        initializeLayout: (List<LigaseTouchLayout>) -> String?,
-        selectLayout: (String, List<LigaseTouchLayout>) -> Boolean,
         createDeviceSession: ((List<LigaseInputDevice>) -> Unit) -> InputDeviceSession,
         onStateChanged: (InputSelectionState) -> Unit,
         @Suppress("UNUSED_PARAMETER") testing: Unit = Unit,
@@ -103,9 +85,6 @@ class InputSelectionCoordinator private constructor(
         writeSelectedDevice,
         readOverlayMode,
         writeOverlayMode,
-        loadLayouts,
-        initializeLayout,
-        selectLayout,
         createDeviceSession,
         onStateChanged,
     )
@@ -162,22 +141,6 @@ class InputSelectionCoordinator private constructor(
         )
     }
 
-    fun refreshLayouts() {
-        val layouts = loadLayouts()
-        update(
-            state.copy(
-                touchLayouts = layouts,
-                selectedTouchLayoutId = initializeLayout(layouts),
-            ),
-        )
-    }
-
-    fun selectTouchLayout(layoutId: String): Boolean {
-        if (!selectLayout(layoutId, state.touchLayouts)) return false
-        update(state.copy(selectedTouchLayoutId = layoutId))
-        return true
-    }
-
     fun selectOverlayMode(mode: LigaseTouchOverlayMode) {
         writeOverlayMode(mode)
         update(state.copy(overlayMode = mode))
@@ -185,7 +148,6 @@ class InputSelectionCoordinator private constructor(
 
     private fun initialState(): InputSelectionState {
         val onboarding = !hasInputMode()
-        val layouts = loadLayouts()
         return InputSelectionState(
             onboarding = onboarding,
             selectedMode = if (onboarding) null else readInputMode(),
@@ -193,8 +155,6 @@ class InputSelectionCoordinator private constructor(
             selectedGamepadKey = readSelectedDevice(LigaseInputCategory.GAMEPAD),
             selectedKeyboardKey = readSelectedDevice(LigaseInputCategory.KEYBOARD),
             selectedMouseKey = readSelectedDevice(LigaseInputCategory.MOUSE),
-            touchLayouts = layouts,
-            selectedTouchLayoutId = initializeLayout(layouts),
             overlayMode = readOverlayMode(),
         )
     }

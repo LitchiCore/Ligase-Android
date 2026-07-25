@@ -50,7 +50,6 @@ object LigasePreferences {
     private const val KEY_LIBRARY_SORT_PREFIX = "library_sort:"
     private const val KEY_LIBRARY_LAYOUT = "library_layout"
     private const val KEY_LANGUAGE = "list_languages"
-    private const val KEY_GLOBAL_TOUCH_LAYOUT = "global_touch_layout"
     private const val KEY_TOUCH_VIRTUAL_GAMEPAD = "touch_virtual_gamepad"
     private const val KEY_TOUCHKIT_KEYBOARD = "touch_touchkit_keyboard"
     private const val KEY_TOUCH_OVERLAY_MODE = "touch_overlay_mode"
@@ -74,15 +73,6 @@ object LigasePreferences {
     @JvmStatic
     fun setInputDeviceMode(context: Context, mode: InputDeviceMode) {
         preferences(context).edit().putString(KEY_INPUT_DEVICE, mode.storedValue).apply()
-    }
-
-    @JvmStatic
-    fun getGlobalTouchLayoutId(context: Context): String? =
-        preferences(context).getString(KEY_GLOBAL_TOUCH_LAYOUT, null)
-
-    @JvmStatic
-    fun setGlobalTouchLayoutId(context: Context, layoutId: String) {
-        preferences(context).edit().putString(KEY_GLOBAL_TOUCH_LAYOUT, layoutId).apply()
     }
 
     @JvmStatic

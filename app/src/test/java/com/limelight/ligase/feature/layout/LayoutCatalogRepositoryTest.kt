@@ -213,18 +213,15 @@ class LayoutCatalogRepositoryTest {
     }
 
     @Test
-    fun `global selection changes only after explicit action and survives repository restart`() {
+    fun `v1 catalog cannot become product global selection`() {
         val session = LayoutEditorSession(repository)
         assertTrue(session.createEditableCopy("OSC_Keyboard"))
         val saved = requireNotNull(session.saveDraft())
-        assertNotEquals(saved.layoutId, LigasePreferences.getGlobalTouchLayoutId(context))
 
         val catalog = (repository.catalog() as LayoutRepositoryResult.Success).value
         val layouts = catalog.map { LigaseTouchLayout(it.layoutId, it.displayName) }
-        assertTrue(LigaseTouchLayoutRepository(context).select(saved.layoutId, layouts))
-        assertEquals(saved.layoutId, LigasePreferences.getGlobalTouchLayoutId(context))
-        assertEquals(
-            saved.layoutId,
+        assertFalse(LigaseTouchLayoutRepository(context).select(saved.layoutId, layouts))
+        assertNull(
             PreferenceManager.getDefaultSharedPreferences(context)
                 .getString(KeyBoardControllerConfigurationLoader.OSC_PREFERENCE, null),
         )

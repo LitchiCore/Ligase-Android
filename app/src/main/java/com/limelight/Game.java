@@ -23,7 +23,6 @@ import com.limelight.binding.input.touch.TouchContext;
 import com.limelight.binding.input.touch.TrackpadContext;
 import com.limelight.binding.input.virtual_controller.VirtualController;
 import com.limelight.binding.input.virtual_controller.keyboard.KeyBoardController;
-import com.limelight.binding.input.virtual_controller.keyboard.KeyBoardControllerConfigurationLoader;
 import com.limelight.binding.input.virtual_controller.keyboard.KeyBoardLayoutController;
 import com.limelight.binding.video.CrashListener;
 import com.limelight.binding.video.MediaCodecDecoderRenderer;
@@ -275,9 +274,7 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
     public static final String EXTRA_SERVER_COMMANDS = "ServerCommands";
     public static final String EXTRA_DISPLAY_ID = "DisplayID";
     public static final String EXTRA_LIGASE_INPUT_MODE = "LigaseInputMode";
-    public static final String EXTRA_LIGASE_TOUCH_LAYOUT_ID = "LigaseTouchLayoutId";
     public static final String EXTRA_LIGASE_VIRTUAL_GAMEPAD = "LigaseVirtualGamepad";
-    public static final String EXTRA_LIGASE_TOUCHKIT_KEYBOARD = "LigaseTouchKitKeyboard";
     public static final String EXTRA_LIGASE_WIDTH = "LigaseWidth";
     public static final String EXTRA_LIGASE_HEIGHT = "LigaseHeight";
     public static final String EXTRA_LIGASE_HOST_HDR_SUPPORTED = "LigaseHostHdrSupported";
@@ -387,27 +384,14 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
             prefConfig.height = ligaseHeight;
         }
         String ligaseInputMode = getIntent().getStringExtra(EXTRA_LIGASE_INPUT_MODE);
-        String ligaseTouchLayoutId =
-                getIntent().getStringExtra(EXTRA_LIGASE_TOUCH_LAYOUT_ID);
         Boolean ligaseShowTouchControls =
                 LigaseInputLaunchPolicy.showTouchControls(ligaseInputMode);
         boolean ligaseVirtualGamepad = ligaseShowTouchControls != null &&
                 ligaseShowTouchControls &&
                 getIntent().getBooleanExtra(EXTRA_LIGASE_VIRTUAL_GAMEPAD, true);
-        boolean ligaseTouchKitKeyboard = ligaseShowTouchControls != null &&
-                ligaseShowTouchControls &&
-                getIntent().getBooleanExtra(EXTRA_LIGASE_TOUCHKIT_KEYBOARD, true);
-        if (ligaseTouchKitKeyboard &&
-                (ligaseTouchLayoutId == null ||
-                        !TouchKitLayoutNames.contains(this, ligaseTouchLayoutId))) {
-            Toast.makeText(this, R.string.ligase_touch_layout_reselect_before_stream,
-                    Toast.LENGTH_LONG).show();
-            finish();
-            return;
-        }
         if (ligaseShowTouchControls != null) {
             prefConfig.onscreenController = ligaseVirtualGamepad;
-            prefConfig.touchkitAdjustableOverlay = ligaseTouchKitKeyboard;
+            prefConfig.touchkitAdjustableOverlay = false;
         }
         tombstonePrefs = Game.this.getSharedPreferences("DecoderTombstone", 0);
 
@@ -649,25 +633,6 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
         if (appId == StreamConfiguration.INVALID_APP_ID) {
             finish();
             return;
-        }
-
-        if (ligaseInputMode != null) {
-            // Ligase product launches use the explicit global layout until the v1
-            // host/game identity binding is connected. Never fall back to numeric appid,
-            // unknown_pc, a display name, or sourceLayoutId.
-            if ("touch".equals(ligaseInputMode) &&
-                    ligaseTouchLayoutId != null &&
-                    TouchKitLayoutNames.contains(this, ligaseTouchLayoutId)) {
-                PreferenceManager.getDefaultSharedPreferences(this).edit()
-                        .putString(KeyBoardControllerConfigurationLoader.OSC_PREFERENCE,
-                                ligaseTouchLayoutId)
-                        .apply();
-            }
-        }
-        else {
-            // Legacy non-Ligase entry points retain their current behavior until the
-            // separately gated 2C migration.
-            TouchKitGameLayoutStore.applyRemembered(this, pcUuid, appUUID, appId);
         }
 
         // Initialize the MediaCodec helper before creating the decoder
@@ -929,11 +894,6 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
             }
         }
 
-        //特殊按键屏幕布局
-        if (prefConfig.touchkitAdjustableOverlay) {
-            initKeyboardController();
-        }
-
         if (!decoderRenderer.isAvcSupported()) {
             if (spinner != null) {
                 spinner.dismiss();
@@ -1181,12 +1141,6 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
         }
     }
 
-    private void initKeyboardController(){
-        keyBoardController = new KeyBoardController(conn,(FrameLayout)rootView, this);
-        keyBoardController.refreshLayout();
-        keyBoardController.show();
-    }
-
     public Boolean isKeyboardLayoutVisible() {
         return keyBoardLayoutController != null && keyBoardLayoutController.shown;
     }
@@ -1205,11 +1159,8 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
 
     //显示隐藏虚拟特殊按键
     public void toggleKeyboardController(){
-        if (keyBoardController==null) {
-            initKeyboardController();
-            return;
-        }
-        keyBoardController.toggleVisibility();
+        Toast.makeText(this, R.string.ligase_touch_layout_runtime_unavailable,
+                Toast.LENGTH_LONG).show();
     }
 
     public void toggleFullKeyboard() {
@@ -1853,10 +1804,6 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
     @Override
     protected void onStop() {
         super.onStop();
-
-        if (appId != StreamConfiguration.INVALID_APP_ID) {
-            TouchKitGameLayoutStore.rememberCurrent(this, pcUuid, appUUID, appId);
-        }
 
         SpinnerDialog.closeDialogs(this);
         Dialog.closeDialogs();

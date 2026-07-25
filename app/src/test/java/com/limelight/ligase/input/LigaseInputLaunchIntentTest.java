@@ -2,7 +2,6 @@ package com.limelight.ligase.input;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -28,10 +27,9 @@ import org.robolectric.annotation.Config;
 @Config(shadows = {com.limelight.shadows.ShadowMoonBridge.class})
 public class LigaseInputLaunchIntentTest {
     @Test
-    public void touchLaunchCarriesModeAndStableGlobalLayoutId() {
+    public void touchLaunchNeverCarriesLegacyLayoutOrTouchKitRuntime() {
         Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
         LigasePreferences.setInputDeviceMode(activity, InputDeviceMode.TOUCH);
-        LigasePreferences.setGlobalTouchLayoutId(activity, "OSC_Keyboard_2");
         LigasePreferences.setTouchOverlayMode(activity,
                 LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD);
         ComputerManagerService.ComputerManagerBinder binder =
@@ -50,10 +48,7 @@ public class LigaseInputLaunchIntentTest {
                 true);
 
         assertEquals("touch", intent.getStringExtra(Game.EXTRA_LIGASE_INPUT_MODE));
-        assertEquals("OSC_Keyboard_2",
-                intent.getStringExtra(Game.EXTRA_LIGASE_TOUCH_LAYOUT_ID));
         assertFalse(intent.getBooleanExtra(Game.EXTRA_LIGASE_VIRTUAL_GAMEPAD, true));
-        assertTrue(intent.getBooleanExtra(Game.EXTRA_LIGASE_TOUCHKIT_KEYBOARD, false));
     }
 
     @Test
@@ -74,7 +69,6 @@ public class LigaseInputLaunchIntentTest {
         assertEquals("keyboard_mouse",
                 intent.getStringExtra(Game.EXTRA_LIGASE_INPUT_MODE));
         assertFalse(intent.getBooleanExtra(Game.EXTRA_LIGASE_VIRTUAL_GAMEPAD, true));
-        assertFalse(intent.getBooleanExtra(Game.EXTRA_LIGASE_TOUCHKIT_KEYBOARD, true));
     }
 
     @Test

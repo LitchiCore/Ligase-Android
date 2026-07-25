@@ -26,7 +26,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.limelight.BuildConfig
 import com.limelight.LimeLog
 import com.limelight.R
-import com.limelight.TouchKitLayoutPreviewActivity
 import com.limelight.binding.PlatformBinding
 import com.limelight.computers.ComputerManagerService
 import com.limelight.grid.assets.CachedAppAssetLoader
@@ -59,7 +58,6 @@ import com.limelight.ligase.feature.library.ui.settings.StreamingResolutionEdito
 import com.limelight.ligase.feature.library.ui.settings.StreamingResolutionSubmissionDecision
 import com.limelight.ligase.feature.library.ui.settings.StreamingResolutionTarget
 import com.limelight.ligase.feature.library.ui.settings.streamingResolutionSubmissionDecision
-import com.limelight.ligase.feature.layout.editor.LayoutWorkspaceViewModel
 import com.limelight.ligase.feature.pairing.application.HostPairingCoordinator
 import com.limelight.ligase.feature.pairing.application.HostPairingMode
 import com.limelight.ligase.feature.pairing.infrastructure.LegacyPairingResult
@@ -124,7 +122,6 @@ class LigaseActivity : AppCompatActivity() {
     private lateinit var libraryManualSortCoordinator: LibraryManualSortCoordinator
     private lateinit var libraryStreamingSettingsCoordinator:
         LibraryStreamingSettingsCoordinator
-    private lateinit var layoutWorkspaceViewModel: LayoutWorkspaceViewModel
     private lateinit var layoutV3EditorWorkspaceViewModel: LayoutV3EditorWorkspaceViewModel
     private var layoutV3EditorLaunchInFlight = false
 
@@ -275,7 +272,6 @@ class LigaseActivity : AppCompatActivity() {
             },
         )
         registerStreamingResolutionResult()
-        layoutWorkspaceViewModel = ViewModelProvider(this)[LayoutWorkspaceViewModel::class.java]
         layoutV3EditorWorkspaceViewModel =
             ViewModelProvider(this)[LayoutV3EditorWorkspaceViewModel::class.java]
 
@@ -303,9 +299,8 @@ class LigaseActivity : AppCompatActivity() {
                 selectedGamepadKey = checkNotNull(inputSelectionState).selectedGamepadKey,
                 selectedKeyboardKey = checkNotNull(inputSelectionState).selectedKeyboardKey,
                 selectedMouseKey = checkNotNull(inputSelectionState).selectedMouseKey,
-                touchLayouts = checkNotNull(inputSelectionState).touchLayouts,
-                selectedTouchLayoutId =
-                    checkNotNull(inputSelectionState).selectedTouchLayoutId,
+                touchLayouts = emptyList(),
+                selectedTouchLayoutId = null,
                 touchOverlayMode = checkNotNull(inputSelectionState).overlayMode,
                 languageMode = languageMode,
                 hosts = hosts,
@@ -343,15 +338,17 @@ class LigaseActivity : AppCompatActivity() {
                         )
                     },
                 manualSortState = librarySessionViewModel.manualSortState,
-                layoutCatalogState = layoutWorkspaceViewModel.catalogState,
-                layoutEditorState = layoutWorkspaceViewModel.editorState,
+                layoutCatalogState =
+                    com.limelight.ligase.feature.layout.domain.LayoutCatalogUiState(),
+                layoutEditorState =
+                    com.limelight.ligase.feature.layout.domain.LayoutEditorSessionState(),
                 layoutV3EditorWorkspaceState = layoutV3EditorWorkspaceState,
                 pairingState = pairingViewModel.state,
                 onPageSelected = ::selectPage,
                 onInputSelected = ::selectInput,
                 onInputConfirmed = ::confirmInput,
                 onInputDeviceSelected = ::selectInputDevice,
-                onTouchLayoutSelected = ::selectTouchLayout,
+                onTouchLayoutSelected = {},
                 onTouchOverlayModeChanged = ::selectTouchOverlayMode,
                 onThemeSelected = ::selectTheme,
                 onLanguageSelected = ::selectLanguage,
@@ -367,32 +364,17 @@ class LigaseActivity : AppCompatActivity() {
                 onLibraryConfigure = ::showLibraryItemSettings,
                 onLibraryRetrySync = ::retryLibrarySync,
                 onManualOrderSubmit = ::submitManualLibraryOrder,
-                onLayoutCatalogRefresh = {
-                    layoutWorkspaceViewModel.refreshCatalog()
-                    inputSelectionCoordinator.refreshLayouts()
-                },
-                onLayoutSelect = { layoutId ->
-                    if (layoutWorkspaceViewModel.selectGlobal(layoutId)) {
-                        inputSelectionCoordinator.refreshLayouts()
-                    }
-                },
-                onLayoutCreateCopy = { layoutWorkspaceViewModel.createEditableCopy(it) },
-                onLayoutOpenEditor = { layoutWorkspaceViewModel.openEditor(it) },
-                onLayoutPreview = { layoutId ->
-                    startActivity(TouchKitLayoutPreviewActivity.createIntent(this, layoutId))
-                },
-                onLayoutMove = { id, x, y -> layoutWorkspaceViewModel.moveElement(id, x, y) },
-                onLayoutResize = { id, width, height ->
-                    layoutWorkspaceViewModel.resizeElement(id, width, height)
-                },
-                onLayoutDelete = { layoutWorkspaceViewModel.deleteElement(it) },
-                onLayoutAdd = { layoutWorkspaceViewModel.addElement(it) },
-                onLayoutSave = {
-                    if (layoutWorkspaceViewModel.saveDraft() != null) {
-                        inputSelectionCoordinator.refreshLayouts()
-                    }
-                },
-                onLayoutDiscard = layoutWorkspaceViewModel::discardDraft,
+                onLayoutCatalogRefresh = {},
+                onLayoutSelect = {},
+                onLayoutCreateCopy = {},
+                onLayoutOpenEditor = {},
+                onLayoutPreview = {},
+                onLayoutMove = { _, _, _ -> },
+                onLayoutResize = { _, _, _ -> },
+                onLayoutDelete = {},
+                onLayoutAdd = {},
+                onLayoutSave = {},
+                onLayoutDiscard = {},
                 onLayoutV3CreateBlank = ::launchNewLayoutV3Editor,
                 onLayoutV3ResumeRecovery = ::resumeLayoutV3Editor,
                 onLayoutV3DiscardRecovery =
@@ -422,12 +404,6 @@ class LigaseActivity : AppCompatActivity() {
 
     private fun selectInputDevice(category: LigaseInputCategory, stableKey: String) {
         inputSelectionCoordinator.selectDevice(category, stableKey)
-    }
-
-    private fun selectTouchLayout(layoutId: String) {
-        if (!inputSelectionCoordinator.selectTouchLayout(layoutId)) {
-            toast(R.string.ligase_touch_layout_missing_short)
-        }
     }
 
     private fun selectTouchOverlayMode(mode: LigaseTouchOverlayMode) {
@@ -808,9 +784,6 @@ class LigaseActivity : AppCompatActivity() {
                 selectedKeyboardKey = inputState.selectedKeyboardKey,
                 selectedMouseKey = inputState.selectedMouseKey,
                 connectedInputDevices = inputState.devices,
-                selectedTouchLayoutId = inputState.selectedTouchLayoutId,
-                availableTouchLayoutIds =
-                    inputState.touchLayouts.mapTo(mutableSetOf()) { it.id },
                 overlayMode = inputState.overlayMode,
                 preferVirtualDisplay =
                     PreferenceConfiguration.readPreferences(this).useVirtualDisplay,
@@ -832,8 +805,8 @@ class LigaseActivity : AppCompatActivity() {
                         toast(R.string.ligase_connect_selected_keyboard_mouse)
                         currentPage = LigasePage.INPUT
                     }
-                    StreamLaunchBlockReason.TOUCH_LAYOUT_UNAVAILABLE -> {
-                        toast(R.string.ligase_touch_layout_reselect_before_stream)
+                    StreamLaunchBlockReason.V3_LAYOUT_RUNTIME_UNAVAILABLE -> {
+                        toast(R.string.ligase_touch_layout_runtime_unavailable)
                         currentPage = LigasePage.INPUT
                     }
                     StreamLaunchBlockReason.MANAGER_UNAVAILABLE ->
@@ -1066,7 +1039,6 @@ class LigaseActivity : AppCompatActivity() {
         foreground = true
         refreshLocalHdrCapabilities()
         streamBitrateState.refresh(PreferenceConfiguration.getDefaultBitrate(this))
-        inputSelectionCoordinator.refreshLayouts()
         inputSelectionCoordinator.start()
         hostEndpointCoordinator.onForeground(::handleHostUpdate)
         startAppListUpdates()

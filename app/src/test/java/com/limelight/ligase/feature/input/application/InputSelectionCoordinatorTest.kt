@@ -6,7 +6,6 @@ import com.limelight.ligase.input.LigaseInputConnection
 import com.limelight.ligase.input.LigaseInputDevice
 import com.limelight.ligase.input.LigaseInputSelection
 import com.limelight.ligase.input.LigaseInputSelectionStatus
-import com.limelight.ligase.input.LigaseTouchLayout
 import com.limelight.ligase.input.LigaseTouchOverlayMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -117,28 +116,6 @@ class InputSelectionCoordinatorTest {
         )
     }
 
-    @Test
-    fun `missing layout fails closed without replacing global selection`() {
-        val harness = Harness()
-
-        assertFalse(harness.coordinator.selectTouchLayout("missing"))
-        assertEquals("layout-a", harness.coordinator.state.selectedTouchLayoutId)
-        assertEquals(emptyList<String>(), harness.layoutWrites)
-    }
-
-    @Test
-    fun `layout refresh uses repository authority after local catalog change`() {
-        val layouts = mutableListOf(LigaseTouchLayout("layout-a", "A"))
-        val harness = Harness(layouts = layouts)
-        layouts.clear()
-        layouts += LigaseTouchLayout("layout-b", "B")
-
-        harness.coordinator.refreshLayouts()
-
-        assertEquals(listOf("layout-b"), harness.coordinator.state.touchLayouts.map { it.id })
-        assertEquals("layout-b", harness.coordinator.state.selectedTouchLayoutId)
-    }
-
     private fun status(
         coordinator: InputSelectionCoordinator,
         category: LigaseInputCategory,
@@ -168,13 +145,10 @@ class InputSelectionCoordinatorTest {
         hasMode: Boolean = true,
         inputMode: InputDeviceMode = InputDeviceMode.TOUCH,
         selectedDevices: MutableMap<LigaseInputCategory, String?> = mutableMapOf(),
-        layouts: MutableList<LigaseTouchLayout> =
-            mutableListOf(LigaseTouchLayout("layout-a", "A")),
     ) {
         val modeWrites = mutableListOf<InputDeviceMode>()
         val deviceWrites = mutableListOf<Pair<LigaseInputCategory, String>>()
         val overlayWrites = mutableListOf<LigaseTouchOverlayMode>()
-        val layoutWrites = mutableListOf<String>()
         val deviceCallbacks = mutableListOf<(List<LigaseInputDevice>) -> Unit>()
         var startCount = 0
         var stopCount = 0
@@ -190,13 +164,6 @@ class InputSelectionCoordinatorTest {
             },
             readOverlayMode = { LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD },
             writeOverlayMode = overlayWrites::add,
-            loadLayouts = { layouts.toList() },
-            initializeLayout = { available -> available.firstOrNull()?.id },
-            selectLayout = { layoutId, available ->
-                (layoutId in available.map { it.id }).also { accepted ->
-                    if (accepted) layoutWrites += layoutId
-                }
-            },
             createDeviceSession = { callback ->
                 deviceCallbacks += callback
                 InputDeviceSession(

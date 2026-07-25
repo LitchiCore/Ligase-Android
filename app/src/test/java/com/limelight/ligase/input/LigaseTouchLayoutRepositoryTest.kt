@@ -2,11 +2,9 @@ package com.limelight.ligase.input
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import com.limelight.ligase.LigasePreferences
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -28,29 +26,23 @@ class LigaseTouchLayoutRepositoryTest {
     }
 
     @Test
-    fun `global selection persists stable layout id`() {
+    fun `residual v1 repository is closed and performs zero preference writes`() {
+        context.getSharedPreferences("ligase_product_preferences", Context.MODE_PRIVATE)
+            .edit()
+            .putString("global_touch_layout", "sentinel")
+            .commit()
         val available = listOf(
             LigaseTouchLayout("OSC_Keyboard_1", "默认布局"),
             LigaseTouchLayout("OSC_Keyboard_2", "第二布局"),
         )
 
-        assertTrue(repository.select("OSC_Keyboard_2", available))
+        assertEquals(emptyList<LigaseTouchLayout>(), repository.layouts())
+        assertNull(repository.initializeSelection(available))
+        assertFalse(repository.select("OSC_Keyboard_2", available))
         assertEquals(
-            "OSC_Keyboard_2",
-            LigasePreferences.getGlobalTouchLayoutId(context),
-        )
-    }
-
-    @Test
-    fun `missing saved layout is retained for explicit recovery`() {
-        LigasePreferences.setGlobalTouchLayoutId(context, "deleted-layout")
-        val available = listOf(LigaseTouchLayout("available-layout", "可用布局"))
-
-        assertEquals("deleted-layout", repository.initializeSelection(available))
-        assertFalse(repository.select("same-name-but-different-id", available))
-        assertEquals(
-            "deleted-layout",
-            LigasePreferences.getGlobalTouchLayoutId(context),
+            "sentinel",
+            context.getSharedPreferences("ligase_product_preferences", Context.MODE_PRIVATE)
+                .getString("global_touch_layout", null),
         )
     }
 

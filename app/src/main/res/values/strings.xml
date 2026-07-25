@@ -901,6 +901,7 @@
     <string name="ligase_no_touch_layout">No TouchKit layout is available. Open advanced settings to create or import one.</string>
     <string name="ligase_layout_reselect_required">Layout selection required</string>
     <string name="ligase_touch_layout_reselect_before_stream">Select an available touch layout before streaming</string>
+    <string name="ligase_touch_layout_runtime_unavailable">Version 3 layout controls are not available during streaming yet</string>
     <string name="ligase_layout_edit_future">Layout editing is coming later</string>
     <string name="ligase_connect_selected_controller">Connect and select a controller before streaming</string>
     <string name="ligase_connect_selected_keyboard_mouse">Connect and select a keyboard or mouse before streaming</string>

@@ -28,7 +28,7 @@ enum class StreamLaunchBlockReason {
     APP_IDENTITY_MISMATCH,
     GAMEPAD_DISCONNECTED,
     KEYBOARD_MOUSE_DISCONNECTED,
-    TOUCH_LAYOUT_UNAVAILABLE,
+    V3_LAYOUT_RUNTIME_UNAVAILABLE,
     MANAGER_UNAVAILABLE,
 }
 
@@ -55,8 +55,6 @@ data class StreamLaunchRequest(
     val selectedKeyboardKey: String?,
     val selectedMouseKey: String?,
     val connectedInputDevices: List<LigaseInputDevice>,
-    val selectedTouchLayoutId: String?,
-    val availableTouchLayoutIds: Set<String>,
     val overlayMode: LigaseTouchOverlayMode,
     val preferVirtualDisplay: Boolean,
 )
@@ -149,11 +147,9 @@ class StreamLaunchCoordinator(
         }
         val input = LigaseInputLaunchPolicy.resolve(
             mode = request.inputMode,
-            selectedTouchLayoutId = request.selectedTouchLayoutId,
-            availableTouchLayoutIds = request.availableTouchLayoutIds,
             overlayMode = request.overlayMode,
         ) ?: return StreamLaunchPlanningResult.Blocked(
-            StreamLaunchBlockReason.TOUCH_LAYOUT_UNAVAILABLE,
+            StreamLaunchBlockReason.V3_LAYOUT_RUNTIME_UNAVAILABLE,
         )
         val withVirtualDisplay = !request.item.isSystem && request.preferVirtualDisplay
         val confirmation = when {
