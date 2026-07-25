@@ -168,6 +168,18 @@ class LayoutV3EditorSession(
     }
 
     @Synchronized
+    fun commitResolvedRect(
+        token: LayoutV3GestureCommitToken,
+        rect: IntRect,
+    ): LayoutV3EditResult {
+        val generation = gestureTokens.remove(token.value)
+        if (generation == null || generation != sessionGeneration) {
+            return reject(LayoutV3EditorIssue.STALE_GESTURE, token.elementId)
+        }
+        return updateResolvedRect(token.elementId) { rect }
+    }
+
+    @Synchronized
     fun cancelGesture(token: LayoutV3GestureCommitToken): LayoutV3EditResult =
         if (gestureTokens.remove(token.value) != null) LayoutV3EditResult.Applied
         else reject(LayoutV3EditorIssue.STALE_GESTURE, token.elementId)

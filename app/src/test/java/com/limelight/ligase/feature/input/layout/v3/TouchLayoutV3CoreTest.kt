@@ -60,6 +60,29 @@ class TouchLayoutV3CoreTest {
     }
 
     @Test
+    fun fullOverlayInverseMapperRoundTripsResolvedRectWithoutUiProtocolMath() {
+        val canvas = IntSize(2400, 1080)
+        val overlay = IntRect(0, 0, 3200, 1440)
+        val element = element(
+            rect = AnchoredRect(-40, -20, 120, 96),
+            anchorX = HorizontalAnchor.RIGHT,
+            anchorY = VerticalAnchor.BOTTOM,
+            z = 0,
+        )
+        val mapped = LayoutV3Geometry.map(canvas, element, overlay)
+        assertEquals(
+            LayoutV3Geometry.resolve(canvas, element),
+            LayoutV3Geometry.unmapResolvedRect(
+                canvas,
+                element.anchorX,
+                element.anchorY,
+                overlay,
+                mapped,
+            ),
+        )
+    }
+
+    @Test
     fun unsupportedVersionAndDuplicateZOrderFailClosedWhileOverlapIsAccepted() {
         val raw = fixture("ligase-touch-layout-v3-positive.json").readText()
         val unsupported = raw.replace("\"schemaVersion\": 3", "\"schemaVersion\": 2")

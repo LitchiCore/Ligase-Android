@@ -42,7 +42,6 @@ value class LayoutV3CatalogRegistrationAttachment internal constructor(
 class LayoutV3EditorWorkspaceViewModel(application: Application) : AndroidViewModel(application) {
     private val generations = LayoutV3GenerationRepository(application)
     private val journal = LayoutV3DraftJournal(application)
-    private val blankCreationPolicy = LayoutV3BlankCreationPolicy()
     private val elementCreationPolicy = LayoutV3ElementCreationPolicy()
     private var catalogRegistration:
         ((List<LayoutV3RegisteredGeneration>) -> Boolean)? = null
@@ -52,7 +51,6 @@ class LayoutV3EditorWorkspaceViewModel(application: Application) : AndroidViewMo
     private val leaseRegistry = LayoutV3EditorProcessLeases.registry
     private val leaseOwnerToken = UUID.randomUUID().toString()
     private var draftLease: LayoutV3DraftLease? = null
-    private var pendingBlankDisplayName: String? = null
 
     private val session = LayoutV3EditorSession(
         journal,
@@ -93,39 +91,19 @@ class LayoutV3EditorWorkspaceViewModel(application: Application) : AndroidViewMo
         return refreshCatalog()
     }
 
-    fun beginNewV3(displayName: String? = null) {
+    fun beginNewV3(displayName: String? = null): LayoutV3EditorLaunchRequest? {
         if (session.state.draft != null) {
             publishRejected(LayoutV3EditorIssue.INVALID_PAYLOAD, null)
-            return
+            return null
         }
-        pendingBlankDisplayName = displayName
         mutableState.value = mutableState.value.copy(
             launchPhase = LayoutV3WorkspaceLaunchPhase.AWAITING_VIEWPORT,
             lastAction = null,
         )
-    }
-
-    fun initializeNewV3(viewport: EditorTargetViewport) {
-        if (mutableState.value.launchPhase != LayoutV3WorkspaceLaunchPhase.AWAITING_VIEWPORT) {
-            publishRejected(LayoutV3EditorIssue.STALE_SOURCE_GENERATION, null)
-            return
-        }
-        val displayName = pendingBlankDisplayName
-        when (val decision = blankCreationPolicy.create(displayName, viewport)) {
-            is LayoutV3BlankCreationDecision.Ready ->
-                publishActivated(session.createBlank(decision.request)).also {
-                    if (session.state.draft != null) {
-                        pendingBlankDisplayName = null
-                        mutableState.value = mutableState.value.copy(
-                            launchPhase = LayoutV3WorkspaceLaunchPhase.EDITING,
-                        )
-                    }
-                }
-            LayoutV3BlankCreationDecision.InvalidDisplayName ->
-                publishRejected(LayoutV3EditorIssue.INVALID_PAYLOAD, null)
-            LayoutV3BlankCreationDecision.InvalidViewport ->
-                publishRejected(LayoutV3EditorIssue.INVALID_PAYLOAD, null)
-        }
+        return LayoutV3EditorLaunchRequest(
+            LayoutV3EditorLaunchMode.NEW_V3,
+            displayName = displayName,
+        )
     }
 
     fun createFromPackaged(layoutId: String, revision: Long, variantId: String) {
@@ -175,6 +153,16 @@ class LayoutV3EditorWorkspaceViewModel(application: Application) : AndroidViewMo
         }
         return result
     }
+
+    fun launchExistingAfterCheckpoint(draftId: String): LayoutV3EditorLaunchRequest? =
+        when (checkpointAndRelease(draftId)) {
+            is LayoutV3EditorHandoffResult.LaunchReady ->
+                LayoutV3EditorLaunchRequest(
+                    LayoutV3EditorLaunchMode.EXISTING_V3,
+                    draftId = draftId,
+                )
+            else -> null
+        }
 
     fun discardRecovery(draftId: String) {
         val discarded = session.discardRecoverableDraft(draftId)

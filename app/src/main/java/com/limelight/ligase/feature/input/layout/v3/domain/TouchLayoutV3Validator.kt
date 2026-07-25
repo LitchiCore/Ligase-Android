@@ -125,6 +125,49 @@ object LayoutV3Geometry {
         }
     }
 
+    /**
+     * Authoritative inverse for editor gesture commits. Element endpoints are
+     * intentionally not clamped; callers validate the resulting canonical
+     * visibility before mutating a draft.
+     */
+    fun unmapResolvedRect(
+        canvas: IntSize,
+        anchorX: HorizontalAnchor,
+        anchorY: VerticalAnchor,
+        overlay: IntRect,
+        target: IntRect,
+    ): IntRect {
+        if (overlay.width <= 0 || overlay.height <= 0 || target.width <= 0 || target.height <= 0) {
+            fail("invalidOverlayBounds")
+        }
+        val width = roundHalfUp(target.width.toLong() * canvas.height, overlay.height.toLong())
+        val height = roundHalfUp(target.height.toLong() * canvas.height, overlay.height.toLong())
+        if (width <= 0 || height <= 0) fail("targetBelowMinimum")
+        val targetX = target.x.toLong() - overlay.x
+        val targetY = target.y.toLong() - overlay.y
+        val horizontalOffsetPx = when (anchorX) {
+            HorizontalAnchor.LEFT -> targetX
+            HorizontalAnchor.CENTER ->
+                targetX - roundHalfUp(overlay.width.toLong() - target.width, 2)
+            HorizontalAnchor.RIGHT -> overlay.width.toLong() - targetX - target.width
+        }
+        val verticalOffsetPx = when (anchorY) {
+            VerticalAnchor.TOP -> targetY
+            VerticalAnchor.BOTTOM -> overlay.height.toLong() - targetY - target.height
+        }
+        val horizontalOffset = roundHalfUp(
+            horizontalOffsetPx * canvas.width,
+            overlay.width.toLong(),
+        )
+        val verticalOffset = roundHalfUp(
+            verticalOffsetPx * canvas.height,
+            overlay.height.toLong(),
+        )
+        val x = anchorOrigin(canvas.width, width, horizontalOffset, anchorX)
+        val y = anchorOrigin(canvas.height, height, verticalOffset, anchorY)
+        return IntRect(x, y, width, height)
+    }
+
     fun isVisible(rect: IntRect, bounds: IntRect): Boolean {
         val width = minOf(rect.right, bounds.right) - maxOf(rect.x.toLong(), bounds.x.toLong())
         val height = minOf(rect.bottom, bounds.bottom) - maxOf(rect.y.toLong(), bounds.y.toLong())

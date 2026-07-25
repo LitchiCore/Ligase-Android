@@ -145,11 +145,24 @@ enum class LayoutV3EditorHandoffIssue {
 }
 
 sealed interface LayoutV3EditorHandoffResult {
+    data object AwaitingViewport : LayoutV3EditorHandoffResult
+
     data class LaunchReady(val draftId: String) : LayoutV3EditorHandoffResult {
         override fun toString(): String = "LayoutV3EditorHandoffResult.LaunchReady(draftId=redacted)"
     }
 
     data class Rejected(val issue: LayoutV3EditorHandoffIssue) : LayoutV3EditorHandoffResult
+}
+
+enum class LayoutV3EditorLaunchMode { NEW_V3, EXISTING_V3 }
+
+data class LayoutV3EditorLaunchRequest(
+    val mode: LayoutV3EditorLaunchMode,
+    val draftId: String? = null,
+    val displayName: String? = null,
+) {
+    override fun toString(): String =
+        "LayoutV3EditorLaunchRequest(mode=$mode,draftId=redacted,displayName=redacted)"
 }
 
 enum class LayoutV3EditorExitCode { SAVED, DISCARDED, LEFT_RECOVERABLE, FAILED }

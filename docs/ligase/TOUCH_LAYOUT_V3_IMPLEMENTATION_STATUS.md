@@ -30,6 +30,12 @@ read only by tests.
   generation-bound one-shot gesture commits;
 - stable full-immersive target viewport blank creation without a Hall-side
   default canvas;
+- the Activity-owner `NEW_V3` launch mode, which waits for stable immersive
+  overlay bounds, checkpoints the new opaque draft identity, and resumes that
+  journal after process recreation without creating a second Session;
+- the complete generation-bound gesture-token facade plus the authoritative
+  full-overlay pixel-to-canonical inverse mapper; UI preview remains
+  non-persistent and release/cancel can consume a token at most once;
 - the atomic keyboard-key batch seam, including canonical key order, bounded
   cardinality, deterministic center stack/IDs/layers, and persisted
   `nextKeyboardBatchOrdinal`.

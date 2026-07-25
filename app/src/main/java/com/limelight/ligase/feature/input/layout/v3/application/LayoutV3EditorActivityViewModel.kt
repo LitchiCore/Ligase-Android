@@ -15,21 +15,38 @@ import java.util.UUID
 
 class LayoutV3EditorActivityViewModel internal constructor(
     application: Application,
-    private val draftId: String,
+    private var draftId: String,
     private val leaseRegistry: LayoutV3DraftLeaseRegistry,
+    private var launchMode: LayoutV3EditorLaunchMode = LayoutV3EditorLaunchMode.EXISTING_V3,
+    private val displayName: String? = null,
+    private val savedStateHandle: SavedStateHandle? = null,
 ) : AndroidViewModel(application) {
     constructor(application: Application, savedStateHandle: SavedStateHandle) : this(
         application,
         savedStateHandle[EXTRA_LAYOUT_V3_DRAFT_ID] ?: "",
         LayoutV3EditorProcessLeases.registry,
+        savedStateHandle.get<String>(EXTRA_LAYOUT_V3_MODE)
+            ?.let(LayoutV3EditorLaunchMode::valueOf)
+            ?: if (savedStateHandle.get<String>(EXTRA_LAYOUT_V3_DRAFT_ID).isNullOrEmpty()) {
+                LayoutV3EditorLaunchMode.NEW_V3
+            } else {
+                LayoutV3EditorLaunchMode.EXISTING_V3
+            },
+        savedStateHandle[EXTRA_LAYOUT_V3_DISPLAY_NAME],
+        savedStateHandle,
     )
 
     private val generations = LayoutV3GenerationRepository(application)
     private val elementCreationPolicy = LayoutV3ElementCreationPolicy()
+    private val blankCreationPolicy = LayoutV3BlankCreationPolicy()
     private val mutableState = MutableStateFlow(LayoutV3EditorWorkspaceUiState())
     val state: StateFlow<LayoutV3EditorWorkspaceUiState> = mutableState.asStateFlow()
     private val mutableHandoff = MutableStateFlow<LayoutV3EditorHandoffResult>(
-        LayoutV3EditorHandoffResult.Rejected(LayoutV3EditorHandoffIssue.MISSING),
+        if (launchMode == LayoutV3EditorLaunchMode.NEW_V3) {
+            LayoutV3EditorHandoffResult.AwaitingViewport
+        } else {
+            LayoutV3EditorHandoffResult.Rejected(LayoutV3EditorHandoffIssue.MISSING)
+        },
     )
     val handoff: StateFlow<LayoutV3EditorHandoffResult> = mutableHandoff.asStateFlow()
     private val ownerToken = UUID.randomUUID().toString()
@@ -50,7 +67,59 @@ class LayoutV3EditorActivityViewModel internal constructor(
     )
 
     init {
-        resumeExclusive()
+        if (launchMode == LayoutV3EditorLaunchMode.EXISTING_V3) resumeExclusive()
+    }
+
+    /**
+     * NEW_V3 creation is owned by this Activity-scoped owner and occurs only
+     * after the full immersive overlay reports stable bounds.
+     */
+    fun initializeNewV3(viewport: EditorTargetViewport): LayoutV3EditorHandoffResult {
+        if (
+            closed ||
+            launchMode != LayoutV3EditorLaunchMode.NEW_V3 ||
+            mutableHandoff.value != LayoutV3EditorHandoffResult.AwaitingViewport
+        ) {
+            return LayoutV3EditorHandoffResult.Rejected(LayoutV3EditorHandoffIssue.ALREADY_OWNED)
+        }
+        val request = when (val decision = blankCreationPolicy.create(displayName, viewport)) {
+            is LayoutV3BlankCreationDecision.Ready -> decision.request
+            LayoutV3BlankCreationDecision.InvalidDisplayName,
+            LayoutV3BlankCreationDecision.InvalidViewport -> {
+                return LayoutV3EditorHandoffResult.Rejected(
+                    LayoutV3EditorHandoffIssue.CHECKPOINT_FAILED,
+                ).also { mutableHandoff.value = it }
+            }
+        }
+        val created = session.createBlank(request)
+        if (created !is LayoutV3EditResult.Applied) {
+            return LayoutV3EditorHandoffResult.Rejected(
+                LayoutV3EditorHandoffIssue.CHECKPOINT_FAILED,
+            ).also { mutableHandoff.value = it }
+        }
+        val createdDraftId = session.state.draft?.identity?.layoutId
+            ?: return LayoutV3EditorHandoffResult.Rejected(
+                LayoutV3EditorHandoffIssue.CHECKPOINT_FAILED,
+            ).also { mutableHandoff.value = it }
+        val acquired = leaseRegistry.acquire(createdDraftId, ownerToken)
+        if (acquired == null || session.flushJournal() !=
+            com.limelight.ligase.feature.input.layout.v3.data.LayoutV3JournalWriteResult.SAVED
+        ) {
+            acquired?.let(leaseRegistry::release)
+            session.discardDraft()
+            return LayoutV3EditorHandoffResult.Rejected(
+                LayoutV3EditorHandoffIssue.CHECKPOINT_FAILED,
+            ).also { mutableHandoff.value = it }
+        }
+        lease = acquired
+        draftId = createdDraftId
+        launchMode = LayoutV3EditorLaunchMode.EXISTING_V3
+        savedStateHandle?.set(EXTRA_LAYOUT_V3_DRAFT_ID, createdDraftId)
+        savedStateHandle?.set(EXTRA_LAYOUT_V3_MODE, LayoutV3EditorLaunchMode.EXISTING_V3.name)
+        val ready = LayoutV3EditorHandoffResult.LaunchReady(createdDraftId)
+        mutableState.value = mutableState.value.copy(editor = session.state)
+        mutableHandoff.value = ready
+        return ready
     }
 
     fun selectElement(elementId: String) = publish(session.selectElement(elementId))
@@ -58,6 +127,37 @@ class LayoutV3EditorActivityViewModel internal constructor(
         publish(session.moveElement(elementId, x, y))
     fun resizeElement(elementId: String, width: Int, height: Int) =
         publish(session.resizeElement(elementId, width, height))
+    fun beginGesture(elementId: String): LayoutV3GestureStartResult =
+        session.beginGesture(elementId)
+    fun commitMove(token: LayoutV3GestureCommitToken, x: Int, y: Int): LayoutV3EditResult =
+        session.commitMove(token, x, y).also(::publish)
+    fun commitResize(
+        token: LayoutV3GestureCommitToken,
+        width: Int,
+        height: Int,
+    ): LayoutV3EditResult = session.commitResize(token, width, height).also(::publish)
+    fun cancelGesture(token: LayoutV3GestureCommitToken): LayoutV3EditResult =
+        session.cancelGesture(token).also(::publish)
+
+    fun commitPixelMove(
+        token: LayoutV3GestureCommitToken,
+        fullOverlay: IntRect,
+        previewRect: IntRect,
+    ): LayoutV3EditResult {
+        val canonical = inverseRect(token, fullOverlay, previewRect)
+            ?: return rejectedGestureReadback(token)
+        return commitMove(token, canonical.x, canonical.y)
+    }
+
+    fun commitPixelResize(
+        token: LayoutV3GestureCommitToken,
+        fullOverlay: IntRect,
+        previewRect: IntRect,
+    ): LayoutV3EditResult {
+        val canonical = inverseRect(token, fullOverlay, previewRect)
+            ?: return rejectedGestureReadback(token)
+        return session.commitResolvedRect(token, canonical).also(::publish)
+    }
     fun nudgeElement(elementId: String, deltaX: Int, deltaY: Int) =
         publish(session.nudgeElement(elementId, deltaX, deltaY))
     fun rebaseElement(elementId: String) =
@@ -213,6 +313,32 @@ class LayoutV3EditorActivityViewModel internal constructor(
         )
     }
 
+    private fun inverseRect(
+        token: LayoutV3GestureCommitToken,
+        fullOverlay: IntRect,
+        previewRect: IntRect,
+    ): IntRect? {
+        val draft = session.state.draft ?: return null
+        val element = draft.elements.firstOrNull { it.elementId == token.elementId } ?: return null
+        return runCatching {
+            LayoutV3Geometry.unmapResolvedRect(
+                draft.canvas,
+                element.anchorX,
+                element.anchorY,
+                fullOverlay,
+                previewRect,
+            )
+        }.getOrNull()
+    }
+
+    private fun rejectedGestureReadback(token: LayoutV3GestureCommitToken): LayoutV3EditResult {
+        session.cancelGesture(token)
+        return LayoutV3EditResult.Rejected(
+            LayoutV3EditorIssue.INVALID_RECT,
+            token.elementId,
+        ).also(::publish)
+    }
+
     private fun closeOwner() {
         if (closed) return
         closed = true
@@ -224,5 +350,9 @@ class LayoutV3EditorActivityViewModel internal constructor(
     companion object {
         const val EXTRA_LAYOUT_V3_DRAFT_ID =
             "com.limelight.ligase.extra.LAYOUT_V3_DRAFT_ID"
+        const val EXTRA_LAYOUT_V3_MODE =
+            "com.limelight.ligase.extra.LAYOUT_V3_MODE"
+        const val EXTRA_LAYOUT_V3_DISPLAY_NAME =
+            "com.limelight.ligase.extra.LAYOUT_V3_DISPLAY_NAME"
     }
 }
