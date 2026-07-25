@@ -74,6 +74,24 @@
 
 ## Git、文档与回报
 
+- 每个任务必须按以下状态机主动回报，不得完成后静默进入 idle：
+  `RECEIVED/STARTED`、`AUDIT_READY`（范围与预计时间）、`BLOCKED` 或阶段更新、
+  `SOURCE_FROZEN`（适用时）、`COMMITTED`、`FINAL/STOP`。不适用的状态可以省略，
+  但开始、阻塞、提交和最终状态不得省略。
+- 开始回报必须写明基线 HEAD、worktree/index 状态、精确 allowlist、已排除的 peer
+  WIP、是否占用 Gradle/ADB，以及预计完成时间。超过 30 分钟的任务至少每
+  20–30 分钟或每个实质里程碑回报一次；没有新证据时不得刷屏。
+- 遇到阻塞必须立即回报：精确失败证据、责任 owner、已释放或仍占用的工具窗口、
+  是否需要用户/peer/协调动作，以及解除阻塞后的预计剩余时间。不得只写“等待”。
+- `SOURCE_FROZEN` 必须声明冻结文件范围、最后一次通过的自动门、后续谁可以运行
+  Gradle/ADB，以及冻结后是否仍允许修改；任何后续源码漂移都会使旧门失效。
+- commit/push 完成后，必须在进入 idle 前直接向协调任务发送结构化 final；只通知
+  peer 或写 `PEER_ALREADY_NOTIFIED` 不足以完成协调回报。final 至少包含完整 commit
+  SHA、remote readback、精确文件数/范围、测试分层、未完成真实门、剩余 worktree
+  所有权、Gradle/ADB 状态和下一依赖。
+- 等待审议、授权、用户动作或其他 owner 时，应明确发送
+  `WAITING_<CONDITION>`，写出唯一解除条件，并停止占用 Gradle/ADB。条件到达后必须
+  主动恢复并发送新阶段更新，不能依赖协调任务猜测任务是否仍在运行。
 - 每个任务 final 与 commit handoff 必须声明 `DOC_IMPACT=UPDATED|NONE` 并说明
   理由。用户行为或文案、架构 owner/依赖方向、storage/schema/protocol、
   Activity/lifecycle、权限/安全、构建安装说明或设备验收步骤发生变化时，必须在同一
