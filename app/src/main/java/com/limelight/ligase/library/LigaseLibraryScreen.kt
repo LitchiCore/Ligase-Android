@@ -6,6 +6,13 @@ import com.limelight.ligase.feature.library.domain.LibraryLayoutMode
 import com.limelight.ligase.feature.library.domain.LigaseLibraryAdapter
 import com.limelight.ligase.feature.library.domain.LigaseLibraryItem
 import com.limelight.ligase.feature.library.domain.LigaseLibraryStatus
+import com.limelight.ligase.feature.library.ui.components.LibraryBlockingState
+import com.limelight.ligase.feature.library.ui.components.LibraryEmptyState
+import com.limelight.ligase.feature.library.ui.components.LibraryGamesToolbar
+import com.limelight.ligase.feature.library.ui.components.LibraryHostStatus
+import com.limelight.ligase.feature.library.ui.components.LibraryNoHostSelected
+import com.limelight.ligase.feature.library.ui.components.LibraryPreservedContentBanner
+import com.limelight.ligase.feature.library.ui.components.LibrarySearchField
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -24,14 +31,10 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items as lazyListItems
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridState
@@ -42,14 +45,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -83,7 +82,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.ui.window.Dialog
 import com.limelight.R
 import com.limelight.grid.assets.CachedAppAssetLoader
 import com.limelight.ligase.LigaseSemanticTheme
@@ -260,7 +258,7 @@ fun LigaseLibraryPage(
                 }
             }
             item(span = { GridItemSpan(maxLineSpan) }) {
-                HostStrip(
+                LibraryHostStatus(
                     hosts = hosts,
                     selectedHost = selectedHost,
                     onHostSelected = onHostSelected,
@@ -273,7 +271,7 @@ fun LigaseLibraryPage(
 
             if (selectedHost == null) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
-                    NoHostSelected(onAddHost)
+                    LibraryNoHostSelected(onAddHost)
                 }
             } else {
                 val contentPresentation = libraryContentPresentation(
@@ -288,7 +286,7 @@ fun LigaseLibraryPage(
                     )
                     if (preservedBanner != null) {
                         item(span = { GridItemSpan(maxLineSpan) }) {
-                            PreservedLibraryContentBanner(
+                            LibraryPreservedContentBanner(
                                 banner = preservedBanner,
                                 onRetry = onRetrySync,
                             )
@@ -296,25 +294,13 @@ fun LigaseLibraryPage(
                     }
                     if (manualOrderDraft == null) {
                         item(span = { GridItemSpan(maxLineSpan) }) {
-                            OutlinedTextField(
-                                value = query,
-                                onValueChange = { query = it },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true,
-                                shape = RoundedCornerShape(16.dp),
-                                placeholder = {
-                                    Text(stringResource(R.string.ligase_library_search_hint))
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        painter = painterResource(R.drawable.ic_ligase_search),
-                                        contentDescription = null,
-                                    )
-                                },
+                            LibrarySearchField(
+                                query = query,
+                                onQueryChanged = { query = it },
                             )
                         }
                         item(span = { GridItemSpan(maxLineSpan) }) {
-                            GamesSectionHeader(
+                            LibraryGamesToolbar(
                                 count = visibleItems.size,
                                 sortMode = sortMode,
                                 layoutMode = layoutMode,
@@ -331,7 +317,7 @@ fun LigaseLibraryPage(
                     }
                     if (visibleItems.isEmpty()) {
                         item(span = { GridItemSpan(maxLineSpan) }) {
-                            LibraryMessage(
+                            LibraryEmptyState(
                                 loading = false,
                                 query = query,
                                 onRefresh = if (query.isBlank()) onRetrySync else null,
@@ -377,459 +363,41 @@ fun LigaseLibraryPage(
                     when (status) {
                         LigaseLibraryStatus.INCOMPATIBLE -> {
                             item(span = { GridItemSpan(maxLineSpan) }) {
-                                LibrarySyncMessage(
-                                    title = stringResource(
-                                        R.string.ligase_host_incompatible_title,
-                                    ),
-                                    summary = stringResource(
-                                        R.string.ligase_host_incompatible_summary,
-                                    ),
-                                    retry = onRetrySync,
+                                LibraryBlockingState(
+                                    title = R.string.ligase_host_incompatible_title,
+                                    summary = R.string.ligase_host_incompatible_summary,
+                                    onRetry = onRetrySync,
                                 )
                             }
                         }
                         LigaseLibraryStatus.SYNC_ERROR -> {
                             item(span = { GridItemSpan(maxLineSpan) }) {
-                                LibrarySyncMessage(
-                                    title = stringResource(R.string.ligase_sync_error_title),
-                                    summary = stringResource(R.string.ligase_sync_error_summary),
-                                    retry = onRetrySync,
+                                LibraryBlockingState(
+                                    title = R.string.ligase_sync_error_title,
+                                    summary = R.string.ligase_sync_error_summary,
+                                    onRetry = onRetrySync,
                                 )
                             }
                         }
                         LigaseLibraryStatus.PERMISSION_ERROR -> {
                             item(span = { GridItemSpan(maxLineSpan) }) {
-                                LibrarySyncMessage(
-                                    title = stringResource(
-                                        R.string.ligase_sync_permission_error_title,
-                                    ),
-                                    summary = stringResource(
-                                        R.string.ligase_sync_permission_error_summary,
-                                    ),
-                                    retry = onRetrySync,
+                                LibraryBlockingState(
+                                    title = R.string.ligase_sync_permission_error_title,
+                                    summary = R.string.ligase_sync_permission_error_summary,
+                                    onRetry = onRetrySync,
                                 )
                             }
                         }
                         LigaseLibraryStatus.IDLE,
                         LigaseLibraryStatus.LOADING -> {
                             item(span = { GridItemSpan(maxLineSpan) }) {
-                                LibraryMessage(loading = true, query = query)
+                                LibraryEmptyState(loading = true, query = query)
                             }
                         }
                         LigaseLibraryStatus.READY -> Unit
                     }
                 }
             }
-            }
-        }
-    }
-}
-
-@Composable
-private fun LibrarySyncMessage(
-    title: String,
-    summary: String,
-    retry: (() -> Unit)?,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 64.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Icon(
-            painter = painterResource(R.drawable.ic_ligase_monitor),
-            contentDescription = null,
-            modifier = Modifier.size(52.dp),
-            tint = MaterialTheme.colorScheme.primary,
-        )
-        Spacer(Modifier.height(18.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = summary,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        if (retry != null) {
-            Spacer(Modifier.height(20.dp))
-            androidx.compose.material3.Button(onClick = retry) {
-                Text(stringResource(R.string.ligase_retry))
-            }
-        }
-    }
-}
-
-@Composable
-private fun HostStrip(
-    hosts: List<ComputerDetails>,
-    selectedHost: ComputerDetails?,
-    onHostSelected: (ComputerDetails) -> Unit,
-    onAddHost: () -> Unit,
-    onRemoveHost: (ComputerDetails) -> Unit,
-    connectivity: LibraryConnectivity,
-    onRetry: () -> Unit,
-) {
-    var managingHosts by remember { mutableStateOf(false) }
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Text(
-            text = stringResource(R.string.ligase_current_computer),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(80.dp)
-                .clickable { managingHosts = true },
-            shape = RoundedCornerShape(22.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-            ),
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 18.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_ligase_monitor),
-                    contentDescription = null,
-                    modifier = Modifier.size(32.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-                Spacer(Modifier.width(14.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = selectedHost?.name
-                            ?: stringResource(R.string.ligase_select_computer),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        text = selectedHost?.let {
-                            stringResource(
-                                if (connectivity == LibraryConnectivity.OFFLINE) {
-                                    R.string.ligase_host_offline_explicit
-                                } else {
-                                    hostStatusLabel(it)
-                                },
-                            )
-                        }
-                            ?: stringResource(R.string.ligase_manage_computers),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                if (selectedHost != null && connectivity == LibraryConnectivity.OFFLINE) {
-                    TextButton(onClick = onRetry) {
-                        Text(stringResource(R.string.ligase_retry))
-                    }
-                }
-                Text(
-                    text = stringResource(R.string.ligase_switch_computer),
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-        }
-    }
-
-    if (managingHosts) {
-        Dialog(onDismissRequest = { managingHosts = false }) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .widthIn(max = 560.dp)
-                    .heightIn(max = 680.dp),
-                shape = RoundedCornerShape(28.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = stringResource(R.string.ligase_manage_computers),
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f),
-                        )
-                        IconButton(onClick = { managingHosts = false }) {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_close),
-                                contentDescription = stringResource(android.R.string.cancel),
-                            )
-                        }
-                    }
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f, fill = false),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        lazyListItems(hosts, key = { it.uuid ?: it.name }) { host ->
-                            val selected = host.uuid.equals(
-                                selectedHost?.uuid,
-                                ignoreCase = true,
-                            )
-                            Surface(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        managingHosts = false
-                                        onHostSelected(host)
-                                    },
-                                shape = RoundedCornerShape(18.dp),
-                                color = if (selected) {
-                                    MaterialTheme.colorScheme.primaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.surface
-                                },
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(start = 16.dp, end = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(9.dp)
-                                            .background(hostStatusColor(host), CircleShape),
-                                    )
-                                    Column(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .padding(14.dp),
-                                    ) {
-                                        Text(
-                                            text = host.name,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                            fontWeight = FontWeight.SemiBold,
-                                        )
-                                        Text(
-                                            text = stringResource(hostStatusLabel(host)),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                    }
-                                    IconButton(onClick = { onRemoveHost(host) }) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.ic_delete),
-                                            contentDescription = stringResource(
-                                                R.string.ligase_remove_computer_named,
-                                                host.name,
-                                            ),
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    Spacer(Modifier.height(12.dp))
-                    androidx.compose.material3.Button(
-                        onClick = {
-                            managingHosts = false
-                            onAddHost()
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
-                        shape = RoundedCornerShape(16.dp),
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_add),
-                            contentDescription = null,
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.ligase_add_computer))
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun NoHostSelected(onAddHost: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 72.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Surface(
-            modifier = Modifier.size(88.dp),
-            shape = RoundedCornerShape(28.dp),
-            color = MaterialTheme.colorScheme.primaryContainer,
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_ligase_monitor),
-                contentDescription = null,
-                modifier = Modifier.padding(24.dp),
-                tint = MaterialTheme.colorScheme.primary,
-            )
-        }
-        Spacer(Modifier.height(20.dp))
-        Text(
-            text = stringResource(R.string.ligase_home_empty_title),
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-        )
-        Spacer(Modifier.height(10.dp))
-        Text(
-            text = stringResource(R.string.ligase_library_select_host_hint),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(22.dp))
-        androidx.compose.material3.Button(onClick = onAddHost) {
-            Text(stringResource(R.string.ligase_add_computer))
-        }
-    }
-}
-
-private fun hostStatusLabel(host: ComputerDetails): Int = when {
-    host.state == ComputerDetails.State.UNKNOWN -> R.string.ligase_host_checking
-    host.state == ComputerDetails.State.OFFLINE -> R.string.ligase_host_offline
-    host.pairState != PairingManager.PairState.PAIRED -> R.string.ligase_host_pair_required
-    else -> R.string.ligase_host_online
-}
-
-@Composable
-private fun hostStatusColor(host: ComputerDetails): Color {
-    val colors = LigaseSemanticTheme.colors
-    return when {
-        host.state == ComputerDetails.State.UNKNOWN -> colors.disabled
-        host.state == ComputerDetails.State.OFFLINE -> colors.errorDanger
-        host.pairState != PairingManager.PairState.PAIRED -> colors.warning
-        else -> colors.success
-    }
-}
-
-@Composable
-private fun GamesSectionHeader(
-    count: Int,
-    sortMode: HostSortMode,
-    layoutMode: LibraryLayoutMode,
-    canSortByLastPlayed: Boolean,
-    canManualSort: Boolean,
-    onSortModeChanged: (HostSortMode) -> Unit,
-    onLayoutModeChanged: (LibraryLayoutMode) -> Unit,
-    onManualSort: () -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = stringResource(R.string.ligase_library_games),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                text = stringResource(R.string.ligase_library_visible_count, count),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
-        Box {
-            Surface(
-                modifier = Modifier.clickable { expanded = true },
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                shape = RoundedCornerShape(14.dp),
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 13.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_ligase_sort),
-                        contentDescription = null,
-                        modifier = Modifier.size(19.dp),
-                    )
-                    Spacer(Modifier.width(7.dp))
-                    Text(
-                        text = sortModeLabel(sortMode, canSortByLastPlayed),
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                }
-            }
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-            ) {
-                HostSortMode.entries
-                    .filterNot { it == HostSortMode.MANUAL }
-                    .forEach { mode ->
-                    DropdownMenuItem(
-                        text = { Text(sortModeLabel(mode, canSortByLastPlayed)) },
-                        enabled = mode != HostSortMode.LAST_PLAYED_NEWEST ||
-                            canSortByLastPlayed,
-                        onClick = {
-                            expanded = false
-                            onSortModeChanged(mode)
-                        },
-                    )
-                }
-                HorizontalDivider()
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.ligase_manual_sort)) },
-                    enabled = canManualSort,
-                    onClick = {
-                        expanded = false
-                        onManualSort()
-                    },
-                )
-            }
-        }
-        Spacer(Modifier.width(8.dp))
-        Surface(
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            shape = RoundedCornerShape(14.dp),
-        ) {
-            IconButton(
-                onClick = {
-                    onLayoutModeChanged(
-                        if (layoutMode == LibraryLayoutMode.LIST) {
-                            LibraryLayoutMode.POSTER
-                        } else {
-                            LibraryLayoutMode.LIST
-                        },
-                    )
-                },
-            ) {
-                Icon(
-                    painter = painterResource(
-                        if (layoutMode == LibraryLayoutMode.LIST) {
-                            R.drawable.ic_ligase_grid
-                        } else {
-                            R.drawable.ic_ligase_list
-                        },
-                    ),
-                    contentDescription = stringResource(
-                        if (layoutMode == LibraryLayoutMode.LIST) {
-                            R.string.ligase_library_switch_to_poster
-                        } else {
-                            R.string.ligase_library_switch_to_list
-                        },
-                    ),
-                )
             }
         }
     }
@@ -1040,52 +608,6 @@ private fun manualReorderModifier(
                 }
             },
         )
-}
-
-@Composable
-private fun LibraryMessage(
-    loading: Boolean,
-    query: String,
-    onRefresh: (() -> Unit)? = null,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 52.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        if (loading) {
-            CircularProgressIndicator(modifier = Modifier.size(32.dp))
-            Spacer(Modifier.height(14.dp))
-        }
-        if (!loading && query.isBlank()) {
-            Text(
-                text = stringResource(R.string.ligase_library_empty),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.ligase_library_empty_summary),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            if (onRefresh != null) {
-                Spacer(Modifier.height(20.dp))
-                androidx.compose.material3.Button(onClick = onRefresh) {
-                    Text(stringResource(R.string.ligase_refresh))
-                }
-            }
-        } else {
-            Text(
-                text = if (loading) {
-                    stringResource(R.string.ligase_library_loading)
-                } else {
-                    stringResource(R.string.ligase_library_no_results)
-                },
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
 }
 
 @Composable
@@ -1447,86 +969,4 @@ private fun kindLabel(kind: HostLibraryKind): String = when (kind) {
         stringResource(R.string.ligase_library_kind_virtual_desktop)
     HostLibraryKind.STEAM -> stringResource(R.string.ligase_library_kind_steam)
     HostLibraryKind.EXECUTABLE -> stringResource(R.string.ligase_library_kind_executable)
-}
-
-@Composable
-private fun PreservedLibraryContentBanner(
-    banner: PreservedLibraryBanner,
-    onRetry: () -> Unit,
-) {
-    Surface(
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        shape = RoundedCornerShape(16.dp),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 14.dp, top = 8.dp, end = 8.dp, bottom = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (
-                banner == PreservedLibraryBanner.CHECKING ||
-                banner == PreservedLibraryBanner.LOADING
-            ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    strokeWidth = 2.dp,
-                )
-            }
-            Text(
-                text = stringResource(
-                    when (banner) {
-                        PreservedLibraryBanner.CHECKING ->
-                            R.string.ligase_library_preserving_content_checking
-                        PreservedLibraryBanner.OFFLINE ->
-                            R.string.ligase_library_preserving_content_offline
-                        PreservedLibraryBanner.LOADING ->
-                            R.string.ligase_library_preserving_content_loading
-                        PreservedLibraryBanner.ERROR ->
-                            R.string.ligase_library_preserving_content_error
-                    },
-                ),
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(
-                        start = if (
-                            banner == PreservedLibraryBanner.CHECKING ||
-                            banner == PreservedLibraryBanner.LOADING
-                        ) {
-                            12.dp
-                        } else {
-                            0.dp
-                        },
-                    ),
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-            )
-            if (
-                banner == PreservedLibraryBanner.ERROR ||
-                banner == PreservedLibraryBanner.OFFLINE
-            ) {
-                TextButton(onClick = onRetry) {
-                    Text(stringResource(R.string.ligase_retry))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun sortModeLabel(
-    mode: HostSortMode,
-    canSortByLastPlayed: Boolean,
-): String = when (mode) {
-    HostSortMode.NAME_ASCENDING -> stringResource(R.string.ligase_sort_name_ascending)
-    HostSortMode.NAME_DESCENDING -> stringResource(R.string.ligase_sort_name_descending)
-    HostSortMode.ADDED_NEWEST -> stringResource(R.string.ligase_sort_added_newest)
-    HostSortMode.ADDED_OLDEST -> stringResource(R.string.ligase_sort_added_oldest)
-    HostSortMode.LAST_PLAYED_NEWEST -> stringResource(
-        if (canSortByLastPlayed) {
-            R.string.ligase_sort_last_played_newest
-        } else {
-            R.string.ligase_sort_last_played_unavailable
-        },
-    )
-    HostSortMode.MANUAL -> stringResource(R.string.ligase_manual_sort)
 }
