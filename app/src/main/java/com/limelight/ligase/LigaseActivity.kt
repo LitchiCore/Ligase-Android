@@ -41,6 +41,8 @@ import com.limelight.ligase.feature.host.application.HostClickAction
 import com.limelight.ligase.feature.host.application.HostEndpointCoordinator
 import com.limelight.ligase.feature.host.application.HostWakeResult
 import com.limelight.ligase.feature.host.infrastructure.LegacyComputerRegistryTransport
+import com.limelight.ligase.feature.input.application.InputSelectionCoordinator
+import com.limelight.ligase.feature.input.application.InputSelectionState
 import com.limelight.ligase.feature.library.application.LibraryHostCoordinator
 import com.limelight.ligase.feature.library.application.LibraryStreamingSettingsCoordinator
 import com.limelight.ligase.feature.library.application.LibraryStreamingSettingsResult
@@ -77,10 +79,6 @@ import com.limelight.ligase.library.ManualLibrarySortResult
 import com.limelight.ligase.endpoint.LigaseAddHostDialog
 import com.limelight.ligase.endpoint.LigaseEndpoint
 import com.limelight.ligase.input.LigaseInputCategory
-import com.limelight.ligase.input.LigaseInputDevice
-import com.limelight.ligase.input.LigaseInputDeviceRepository
-import com.limelight.ligase.input.LigaseTouchLayout
-import com.limelight.ligase.input.LigaseTouchLayoutRepository
 import com.limelight.ligase.input.LigaseTouchOverlayMode
 import com.limelight.ligase.pairing.AttendedPairingViewModel
 import com.limelight.ligase.pairing.LigaseAccessUiPolicy
@@ -95,15 +93,7 @@ import java.io.IOException
 
 class LigaseActivity : AppCompatActivity() {
     private var currentPage by mutableStateOf(LigasePage.HOME)
-    private var onboarding by mutableStateOf(false)
-    private var selectedInput by mutableStateOf<InputDeviceMode?>(null)
-    private val inputDevices = mutableStateListOf<LigaseInputDevice>()
-    private val touchLayouts = mutableStateListOf<LigaseTouchLayout>()
-    private var selectedGamepadKey by mutableStateOf<String?>(null)
-    private var selectedKeyboardKey by mutableStateOf<String?>(null)
-    private var selectedMouseKey by mutableStateOf<String?>(null)
-    private var selectedTouchLayoutId by mutableStateOf<String?>(null)
-    private var touchOverlayMode by mutableStateOf(LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD)
+    private var inputSelectionState by mutableStateOf<InputSelectionState?>(null)
     private var themeMode by mutableStateOf(LigaseThemeMode.SYSTEM)
     private var languageMode by mutableStateOf(LigaseLanguageMode.SYSTEM)
     private val hosts = mutableStateListOf<ComputerDetails>()
@@ -117,8 +107,7 @@ class LigaseActivity : AppCompatActivity() {
     private var pendingLibraryHostUuid: String? = null
     private val syncRepository = LigaseSyncRepository()
     private val manualSortAction = ManualLibrarySortAction()
-    private lateinit var inputDeviceRepository: LigaseInputDeviceRepository
-    private lateinit var touchLayoutRepository: LigaseTouchLayoutRepository
+    private lateinit var inputSelectionCoordinator: InputSelectionCoordinator
     private lateinit var pairingViewModel: AttendedPairingViewModel
     private lateinit var hostPairingCoordinator: HostPairingCoordinator
     private lateinit var hostEndpointCoordinator: HostEndpointCoordinator
@@ -175,33 +164,16 @@ class LigaseActivity : AppCompatActivity() {
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false)
         localHdrCapabilities = hdrCapabilityProbe.probe()
 
-        onboarding = !LigasePreferences.hasInputDeviceMode(this)
-        selectedInput = if (onboarding) null else LigasePreferences.getInputDeviceMode(this)
-        selectedGamepadKey = LigasePreferences.getSelectedInputDevice(
-            this,
-            LigaseInputCategory.GAMEPAD,
-        )
-        selectedKeyboardKey = LigasePreferences.getSelectedInputDevice(
-            this,
-            LigaseInputCategory.KEYBOARD,
-        )
-        selectedMouseKey = LigasePreferences.getSelectedInputDevice(
-            this,
-            LigaseInputCategory.MOUSE,
-        )
-        touchOverlayMode = LigasePreferences.getTouchOverlayMode(this)
-        inputDeviceRepository = LigaseInputDeviceRepository(this) { devices ->
-            inputDevices.clear()
-            inputDevices.addAll(devices)
+        inputSelectionCoordinator = InputSelectionCoordinator(this) { state ->
+            inputSelectionState = state
         }
-        touchLayoutRepository = LigaseTouchLayoutRepository(this)
-        reloadTouchLayouts()
+        val initialInputState = checkNotNull(inputSelectionState)
         themeMode = LigasePreferences.getThemeMode(this)
         languageMode = LigasePreferences.getLanguageMode(this)
         libraryLayoutMode = LigasePreferences.getLibraryLayoutMode(this)
         currentPage = savedInstanceState?.getString(STATE_PAGE)
             ?.let { saved -> LigasePage.entries.firstOrNull { it.name == saved } }
-            ?: if (onboarding) LigasePage.INPUT else LigasePage.HOME
+            ?: if (initialInputState.onboarding) LigasePage.INPUT else LigasePage.HOME
         pendingLibraryHostUuid = savedInstanceState?.getString(STATE_LIBRARY_HOST_UUID)
         hostEndpointCoordinator = HostEndpointCoordinator(
             transport = LegacyComputerRegistryTransport(this) { managerBinder },
@@ -279,16 +251,17 @@ class LigaseActivity : AppCompatActivity() {
             }
             LigaseRoot(
                 themeMode = themeMode,
-                onboarding = onboarding,
+                onboarding = checkNotNull(inputSelectionState).onboarding,
                 currentPage = currentPage,
-                selectedInput = selectedInput,
-                inputDevices = inputDevices,
-                selectedGamepadKey = selectedGamepadKey,
-                selectedKeyboardKey = selectedKeyboardKey,
-                selectedMouseKey = selectedMouseKey,
-                touchLayouts = touchLayouts,
-                selectedTouchLayoutId = selectedTouchLayoutId,
-                touchOverlayMode = touchOverlayMode,
+                selectedInput = checkNotNull(inputSelectionState).selectedMode,
+                inputDevices = checkNotNull(inputSelectionState).devices,
+                selectedGamepadKey = checkNotNull(inputSelectionState).selectedGamepadKey,
+                selectedKeyboardKey = checkNotNull(inputSelectionState).selectedKeyboardKey,
+                selectedMouseKey = checkNotNull(inputSelectionState).selectedMouseKey,
+                touchLayouts = checkNotNull(inputSelectionState).touchLayouts,
+                selectedTouchLayoutId =
+                    checkNotNull(inputSelectionState).selectedTouchLayoutId,
+                touchOverlayMode = checkNotNull(inputSelectionState).overlayMode,
                 languageMode = languageMode,
                 hosts = hosts,
                 libraryHost = libraryHost,
@@ -350,12 +323,11 @@ class LigaseActivity : AppCompatActivity() {
                 onManualOrderSubmit = ::submitManualLibraryOrder,
                 onLayoutCatalogRefresh = {
                     layoutWorkspaceViewModel.refreshCatalog()
-                    reloadTouchLayouts()
+                    inputSelectionCoordinator.refreshLayouts()
                 },
                 onLayoutSelect = { layoutId ->
                     if (layoutWorkspaceViewModel.selectGlobal(layoutId)) {
-                        selectedTouchLayoutId = layoutId
-                        reloadTouchLayouts()
+                        inputSelectionCoordinator.refreshLayouts()
                     }
                 },
                 onLayoutCreateCopy = { layoutWorkspaceViewModel.createEditableCopy(it) },
@@ -371,7 +343,7 @@ class LigaseActivity : AppCompatActivity() {
                 onLayoutAdd = { layoutWorkspaceViewModel.addElement(it) },
                 onLayoutSave = {
                     if (layoutWorkspaceViewModel.saveDraft() != null) {
-                        reloadTouchLayouts()
+                        inputSelectionCoordinator.refreshLayouts()
                     }
                 },
                 onLayoutDiscard = layoutWorkspaceViewModel::discardDraft,
@@ -390,46 +362,25 @@ class LigaseActivity : AppCompatActivity() {
     }
 
     private fun confirmInput() {
-        val mode = selectedInput ?: return
-        LigasePreferences.setInputDeviceMode(this, mode)
-        onboarding = false
-        currentPage = LigasePage.HOME
+        if (inputSelectionCoordinator.confirmSelection()) currentPage = LigasePage.HOME
     }
 
     private fun selectInput(mode: InputDeviceMode) {
-        selectedInput = mode
-        if (!onboarding) {
-            LigasePreferences.setInputDeviceMode(this, mode)
-        }
+        inputSelectionCoordinator.selectMode(mode)
     }
 
     private fun selectInputDevice(category: LigaseInputCategory, stableKey: String) {
-        LigasePreferences.setSelectedInputDevice(this, category, stableKey)
-        when (category) {
-            LigaseInputCategory.GAMEPAD -> selectedGamepadKey = stableKey
-            LigaseInputCategory.KEYBOARD -> selectedKeyboardKey = stableKey
-            LigaseInputCategory.MOUSE -> selectedMouseKey = stableKey
-        }
-    }
-
-    private fun reloadTouchLayouts() {
-        val available = touchLayoutRepository.layouts()
-        touchLayouts.clear()
-        touchLayouts.addAll(available)
-        selectedTouchLayoutId = touchLayoutRepository.initializeSelection(available)
+        inputSelectionCoordinator.selectDevice(category, stableKey)
     }
 
     private fun selectTouchLayout(layoutId: String) {
-        if (touchLayoutRepository.select(layoutId, touchLayouts)) {
-            selectedTouchLayoutId = layoutId
-        } else {
+        if (!inputSelectionCoordinator.selectTouchLayout(layoutId)) {
             toast(R.string.ligase_touch_layout_missing_short)
         }
     }
 
     private fun selectTouchOverlayMode(mode: LigaseTouchOverlayMode) {
-        touchOverlayMode = mode
-        LigasePreferences.setTouchOverlayMode(this, mode)
+        inputSelectionCoordinator.selectOverlayMode(mode)
     }
 
     private fun selectTheme(mode: LigaseThemeMode) {
@@ -462,7 +413,9 @@ class LigaseActivity : AppCompatActivity() {
     private fun setupBackBehavior() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (!onboarding && currentPage != LigasePage.HOME) {
+                if (!checkNotNull(inputSelectionState).onboarding &&
+                    currentPage != LigasePage.HOME
+                ) {
                     currentPage = LigasePage.HOME
                     startAppListUpdates()
                     selectDefaultHostIfNeeded()
@@ -825,20 +778,22 @@ class LigaseActivity : AppCompatActivity() {
     private fun launchLibraryItem(item: LigaseLibraryItem) {
         val host = libraryHost ?: return
         val snapshot = librarySessionViewModel.state.content?.sync ?: return
-        val inputMode = selectedInput ?: LigasePreferences.getInputDeviceMode(this)
+        val inputState = checkNotNull(inputSelectionState)
+        val inputMode = inputSelectionCoordinator.effectiveMode()
         val result = streamLaunchCoordinator.plan(
             StreamLaunchRequest(
                 item = item,
                 snapshot = snapshot,
                 connectivity = librarySessionViewModel.state.connectivity,
                 inputMode = inputMode,
-                selectedGamepadKey = selectedGamepadKey,
-                selectedKeyboardKey = selectedKeyboardKey,
-                selectedMouseKey = selectedMouseKey,
-                connectedInputDevices = inputDevices.toList(),
-                selectedTouchLayoutId = selectedTouchLayoutId,
-                availableTouchLayoutIds = touchLayouts.mapTo(mutableSetOf()) { it.id },
-                overlayMode = touchOverlayMode,
+                selectedGamepadKey = inputState.selectedGamepadKey,
+                selectedKeyboardKey = inputState.selectedKeyboardKey,
+                selectedMouseKey = inputState.selectedMouseKey,
+                connectedInputDevices = inputState.devices,
+                selectedTouchLayoutId = inputState.selectedTouchLayoutId,
+                availableTouchLayoutIds =
+                    inputState.touchLayouts.mapTo(mutableSetOf()) { it.id },
+                overlayMode = inputState.overlayMode,
                 preferVirtualDisplay =
                     PreferenceConfiguration.readPreferences(this).useVirtualDisplay,
             ),
@@ -1087,8 +1042,8 @@ class LigaseActivity : AppCompatActivity() {
         super.onResume()
         foreground = true
         refreshLocalHdrCapabilities()
-        reloadTouchLayouts()
-        inputDeviceRepository.start()
+        inputSelectionCoordinator.refreshLayouts()
+        inputSelectionCoordinator.start()
         hostEndpointCoordinator.onForeground(::handleHostUpdate)
         startAppListUpdates()
         UiHelper.showDecoderCrashDialog(this)
@@ -1103,15 +1058,15 @@ class LigaseActivity : AppCompatActivity() {
 
     override fun onPause() {
         foreground = false
-        inputDeviceRepository.stop()
+        inputSelectionCoordinator.stop()
         stopAppListUpdates()
         hostEndpointCoordinator.onBackground()
         super.onPause()
     }
 
     override fun onDestroy() {
-        if (::inputDeviceRepository.isInitialized) {
-            inputDeviceRepository.stop()
+        if (::inputSelectionCoordinator.isInitialized) {
+            inputSelectionCoordinator.stop()
         }
         if (::hostEndpointCoordinator.isInitialized) {
             hostEndpointCoordinator.close()
