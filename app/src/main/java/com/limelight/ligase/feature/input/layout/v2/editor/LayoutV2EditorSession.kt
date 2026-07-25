@@ -33,6 +33,7 @@ class LayoutV2EditorSession(
     private val generations: LayoutV2GenerationRepository,
     private val registerCommitted: (LayoutCatalogV2RegisteredRecord) -> Boolean,
     private val uuid: () -> String = { UUID.randomUUID().toString().lowercase() },
+    private val onStateChanged: (LayoutV2EditorState) -> Unit = {},
 ) : AutoCloseable {
     var state: LayoutV2EditorState = LayoutV2EditorState(
         recoverableDrafts = journal.summaries(),
@@ -95,14 +96,14 @@ class LayoutV2EditorSession(
 
     fun discardRecoverableDraft(draftId: String): Boolean {
         val discarded = journal.discard(draftId)
-        state = state.copy(recoverableDrafts = journal.summaries())
+        publish(state.copy(recoverableDrafts = journal.summaries()))
         return discarded
     }
 
     fun selectElement(elementId: String): LayoutV2EditResult {
         val element = selectedVariant()?.elements?.firstOrNull { it.elementId == elementId }
             ?: return reject(LayoutV2EditorIssue.UNKNOWN_ELEMENT, elementId)
-        state = state.copy(selectedElementId = element.elementId, issue = null)
+        publish(state.copy(selectedElementId = element.elementId, issue = null))
         return LayoutV2EditResult.Applied
     }
 
@@ -160,15 +161,15 @@ class LayoutV2EditorSession(
         journalWrite?.cancel(false)
         val active = document ?: return LayoutV2JournalWriteResult.INVALID
         val identity = state.draft?.identity ?: return LayoutV2JournalWriteResult.INVALID
-        state = state.copy(recoveryProtection = LayoutV2RecoveryProtection.PENDING)
+        publish(state.copy(recoveryProtection = LayoutV2RecoveryProtection.PENDING))
         val raw = draftRaw(active) ?: return journalFailure()
         return when (val result = journal.write(identity, raw)) {
             LayoutV2JournalWriteResult.SAVED -> {
-                state = state.copy(
+                publish(state.copy(
                     recoveryProtection = LayoutV2RecoveryProtection.SAVED,
                     recoverableDrafts = journal.summaries(),
                     issue = null,
-                )
+                ))
                 result
             }
             else -> {
@@ -182,10 +183,32 @@ class LayoutV2EditorSession(
         if (state.dirty) flushJournal()
     }
 
+    fun validateDraft(): Boolean {
+        val active = document ?: return false
+        val ready = catalogRaw(active) != null
+        publish(
+            state.copy(
+                candidateReady = ready,
+                issue = if (ready) null else LayoutV2EditorIssue.VALIDATION_FAILED,
+            ),
+        )
+        return ready
+    }
+
+    fun leaveEditor() {
+        if (state.dirty) flushJournal()
+        publish(
+            state.copy(
+                selectedElementId = null,
+                issue = null,
+            ),
+        )
+    }
+
     fun saveDraft(): LayoutV2SaveResult {
         val active = document ?: return saveRejected(LayoutV2EditorIssue.NO_ACTIVE_DRAFT)
         val identity = state.draft?.identity ?: return saveRejected(LayoutV2EditorIssue.NO_ACTIVE_DRAFT)
-        state = state.copy(phase = LayoutV2EditorPhase.SAVING, saving = true, issue = null)
+        publish(state.copy(phase = LayoutV2EditorPhase.SAVING, saving = true, issue = null))
         val raw = catalogRaw(active) ?: return saveRejected(LayoutV2EditorIssue.VALIDATION_FAILED)
         val descriptor = descriptor(active)
         val result = generations.commit(descriptor, raw) {
@@ -203,7 +226,7 @@ class LayoutV2EditorSession(
         if (!journal.discard(identity.layoutId)) {
             return saveRejected(LayoutV2EditorIssue.JOURNAL_WRITE_FAILED)
         }
-        state = state.copy(
+        publish(state.copy(
             phase = LayoutV2EditorPhase.SAVED,
             dirty = false,
             saving = false,
@@ -211,7 +234,7 @@ class LayoutV2EditorSession(
             candidateReady = true,
             recoveryProtection = LayoutV2RecoveryProtection.NOT_REQUIRED,
             recoverableDrafts = journal.summaries(),
-        )
+        ))
         return LayoutV2SaveResult.Saved(identity.layoutId, identity.revision, identity.variantId)
     }
 
@@ -226,7 +249,7 @@ class LayoutV2EditorSession(
         val discarded = draftId == null || journal.discard(draftId)
         document = null
         candidateHash = null
-        state = LayoutV2EditorState(recoverableDrafts = journal.summaries())
+        publish(LayoutV2EditorState(recoverableDrafts = journal.summaries()))
         return discarded
     }
 
@@ -280,14 +303,14 @@ class LayoutV2EditorSession(
     ): LayoutV2EditResult {
         document = value
         candidateHash = draftRaw(value)?.let { TouchLayoutV2Codec.decodeDraft(it).contentHash }
-        state = LayoutV2EditorState(
+        publish(LayoutV2EditorState(
             phase = LayoutV2EditorPhase.EDITING,
             draft = value.toEditorDraft(identity),
             dirty = dirty,
             candidateReady = catalogRaw(value) != null,
             recoveryProtection = LayoutV2RecoveryProtection.PENDING,
             recoverableDrafts = journal.summaries(),
-        )
+        ))
         scheduleJournal()
         return LayoutV2EditResult.Applied
     }
@@ -318,14 +341,14 @@ class LayoutV2EditorSession(
         if (draftRaw(candidate) == null) return reject(LayoutV2EditorIssue.VALIDATION_FAILED)
         document = candidate
         candidateHash = draftRaw(candidate)?.let { TouchLayoutV2Codec.decodeDraft(it).contentHash }
-        state = state.copy(
+        publish(state.copy(
             phase = LayoutV2EditorPhase.EDITING,
             draft = candidate.toEditorDraft(identity),
             dirty = true,
             issue = null,
             candidateReady = catalogRaw(candidate) != null,
             recoveryProtection = LayoutV2RecoveryProtection.PENDING,
-        )
+        ))
         scheduleJournal()
         return LayoutV2EditResult.Applied
     }
@@ -378,26 +401,30 @@ class LayoutV2EditorSession(
         )
     }
     private fun reject(issue: LayoutV2EditorIssue, elementId: String? = null): LayoutV2EditResult {
-        state = state.copy(issue = issue)
+        publish(state.copy(issue = issue))
         return LayoutV2EditResult.Rejected(issue, elementId)
     }
     private fun journalFailure(): LayoutV2JournalWriteResult {
-        state = state.copy(
+        publish(state.copy(
             recoveryProtection = LayoutV2RecoveryProtection.NOT_SAVED,
             issue = LayoutV2EditorIssue.JOURNAL_WRITE_FAILED,
-        )
+        ))
         return LayoutV2JournalWriteResult.WRITE_FAILED
     }
     private fun saveRejected(issue: LayoutV2EditorIssue): LayoutV2SaveResult {
-        state = state.copy(
+        publish(state.copy(
             phase = LayoutV2EditorPhase.FAILED,
             saving = false,
             issue = issue,
-        )
+        ))
         return LayoutV2SaveResult.Rejected(issue)
     }
     private fun canonicalUuid(): String? = uuid().lowercase().takeIf {
         LayoutContractV1Validator.normalizeUuid(it) == it
+    }
+    private fun publish(next: LayoutV2EditorState) {
+        state = next
+        onStateChanged(next)
     }
 
     private companion object {

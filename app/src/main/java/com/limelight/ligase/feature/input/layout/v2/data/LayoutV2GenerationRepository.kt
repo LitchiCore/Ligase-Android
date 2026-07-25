@@ -96,6 +96,27 @@ class LayoutV2GenerationRepository internal constructor(
 
     fun read(layoutId: String, revision: Long): LayoutV2CommittedGeneration? {
         val file = target(layoutId, revision) ?: return null
+        return readFile(file)?.takeIf {
+            it.descriptor.layoutId == layoutId && it.descriptor.revision == revision
+        }
+    }
+
+    fun listCommitted(): List<LayoutV2CommittedGeneration> {
+        if (!directory.isDirectory) return emptyList()
+        return directory.listFiles()
+            .orEmpty()
+            .filter { it.isFile && it.name.endsWith(SUFFIX) }
+            .mapNotNull(::readFile)
+            .distinctBy { it.descriptor.layoutId to it.descriptor.revision }
+            .sortedWith(
+                compareBy<LayoutV2CommittedGeneration>(
+                    { it.descriptor.layoutId },
+                    { it.descriptor.revision },
+                ),
+            )
+    }
+
+    private fun readFile(file: File): LayoutV2CommittedGeneration? {
         val raw = readBounded(file) ?: return null
         return runCatching {
             val root = StrictJson.parse(raw) as StrictJsonValue.ObjectValue
@@ -177,7 +198,7 @@ class LayoutV2GenerationRepository internal constructor(
             LayoutContractV1Validator.normalizeUuid(layoutId) != layoutId ||
             !LayoutContractV1Validator.isValidRevision(revision)
         ) return null
-        val file = File(directory, "$layoutId-$revision.generation.json")
+        val file = File(directory, "$layoutId-$revision$SUFFIX")
         return file.takeIf { it.parentFile?.canonicalFile == directory.canonicalFile }
     }
     private fun readBounded(file: File): ByteArray? =
@@ -217,6 +238,7 @@ class LayoutV2GenerationRepository internal constructor(
     private companion object {
         const val FORMAT = "ligase-touch-layout-generation"
         const val DIRECTORY = "ligase-touch-layout-v2-generations"
+        const val SUFFIX = ".generation.json"
         const val MAX_BYTES = 2_097_152
     }
 }

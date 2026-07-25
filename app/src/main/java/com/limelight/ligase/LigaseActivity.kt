@@ -17,6 +17,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -37,6 +38,8 @@ import com.limelight.ligase.feature.host.infrastructure.LegacyComputerRegistryTr
 import com.limelight.ligase.feature.input.application.InputSelectionCoordinator
 import com.limelight.ligase.feature.input.application.InputSelectionState
 import com.limelight.ligase.feature.input.layout.v2.application.LayoutCatalogV2Catalog
+import com.limelight.ligase.feature.input.layout.v2.application.LayoutV2CatalogRegistrationAttachment
+import com.limelight.ligase.feature.input.layout.v2.application.LayoutV2EditorWorkspaceViewModel
 import com.limelight.ligase.feature.input.layout.v2.application.LayoutCatalogV2SourceRegistry
 import com.limelight.ligase.feature.input.layout.v2.data.LayoutCatalogV2LocalRepository
 import com.limelight.ligase.feature.input.layout.v2.data.LayoutCatalogV2PackagedSource
@@ -130,6 +133,9 @@ class LigaseActivity : AppCompatActivity() {
     private lateinit var layoutWorkspaceViewModel: LayoutWorkspaceViewModel
     private lateinit var layoutCatalogV2Catalog: LayoutCatalogV2Catalog
     private lateinit var layoutCatalogV2SourceRegistry: LayoutCatalogV2SourceRegistry
+    private lateinit var layoutV2EditorWorkspaceViewModel: LayoutV2EditorWorkspaceViewModel
+    private var layoutV2CatalogRegistrationAttachment:
+        LayoutV2CatalogRegistrationAttachment? = null
     private var layoutCatalogV2State by mutableStateOf(LayoutCatalogV2UiState())
 
     private var managerBinder: ComputerManagerService.ComputerManagerBinder? = null
@@ -288,10 +294,18 @@ class LigaseActivity : AppCompatActivity() {
             layoutCatalogV2Catalog,
             LayoutCatalogV2PackagedSource(this),
         ) { state -> layoutCatalogV2State = state }
-        layoutCatalogV2SourceRegistry.refresh()
+        layoutV2EditorWorkspaceViewModel =
+            ViewModelProvider(this)[LayoutV2EditorWorkspaceViewModel::class.java]
+        layoutV2CatalogRegistrationAttachment =
+            layoutV2EditorWorkspaceViewModel.attachCatalogRegistration { records ->
+                layoutCatalogV2SourceRegistry.refresh(registeredRecords = records)
+                true
+            }
 
         setContent {
             val libraryState = librarySessionViewModel.state
+            val layoutV2EditorWorkspaceState by
+                layoutV2EditorWorkspaceViewModel.state.collectAsState()
             LaunchedEffect(pairingViewModel.state) {
                 if (pairingViewModel.state == com.limelight.ligase.pairing.AttendedPairingUiState.Completed) {
                     pairingViewModel.targetHostUuid
@@ -355,6 +369,7 @@ class LigaseActivity : AppCompatActivity() {
                 layoutCatalogState = layoutWorkspaceViewModel.catalogState,
                 layoutCatalogV2State = layoutCatalogV2State,
                 layoutEditorState = layoutWorkspaceViewModel.editorState,
+                layoutV2EditorWorkspaceState = layoutV2EditorWorkspaceState,
                 pairingState = pairingViewModel.state,
                 onPageSelected = ::selectPage,
                 onInputSelected = ::selectInput,
@@ -381,7 +396,7 @@ class LigaseActivity : AppCompatActivity() {
                     inputSelectionCoordinator.refreshLayouts()
                 },
                 onLayoutCatalogV2Refresh = {
-                    layoutCatalogV2SourceRegistry.refresh()
+                    layoutV2EditorWorkspaceViewModel.refreshCatalog()
                 },
                 onLayoutVariantPreferred = { layoutId, revision, variantId ->
                     layoutCatalogV2SourceRegistry.selectPreferredVariant(
@@ -415,6 +430,25 @@ class LigaseActivity : AppCompatActivity() {
                     }
                 },
                 onLayoutDiscard = layoutWorkspaceViewModel::discardDraft,
+                onLayoutV2CreateBlank = layoutV2EditorWorkspaceViewModel::createBlank,
+                onLayoutV2CreateFromPackaged =
+                    layoutV2EditorWorkspaceViewModel::createFromPackaged,
+                onLayoutV2CreateFromLocal = layoutV2EditorWorkspaceViewModel::createFromLocal,
+                onLayoutV2ResumeRecovery = layoutV2EditorWorkspaceViewModel::resumeRecovery,
+                onLayoutV2DiscardRecovery = layoutV2EditorWorkspaceViewModel::discardRecovery,
+                onLayoutV2SelectElement = layoutV2EditorWorkspaceViewModel::selectElement,
+                onLayoutV2MoveElement = layoutV2EditorWorkspaceViewModel::moveElement,
+                onLayoutV2ResizeElement = layoutV2EditorWorkspaceViewModel::resizeElement,
+                onLayoutV2SetAnchors = layoutV2EditorWorkspaceViewModel::setAnchors,
+                onLayoutV2SetZOrder = layoutV2EditorWorkspaceViewModel::setZOrder,
+                onLayoutV2DeleteElement = layoutV2EditorWorkspaceViewModel::deleteElement,
+                onLayoutV2UpdateProperties =
+                    layoutV2EditorWorkspaceViewModel::updateProperties,
+                onLayoutV2AddElement = layoutV2EditorWorkspaceViewModel::addElement,
+                onLayoutV2Validate = layoutV2EditorWorkspaceViewModel::validate,
+                onLayoutV2Save = layoutV2EditorWorkspaceViewModel::save,
+                onLayoutV2Discard = layoutV2EditorWorkspaceViewModel::discard,
+                onLayoutV2Leave = layoutV2EditorWorkspaceViewModel::leave,
                 onGlobalResolutionClick = ::showGlobalResolutionSettings,
                 onPairingCancel = pairingViewModel::cancel,
                 onPairingDismiss = pairingViewModel::dismissStopped,
@@ -1062,6 +1096,13 @@ class LigaseActivity : AppCompatActivity() {
         super.onPause()
     }
 
+    override fun onStop() {
+        if (::layoutV2EditorWorkspaceViewModel.isInitialized) {
+            layoutV2EditorWorkspaceViewModel.onStop()
+        }
+        super.onStop()
+    }
+
     override fun onDestroy() {
         if (::inputSelectionCoordinator.isInitialized) {
             inputSelectionCoordinator.stop()
@@ -1074,6 +1115,12 @@ class LigaseActivity : AppCompatActivity() {
         }
         if (::layoutCatalogV2SourceRegistry.isInitialized) {
             layoutCatalogV2SourceRegistry.close()
+        }
+        if (::layoutV2EditorWorkspaceViewModel.isInitialized) {
+            layoutV2CatalogRegistrationAttachment?.let(
+                layoutV2EditorWorkspaceViewModel::detachCatalogRegistration,
+            )
+            layoutV2CatalogRegistrationAttachment = null
         }
         stopAppListUpdates()
         disposeLibraryAssets()

@@ -55,19 +55,22 @@ object TouchLayoutV2Encoder {
         return StrictJsonValue.ObjectValue(fields)
     }
 
-    private fun element(value: TouchLayoutV2Element) = obj(
-        "elementId" to str(value.elementId),
-        "kind" to str(kind(value.kind)),
-        "rect" to rect(value.rect),
-        "horizontalAnchor" to str(value.horizontalAnchor.name.lowercase()),
-        "verticalAnchor" to str(value.verticalAnchor.name.lowercase()),
-        "zOrder" to int(value.zOrder),
-        "enabled" to bool(value.enabled),
-        "hidden" to bool(value.hidden),
-        "opacityPermille" to int(value.opacityPermille),
-        "payload" to payload(value.payload),
-        "sourceReference" to nullable(value.sourceReference),
-    )
+    private fun element(value: TouchLayoutV2Element): StrictJsonValue {
+        val fields = linkedMapOf<String, StrictJsonValue>(
+            "elementId" to str(value.elementId),
+            "kind" to str(kind(value.kind)),
+            "rect" to rect(value.rect),
+            "horizontalAnchor" to str(value.horizontalAnchor.name.lowercase()),
+            "verticalAnchor" to str(value.verticalAnchor.name.lowercase()),
+            "zOrder" to int(value.zOrder),
+            "enabled" to bool(value.enabled),
+            "hidden" to bool(value.hidden),
+            "opacityPermille" to int(value.opacityPermille),
+            "payload" to payload(value.payload),
+        )
+        value.sourceReference?.let { fields["sourceReference"] = str(it) }
+        return StrictJsonValue.ObjectValue(fields)
+    }
 
     private fun payload(value: ControlPayload): StrictJsonValue = when (value) {
         is KeyboardPayload -> obj(
