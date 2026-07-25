@@ -61,6 +61,13 @@ import com.limelight.ligase.feature.pairing.application.HostPairingCoordinator
 import com.limelight.ligase.feature.pairing.application.HostPairingMode
 import com.limelight.ligase.feature.pairing.infrastructure.LegacyPairingResult
 import com.limelight.ligase.feature.pairing.infrastructure.LegacyPairingTransport
+import com.limelight.ligase.feature.stream.application.StreamLaunchBlockReason
+import com.limelight.ligase.feature.stream.application.StreamLaunchConfirmation
+import com.limelight.ligase.feature.stream.application.StreamLaunchCoordinator
+import com.limelight.ligase.feature.stream.application.StreamLaunchExecutionResult
+import com.limelight.ligase.feature.stream.application.StreamLaunchPlanningResult
+import com.limelight.ligase.feature.stream.application.StreamLaunchRequest
+import com.limelight.ligase.feature.stream.infrastructure.LegacyGameStreamLauncher
 import com.limelight.ligase.library.LibraryConnectivity
 import com.limelight.ligase.library.LibrarySessionError
 import com.limelight.ligase.library.LibrarySessionViewModel
@@ -72,7 +79,6 @@ import com.limelight.ligase.endpoint.LigaseEndpoint
 import com.limelight.ligase.input.LigaseInputCategory
 import com.limelight.ligase.input.LigaseInputDevice
 import com.limelight.ligase.input.LigaseInputDeviceRepository
-import com.limelight.ligase.input.LigaseInputLaunchPolicy
 import com.limelight.ligase.input.LigaseTouchLayout
 import com.limelight.ligase.input.LigaseTouchLayoutRepository
 import com.limelight.ligase.input.LigaseTouchOverlayMode
@@ -84,7 +90,6 @@ import com.limelight.nvstream.http.PairingManager
 import com.limelight.nvstream.http.PairingManager.PairState
 import com.limelight.preferences.PreferenceConfiguration
 import com.limelight.preferences.StreamSettings
-import com.limelight.utils.ServerHelper
 import com.limelight.utils.UiHelper
 import java.io.IOException
 
@@ -119,6 +124,7 @@ class LigaseActivity : AppCompatActivity() {
     private lateinit var pairingViewModel: AttendedPairingViewModel
     private lateinit var hostPairingCoordinator: HostPairingCoordinator
     private lateinit var hostEndpointCoordinator: HostEndpointCoordinator
+    private lateinit var streamLaunchCoordinator: StreamLaunchCoordinator
     private lateinit var librarySessionViewModel: LibrarySessionViewModel
     private lateinit var libraryHostCoordinator: LibraryHostCoordinator
     private lateinit var libraryStreamingSettingsCoordinator:
@@ -202,6 +208,10 @@ class LigaseActivity : AppCompatActivity() {
         hostEndpointCoordinator = HostEndpointCoordinator(
             transport = LegacyComputerRegistryTransport(this) { managerBinder },
             postToMain = { action -> runOnUiThread(action) },
+        )
+        streamLaunchCoordinator = StreamLaunchCoordinator(
+            currentHost = { libraryHost },
+            launcher = LegacyGameStreamLauncher(this) { managerBinder },
         )
         pairingViewModel = ViewModelProvider(this)[AttendedPairingViewModel::class.java]
         hostPairingCoordinator = HostPairingCoordinator(
@@ -856,84 +866,75 @@ class LigaseActivity : AppCompatActivity() {
 
     private fun launchLibraryItem(item: LigaseLibraryItem) {
         val host = libraryHost ?: return
-        if (!requireOperate(host)) return
         val snapshot = librarySessionViewModel.state.content?.sync ?: return
-        val app = item.launchApp ?: return
-        val appUuid = item.hostAppUuid ?: return
         val inputMode = selectedInput ?: LigasePreferences.getInputDeviceMode(this)
-        val externalInputReady = when (inputMode) {
-            InputDeviceMode.GAMEPAD -> selectedGamepadKey != null &&
-                inputDevices.any {
-                    it.category == LigaseInputCategory.GAMEPAD &&
-                        it.stableKey == selectedGamepadKey
-                }
-            InputDeviceMode.KEYBOARD_MOUSE -> inputDevices.any {
-                (
-                    it.category == LigaseInputCategory.KEYBOARD &&
-                        it.stableKey == selectedKeyboardKey
-                    ) ||
-                    (
-                        it.category == LigaseInputCategory.MOUSE &&
-                            it.stableKey == selectedMouseKey
-                        )
-            }
-            InputDeviceMode.TOUCH -> true
-        }
-        if (!externalInputReady) {
-            toast(
-                if (inputMode == InputDeviceMode.GAMEPAD) {
-                    R.string.ligase_connect_selected_controller
-                } else {
-                    R.string.ligase_connect_selected_keyboard_mouse
-                },
-            )
-            currentPage = LigasePage.INPUT
-            return
-        }
-        if (
-            LigaseInputLaunchPolicy.resolve(
-                mode = inputMode,
+        val result = streamLaunchCoordinator.plan(
+            StreamLaunchRequest(
+                item = item,
+                snapshot = snapshot,
+                connectivity = librarySessionViewModel.state.connectivity,
+                inputMode = inputMode,
+                selectedGamepadKey = selectedGamepadKey,
+                selectedKeyboardKey = selectedKeyboardKey,
+                selectedMouseKey = selectedMouseKey,
+                connectedInputDevices = inputDevices.toList(),
                 selectedTouchLayoutId = selectedTouchLayoutId,
                 availableTouchLayoutIds = touchLayouts.mapTo(mutableSetOf()) { it.id },
                 overlayMode = touchOverlayMode,
-            ) == null
-        ) {
-            toast(R.string.ligase_touch_layout_reselect_before_stream)
-            currentPage = LigasePage.INPUT
-            return
-        }
-        val binder = managerBinder
-        if (binder == null) {
-            toast(R.string.error_manager_not_running)
-            return
-        }
-
-        val preference = PreferenceConfiguration.readPreferences(this)
-        val withVirtualDisplay = if (item.isSystem) false else preference.useVirtualDisplay
-        val resolution = snapshot.streaming.resolutionFor(appUuid)
-        val launch = Runnable {
-            ServerHelper.doStart(
-                this,
-                app,
-                host,
-                binder,
-                withVirtualDisplay,
-                resolution.width,
-                resolution.height,
-                snapshot.capabilities.hdrEncodingSupported,
-                true,
-            )
-        }
-
-        if (host.runningGameId != 0 && host.runningGameId != app.appId) {
-            UiHelper.displayQuitConfirmationDialog(this, launch, null)
-        } else if (
-            withVirtualDisplay &&
-            !(host.vDisplaySupported && host.vDisplayDriverReady)
-        ) {
-            UiHelper.displayVdisplayConfirmationDialog(this, host, launch, null)
-        } else {
-            launch.run()
+                preferVirtualDisplay =
+                    PreferenceConfiguration.readPreferences(this).useVirtualDisplay,
+            ),
+        )
+        when (result) {
+            is StreamLaunchPlanningResult.Blocked -> {
+                when (result.reason) {
+                    StreamLaunchBlockReason.OFFLINE -> toast(R.string.ligase_host_offline)
+                    StreamLaunchBlockReason.PERMISSION_DENIED -> {
+                        toast(R.string.ligase_observe_mode_action_blocked)
+                        managerBinder?.invalidateStateForComputer(host.uuid)
+                    }
+                    StreamLaunchBlockReason.GAMEPAD_DISCONNECTED -> {
+                        toast(R.string.ligase_connect_selected_controller)
+                        currentPage = LigasePage.INPUT
+                    }
+                    StreamLaunchBlockReason.KEYBOARD_MOUSE_DISCONNECTED -> {
+                        toast(R.string.ligase_connect_selected_keyboard_mouse)
+                        currentPage = LigasePage.INPUT
+                    }
+                    StreamLaunchBlockReason.TOUCH_LAYOUT_UNAVAILABLE -> {
+                        toast(R.string.ligase_touch_layout_reselect_before_stream)
+                        currentPage = LigasePage.INPUT
+                    }
+                    StreamLaunchBlockReason.MANAGER_UNAVAILABLE ->
+                        toast(R.string.error_manager_not_running)
+                    StreamLaunchBlockReason.MISSING_APP_MAPPING,
+                    StreamLaunchBlockReason.APP_IDENTITY_MISMATCH,
+                    -> Unit
+                }
+            }
+            is StreamLaunchPlanningResult.Ready -> {
+                val launch = Runnable {
+                    when (streamLaunchCoordinator.launch(result.plan)) {
+                        StreamLaunchExecutionResult.STARTED,
+                        StreamLaunchExecutionResult.ALREADY_LAUNCHED,
+                        -> Unit
+                        StreamLaunchExecutionResult.STALE_HOST,
+                        StreamLaunchExecutionResult.OFFLINE,
+                        -> toast(R.string.ligase_host_offline)
+                        StreamLaunchExecutionResult.PERMISSION_DENIED ->
+                            toast(R.string.ligase_observe_mode_action_blocked)
+                        StreamLaunchExecutionResult.MANAGER_UNAVAILABLE ->
+                            toast(R.string.error_manager_not_running)
+                    }
+                }
+                when (result.plan.confirmation) {
+                    StreamLaunchConfirmation.QUIT_RUNNING_GAME ->
+                        UiHelper.displayQuitConfirmationDialog(this, launch, null)
+                    StreamLaunchConfirmation.VIRTUAL_DISPLAY_UNAVAILABLE ->
+                        UiHelper.displayVdisplayConfirmationDialog(this, host, launch, null)
+                    StreamLaunchConfirmation.NONE -> launch.run()
+                }
+            }
         }
     }
 
