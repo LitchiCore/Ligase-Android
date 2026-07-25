@@ -356,6 +356,43 @@ class LayoutV2EditorWorkspaceViewModelTest {
         assertTrue(workspace.state.value.editor.recoverableDrafts.isEmpty())
     }
 
+    @Test
+    fun freshProcessGraphEnumeratesGenerationSavedByEditorOwner() {
+        val hallOwner = LayoutV2EditorWorkspaceViewModel(application)
+        hallOwner.createBlank("Cold restart")
+        hallOwner.addElement(ControlKind.SOFT_KEYBOARD)
+        val draftId = hallOwner.state.value.editor.draft!!.identity.layoutId
+        assertTrue(
+            hallOwner.checkpointAndRelease(draftId) is
+                com.limelight.ligase.feature.input.layout.v2.editor.LayoutV2EditorHandoffResult.LaunchReady,
+        )
+        val editorOwner = LayoutV2EditorActivityViewModel(
+            application,
+            draftId,
+            LayoutV2EditorProcessLeases.registry,
+        )
+        assertEquals(
+            com.limelight.ligase.feature.input.layout.v2.editor.LayoutV2EditorExitCode.SAVED,
+            editorOwner.saveAndFinish().code,
+        )
+
+        val freshRegistry = registry()
+        val freshWorkspace = LayoutV2EditorWorkspaceViewModel(application)
+        freshWorkspace.attachCatalogRegistration {
+            freshRegistry.refresh(registeredRecords = it)
+            true
+        }
+
+        assertEquals(1, freshRegistry.state.items.size)
+        assertEquals(draftId, freshRegistry.state.items.single().layoutId)
+        assertEquals(
+            LayoutLocalAvailability.READY,
+            freshRegistry.state.items.single().local.availability,
+        )
+        assertTrue(freshRegistry.state.items.single().contentVerified)
+        assertTrue(freshWorkspace.state.value.editor.recoverableDrafts.isEmpty())
+    }
+
     private fun cleanup() {
         listOf(
             "ligase-touch-layout-v2-drafts",

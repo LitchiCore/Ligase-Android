@@ -305,6 +305,7 @@ class LigaseActivity : AppCompatActivity() {
                 layoutCatalogV2SourceRegistry.refresh(registeredRecords = records)
                 true
             }
+        refreshLayoutV2CatalogFromDisk(editorReturned = false)
 
         setContent {
             val libraryState = librarySessionViewModel.state
@@ -1100,15 +1101,26 @@ class LigaseActivity : AppCompatActivity() {
         }
     }
 
+    private fun refreshLayoutV2CatalogFromDisk(editorReturned: Boolean) {
+        if (
+            !::layoutV2EditorWorkspaceViewModel.isInitialized ||
+            !::layoutCatalogV2SourceRegistry.isInitialized
+        ) {
+            return
+        }
+        if (editorReturned) {
+            layoutV2EditorWorkspaceViewModel.refreshAfterEditorReturn()
+        } else {
+            layoutV2EditorWorkspaceViewModel.refreshCatalog()
+        }
+        layoutCatalogV2State = layoutCatalogV2SourceRegistry.state
+    }
+
     override fun onResume() {
         super.onResume()
-        if (
-            layoutV2EditorLaunchInFlight &&
-            ::layoutV2EditorWorkspaceViewModel.isInitialized
-        ) {
-            layoutV2EditorLaunchInFlight = false
-            layoutV2EditorWorkspaceViewModel.refreshAfterEditorReturn()
-        }
+        val editorReturned = layoutV2EditorLaunchInFlight
+        layoutV2EditorLaunchInFlight = false
+        refreshLayoutV2CatalogFromDisk(editorReturned)
         foreground = true
         refreshLocalHdrCapabilities()
         streamBitrateState.refresh(PreferenceConfiguration.getDefaultBitrate(this))
