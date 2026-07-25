@@ -1,6 +1,12 @@
-# Ligase Touch Layout v2 — review draft 3
+# Ligase Touch Layout v2 — frozen content contract
 
-Status: **REVIEW DRAFT — not frozen, not a runtime or wire authorization**.
+Status: **FROZEN CONTENT CONTRACT / VALIDATION BASELINE**.
+
+The schema, content model, canonicalization rules, and frozen fixtures are the
+stable v2 validation baseline. Android Core A has independent authorization to
+implement this validation baseline. This status does **not** authorize storage
+cutover, editor or runtime execution, Host Sync or public wire integration,
+publication, or download.
 
 This document defines a new content artifact. The Android product does not
 dual-read or dual-write TouchKit SharedPreferences/v1. Legacy input is accepted
