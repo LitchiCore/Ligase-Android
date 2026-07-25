@@ -45,16 +45,13 @@ import com.limelight.ligase.feature.layout.domain.LayoutCatalogSource
 import com.limelight.ligase.feature.layout.domain.LayoutCatalogUiState
 import com.limelight.ligase.feature.layout.domain.LayoutEditorError
 import com.limelight.ligase.feature.layout.presentation.layoutHallColumns
-import com.limelight.ligase.feature.input.layout.v2.domain.LayoutCatalogV2UiState
-import com.limelight.ligase.feature.input.layout.v2.editor.RecoverableDraftSummary
-import com.limelight.ligase.feature.input.layout.v2.ui.LayoutCatalogV2Section
+import com.limelight.ligase.feature.input.layout.v3.editor.RecoverableDraftSummary as RecoverableV3DraftSummary
 import java.text.DateFormat
 import java.util.Date
 
 @Composable
 fun LayoutHallScreen(
     state: LayoutCatalogUiState,
-    v2State: LayoutCatalogV2UiState = LayoutCatalogV2UiState(),
     actionError: LayoutEditorError? = null,
     onBack: () -> Unit,
     onRefresh: () -> Unit,
@@ -62,13 +59,10 @@ fun LayoutHallScreen(
     onPreview: (String) -> Unit,
     onEdit: (String) -> Unit,
     onCreateCopy: (String) -> Unit,
-    onV2Refresh: () -> Unit = {},
-    onV2PreferredVariant: (String, Long, String) -> Unit = { _, _, _ -> },
-    onV2ClearPreference: (String) -> Unit = {},
-    recoverableV2Drafts: List<RecoverableDraftSummary> = emptyList(),
-    onV2CreateBlank: (String?) -> Unit = {},
-    onV2ResumeRecovery: (String) -> Unit = {},
-    onV2DiscardRecovery: (String) -> Unit = {},
+    recoverableV3Drafts: List<RecoverableV3DraftSummary> = emptyList(),
+    onV3CreateBlank: (String?) -> Unit = {},
+    onV3ResumeRecovery: (String) -> Unit = {},
+    onV3DiscardRecovery: (String) -> Unit = {},
 ) {
     BackHandler(onBack = onBack)
     LigasePageScaffold(
@@ -78,29 +72,21 @@ fun LayoutHallScreen(
         BoxWithConstraints(pageModifier.fillMaxSize()) {
             val wide = maxWidth >= 720.dp
             when {
-                state.loading && state.items.isEmpty() && v2State.items.isEmpty() -> {
+                state.loading && state.items.isEmpty() -> {
                     CircularProgressIndicator(Modifier.align(Alignment.Center))
                 }
-                state.items.isEmpty() && v2State.items.isEmpty() -> {
+                state.items.isEmpty() -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(20.dp),
                         verticalArrangement = Arrangement.spacedBy(20.dp),
                     ) {
                         item {
-                            LayoutV2CreatorSection(
-                                recoverableDrafts = recoverableV2Drafts,
-                                onCreateBlank = onV2CreateBlank,
-                                onResumeRecovery = onV2ResumeRecovery,
-                                onDiscardRecovery = onV2DiscardRecovery,
-                            )
-                        }
-                        item {
-                            LayoutCatalogV2Section(
-                                state = v2State,
-                                onRefresh = onV2Refresh,
-                                onPreferredVariant = onV2PreferredVariant,
-                                onClearPreference = onV2ClearPreference,
+                            LayoutV3CreatorSection(
+                                recoverableDrafts = recoverableV3Drafts,
+                                onCreateBlank = onV3CreateBlank,
+                                onResumeRecovery = onV3ResumeRecovery,
+                                onDiscardRecovery = onV3DiscardRecovery,
                             )
                         }
                         item {
@@ -122,19 +108,11 @@ fun LayoutHallScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         item(span = { GridItemSpan(maxLineSpan) }) {
-                            LayoutV2CreatorSection(
-                                recoverableDrafts = recoverableV2Drafts,
-                                onCreateBlank = onV2CreateBlank,
-                                onResumeRecovery = onV2ResumeRecovery,
-                                onDiscardRecovery = onV2DiscardRecovery,
-                            )
-                        }
-                        item(span = { GridItemSpan(maxLineSpan) }) {
-                            LayoutCatalogV2Section(
-                                state = v2State,
-                                onRefresh = onV2Refresh,
-                                onPreferredVariant = onV2PreferredVariant,
-                                onClearPreference = onV2ClearPreference,
+                            LayoutV3CreatorSection(
+                                recoverableDrafts = recoverableV3Drafts,
+                                onCreateBlank = onV3CreateBlank,
+                                onResumeRecovery = onV3ResumeRecovery,
+                                onDiscardRecovery = onV3DiscardRecovery,
                             )
                         }
                         actionError?.let { error ->
@@ -162,19 +140,11 @@ fun LayoutHallScreen(
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
                         item {
-                            LayoutV2CreatorSection(
-                                recoverableDrafts = recoverableV2Drafts,
-                                onCreateBlank = onV2CreateBlank,
-                                onResumeRecovery = onV2ResumeRecovery,
-                                onDiscardRecovery = onV2DiscardRecovery,
-                            )
-                        }
-                        item {
-                            LayoutCatalogV2Section(
-                                state = v2State,
-                                onRefresh = onV2Refresh,
-                                onPreferredVariant = onV2PreferredVariant,
-                                onClearPreference = onV2ClearPreference,
+                            LayoutV3CreatorSection(
+                                recoverableDrafts = recoverableV3Drafts,
+                                onCreateBlank = onV3CreateBlank,
+                                onResumeRecovery = onV3ResumeRecovery,
+                                onDiscardRecovery = onV3DiscardRecovery,
                             )
                         }
                         actionError?.let { error ->
@@ -203,13 +173,13 @@ fun LayoutHallScreen(
 }
 
 @Composable
-private fun LayoutV2CreatorSection(
-    recoverableDrafts: List<RecoverableDraftSummary>,
+private fun LayoutV3CreatorSection(
+    recoverableDrafts: List<RecoverableV3DraftSummary>,
     onCreateBlank: (String?) -> Unit,
     onResumeRecovery: (String) -> Unit,
     onDiscardRecovery: (String) -> Unit,
 ) {
-    var discardTarget by remember { mutableStateOf<RecoverableDraftSummary?>(null) }
+    var discardTarget by remember { mutableStateOf<RecoverableV3DraftSummary?>(null) }
     Card(
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
@@ -221,24 +191,24 @@ private fun LayoutV2CreatorSection(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                stringResource(R.string.ligase_layout_v2_creator_title),
+                stringResource(R.string.ligase_layout_v3_creator_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                stringResource(R.string.ligase_layout_v2_creator_message),
+                stringResource(R.string.ligase_layout_v3_creator_message),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Button(
                 onClick = { onCreateBlank(null) },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(stringResource(R.string.ligase_layout_v2_create_blank))
+                Text(stringResource(R.string.ligase_layout_v3_create_blank))
             }
             if (recoverableDrafts.isNotEmpty()) {
                 HorizontalDivider()
                 Text(
-                    stringResource(R.string.ligase_layout_v2_recovery_title),
+                    stringResource(R.string.ligase_layout_v3_recovery_title),
                     fontWeight = FontWeight.SemiBold,
                 )
                 recoverableDrafts.forEach { draft ->
@@ -253,10 +223,10 @@ private fun LayoutV2CreatorSection(
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(onClick = { onResumeRecovery(draft.draftId) }) {
-                                Text(stringResource(R.string.ligase_layout_v2_resume))
+                                Text(stringResource(R.string.ligase_layout_v3_resume))
                             }
                             OutlinedButton(onClick = { discardTarget = draft }) {
-                                Text(stringResource(R.string.ligase_layout_v2_discard))
+                                Text(stringResource(R.string.ligase_layout_v3_discard))
                             }
                         }
                     }
@@ -267,13 +237,13 @@ private fun LayoutV2CreatorSection(
     discardTarget?.let { draft ->
         AlertDialog(
             onDismissRequest = { discardTarget = null },
-            title = { Text(stringResource(R.string.ligase_layout_v2_discard_recovery_title)) },
-            text = { Text(stringResource(R.string.ligase_layout_v2_discard_recovery_message)) },
+            title = { Text(stringResource(R.string.ligase_layout_v3_discard_recovery_title)) },
+            text = { Text(stringResource(R.string.ligase_layout_v3_discard_recovery_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     discardTarget = null
                     onDiscardRecovery(draft.draftId)
-                }) { Text(stringResource(R.string.ligase_layout_v2_discard)) }
+                }) { Text(stringResource(R.string.ligase_layout_v3_discard)) }
             },
             dismissButton = {
                 TextButton(onClick = { discardTarget = null }) {

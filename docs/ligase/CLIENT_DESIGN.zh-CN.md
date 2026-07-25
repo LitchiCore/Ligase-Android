@@ -83,21 +83,23 @@
   新副本使用 canonical lowercase UUID D 作为稳定 `layoutId`，初始 `revision=1`，
   并生成稳定的 canonical `variantId`。内建的 `OSC_Keyboard` 等旧标识只作为本机
   `legacySourceReference`，不得提升为未来跨端 layout identity。
-- Touch Layout v2 的本机 Creator 使用独立的严格 schema、journal、generation repository
-  与 Workspace owner，不读写 v1 SharedPreferences。当前已验证空白布局、0/1/2/3/8
-  typed 控件、进程恢复、原子保存与重启后 `LOCAL_COPY / READY`；4/5/6/7/9 没有授权
-  生产来源时不注入 fixture，也不宣称真机编辑通过。
-- Compose 卡片式 v2 画布已退出产品主路径。当前编辑体验使用独立
-  `sensorLandscape`、沉浸式黑色 TouchKit 画布：大厅 owner 先把草稿
-  checkpoint 到 journal 并释放，随后仅以 opaque draft ID 交给独立 Activity 独占恢复；
+- Touch Layout v3是唯一新内容契约，使用独立strict schema、journal、generation
+  repository与Workspace/Activity owner，不读写v1 SharedPreferences，也不双读写v2。
+- Compose卡片式画布已退出产品主路径。当前编辑体验使用独立`sensorLandscape`、
+  沉浸式黑色TouchKit画布：新布局由Activity在完整edge-to-edge overlay bounds稳定后
+  创建canvas；已有草稿仅以opaque draft ID交给独立Activity独占恢复；
   Intent 不携带 raw state、路径、hash 或扩展字段。拖动和缩放在 View 内逐帧预览，
   每次手势只在结束时提交一次 typed action。画布占满 Activity 可用内容区；新增、
   属性、层级、保存和离开动作放在可收起的半透明覆盖层中，开关覆盖层不重排画布，
-  覆盖层打开时也不会把点击穿透给底层控件。键盘键与鼠标按钮默认采用圆形，用户可
-  显式切换为圆角矩形或矩形；形状随 v2 typed properties 进入同一严格保存链。
-- v1 TouchKit 仍服务现有串流运行态并继续读取旧布局；v2 Creator 不双写、不迁移、不删除
-  v1 用户数据。未来 runtime cutover 必须另行冻结并使用真实 decoded video viewport
-  重新校验，不能以手机 DPI 或物理屏幕替代。
+  覆盖层只拦截自身区域，点控件会直接打开属性并把浮层换到控件相反侧；未被覆盖的
+  画布仍可选择和拖动，右下角缩放手柄只负责改变尺寸。位置细调使用方向键排布，
+  支持轻点一步与长按本地预览、释放单次提交。键盘键与鼠标按钮默认采用圆形，用户可
+  显式切换为圆角矩形或矩形；形状随v3 typed properties进入同一严格保存链。控件可
+  部分越过全屏canvas，只要仍有协议规定的可见交集；重叠合法，zOrder决定绘制与命中。
+- v1 TouchKit仍服务现有串流运行态并读取旧布局。v3 runtime cutover仍须独立授权；
+  编辑器不以decoded video rect、DPI或system inset替代full-overlay坐标权威。
+- 真实PC键盘多选浮窗与center-stack batch属于后续独立产品块，本次编辑器cutover不提供
+  临时逐键循环或伪入口。
 
 ## 跨端视觉颜色契约
 

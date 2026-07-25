@@ -31,6 +31,7 @@ import com.limelight.ligase.feature.input.layout.v2.domain.ControlKind
 import com.limelight.ligase.feature.input.layout.v2.domain.HorizontalAnchor
 import com.limelight.ligase.feature.input.layout.v2.domain.VerticalAnchor
 import com.limelight.ligase.feature.input.layout.v2.editor.LayoutV2EditableProperties
+import com.limelight.ligase.feature.input.layout.v3.application.LayoutV3EditorWorkspaceUiState
 import com.limelight.ligase.feature.library.data.dto.LigaseResolutionDto
 import com.limelight.ligase.feature.library.domain.HostSortMode
 import com.limelight.ligase.feature.library.domain.LibraryHdrState
@@ -83,6 +84,8 @@ fun LigaseRoot(
     layoutCatalogV2State: LayoutCatalogV2UiState,
     layoutEditorState: LayoutEditorSessionState,
     layoutV2EditorWorkspaceState: LayoutV2EditorWorkspaceUiState,
+    layoutV3EditorWorkspaceState: LayoutV3EditorWorkspaceUiState =
+        LayoutV3EditorWorkspaceUiState(),
     pairingState: AttendedPairingUiState,
     streamBitrateState: StreamBitrateUiState,
     onPageSelected: (LigasePage) -> Unit,
@@ -135,6 +138,9 @@ fun LigaseRoot(
     onLayoutV2Discard: () -> Unit,
     onLayoutV2Leave: () -> Unit,
     onLayoutV2EditorLaunchRequested: (String) -> Unit = {},
+    onLayoutV3CreateBlank: (String?) -> Unit = {},
+    onLayoutV3ResumeRecovery: (String) -> Unit = {},
+    onLayoutV3DiscardRecovery: (String) -> Unit = {},
     onGlobalResolutionClick: () -> Unit,
     onStreamBitratePresetSelected: (StreamBitratePresetId) -> Unit,
     onStreamBitrateCustomSubmitted: (String) -> Unit,
@@ -174,6 +180,7 @@ fun LigaseRoot(
     layoutCatalogV2State = layoutCatalogV2State,
     layoutEditorState = layoutEditorState,
     layoutV2EditorWorkspaceState = layoutV2EditorWorkspaceState,
+    layoutV3EditorWorkspaceState = layoutV3EditorWorkspaceState,
     pairingState = pairingState,
     streamBitrateState = streamBitrateState,
     onPageSelected = onPageSelected,
@@ -226,6 +233,9 @@ fun LigaseRoot(
     onLayoutV2Discard = onLayoutV2Discard,
     onLayoutV2Leave = onLayoutV2Leave,
     onLayoutV2EditorLaunchRequested = onLayoutV2EditorLaunchRequested,
+    onLayoutV3CreateBlank = onLayoutV3CreateBlank,
+    onLayoutV3ResumeRecovery = onLayoutV3ResumeRecovery,
+    onLayoutV3DiscardRecovery = onLayoutV3DiscardRecovery,
     onGlobalResolutionClick = onGlobalResolutionClick,
     onStreamBitratePresetSelected = onStreamBitratePresetSelected,
     onStreamBitrateCustomSubmitted = onStreamBitrateCustomSubmitted,

@@ -204,6 +204,14 @@
             android:screenOrientation="sensorLandscape"
             android:theme="@style/StreamTheme" />
         <activity
+            android:name="com.limelight.ligase.feature.input.layout.v3.ui.blackeditor.LayoutV3BlackEditorActivity"
+            android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|uiMode|orientation|screenSize|smallestScreenSize|layoutDirection"
+            android:exported="false"
+            android:label="@string/ligase_layout_v3_editor_title"
+            android:resizeableActivity="true"
+            android:screenOrientation="sensorLandscape"
+            android:theme="@style/StreamTheme" />
+        <activity
             android:name=".preferences.AddComputerManually"
             android:exported="true"
             android:resizeableActivity="true"

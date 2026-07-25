@@ -67,6 +67,7 @@ import com.limelight.ligase.feature.input.layout.v2.domain.VerticalAnchor
 import com.limelight.ligase.feature.input.layout.v2.editor.LayoutV2EditableProperties
 import com.limelight.ligase.feature.input.layout.v2.editor.LayoutV2EditorPhase
 import com.limelight.ligase.feature.input.layout.v2.ui.editor.LayoutV2EditorScreen
+import com.limelight.ligase.feature.input.layout.v3.application.LayoutV3EditorWorkspaceUiState
 import com.limelight.ligase.feature.library.ui.LibraryManualEditorUiState
 import com.limelight.ligase.feature.library.ui.LibraryRouteActions
 import com.limelight.ligase.feature.library.ui.LibraryRouteUiState
@@ -124,6 +125,8 @@ internal fun LigaseRootContent(
     layoutCatalogV2State: LayoutCatalogV2UiState,
     layoutEditorState: LayoutEditorSessionState,
     layoutV2EditorWorkspaceState: LayoutV2EditorWorkspaceUiState,
+    layoutV3EditorWorkspaceState: LayoutV3EditorWorkspaceUiState =
+        LayoutV3EditorWorkspaceUiState(),
     pairingState: AttendedPairingUiState,
     streamBitrateState: StreamBitrateUiState,
     onPageSelected: (LigasePage) -> Unit,
@@ -176,6 +179,9 @@ internal fun LigaseRootContent(
     onLayoutV2Discard: () -> Unit,
     onLayoutV2Leave: () -> Unit,
     onLayoutV2EditorLaunchRequested: (String) -> Unit = {},
+    onLayoutV3CreateBlank: (String?) -> Unit = {},
+    onLayoutV3ResumeRecovery: (String) -> Unit = {},
+    onLayoutV3DiscardRecovery: (String) -> Unit = {},
     onGlobalResolutionClick: () -> Unit,
     onStreamBitratePresetSelected: (StreamBitratePresetId) -> Unit,
     onStreamBitrateCustomSubmitted: (String) -> Unit,
@@ -499,24 +505,14 @@ internal fun LigaseRootContent(
                         LigaseLayoutRoute.MAIN -> mainPageContent()
                         LigaseLayoutRoute.HALL -> LayoutHallScreen(
                             state = layoutCatalogState,
-                            v2State = layoutCatalogV2State,
                             actionError = layoutEditorState.error,
                             onBack = { layoutRoute = LigaseLayoutRoute.MAIN },
                             onRefresh = onLayoutCatalogRefresh,
-                            onV2Refresh = onLayoutCatalogV2Refresh,
-                            onV2PreferredVariant = onLayoutVariantPreferred,
-                            onV2ClearPreference = onLayoutVariantPreferenceCleared,
-                            recoverableV2Drafts =
-                                layoutV2EditorWorkspaceState.editor.recoverableDrafts,
-                            onV2CreateBlank = { displayName ->
-                                onLayoutV2CreateBlank(displayName)
-                                pendingV2EditorOpen = true
-                            },
-                            onV2ResumeRecovery = { draftId ->
-                                onLayoutV2ResumeRecovery(draftId)
-                                pendingV2EditorOpen = true
-                            },
-                            onV2DiscardRecovery = onLayoutV2DiscardRecovery,
+                            recoverableV3Drafts =
+                                layoutV3EditorWorkspaceState.editor.recoverableDrafts,
+                            onV3CreateBlank = onLayoutV3CreateBlank,
+                            onV3ResumeRecovery = onLayoutV3ResumeRecovery,
+                            onV3DiscardRecovery = onLayoutV3DiscardRecovery,
                             onSelect = onLayoutSelect,
                             onPreview = onLayoutPreview,
                             onEdit = { layoutId ->

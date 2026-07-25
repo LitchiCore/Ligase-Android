@@ -48,45 +48,46 @@ LigaseActivity（composition / Android lifecycle / legacy ABI bridge）
 - v1 的 layout ID、动态元素 map 和旧 game store 不是 v2 identity 或 content schema。
 - v2 不双写 v1，不从文件名、显示名、numeric appid 或到达顺序猜 identity。
 
-### v2：Catalog 与本机 Creator
+### v3：唯一内容契约与本机 Creator
 
-- Core A：strict JSON/JCS、schema/cross-field 验证和 canonical content。
-- Core B：catalog eligibility、variant projection 与显式 preference policy；设计参考 DPI/
-  resolution 不参与排序或自动选择。
-- Core C：verified content、local generation 与安全 UI projection；UI 不见 raw、path、
-  hash 或 SharedPreferences。
-- Core D：Source Registry、generation/last-success、来源状态与冲突处理。没有真实 video
-  viewport 时 variant 为只读第三态，select 必须拒绝且零写。
-- Workspace：`LayoutV2EditorSession`、版本化 journal 和 generation repository 是本机
-  Creator 的唯一 owner。journal 保护未提交草稿但不冒充正式保存；正式保存必须完成
-  descriptor + artifact 原子写入、readback、Registry 注册后才删除 journal。
-- 已验证能力包括：无 Host 从 Settings 进入同一布局大厅、空白草稿、0/1/2/3/8 typed
-  控件、旋转/后台与进程恢复、显式 resume/discard、原子保存，以及重启后
-  `LOCAL_COPY / READY / contentVerified`。
-- 未验证或未授权的能力不得补造：4/5/6/7/9 的生产内容、Host catalog 下载、publish、
-  runtime cutover、preview/export/share。
+- v3 machine authority 位于本仓库已冻结的 schema、API review 与向量资产；应用文档只
+  链接该权威，不复制字段定义。
+- Core A 提供 strict JSON/JCS、cross-field 验证、canonical content 与精确cutover gate。
+- Core B 提供独立的 journal、generation repository、Workspace/Activity owner、
+  adaptive anchor geometry、full-overlay mapper及generation-bound gesture commit。
+- `LayoutV3EditorSession`和Activity lifecycle ViewModel是编辑状态的唯一owner；Compose
+  只消费immutable projection和typed actions，不读取raw、path、hash或extensions。
+- journal只保护未提交草稿，不冒充正式保存；正式保存仍须完成generation原子写入及
+  readback。v3不双读写v2或v1存储。
+- 本阶段不包含真实PC键盘多选浮窗、Host下载、publish、runtime或preview/export/share。
 
 ### 黑色横屏编辑器
 
-v2 编辑体验采用独立横屏沉浸式黑色 TouchKit 画布，而不是壳层内的卡片式编辑画布。
+v3 编辑体验采用独立横屏沉浸式黑色TouchKit画布，而不是壳层内的卡片式编辑画布。
 实现遵守以下不变量：
 
-1. Hall Workspace 先强制 checkpoint journal 并释放当前 owner。
-2. Activity Intent 只携带 canonical opaque draft ID。
-3. 独立 Activity 的 lifecycle owner 显式恢复并独占草稿；退出时 flush/close，Hall
-   重新枚举。
-4. canonical integer canvas 等比 `contain` 到黑色内容区，letterbox 不参与布局坐标；
-   不使用 DPI 或物理屏幕推断 runtime compatibility。
+1. NEW_V3由独立Activity在完整immersive overlay bounds稳定后创建canvas；existing
+   draft只通过opaque ID恢复，Intent不携带content或路径。
+2. 独立Activity lifecycle owner独占草稿；退出时flush/close，Hall重新枚举。
+3. canvas与完整edge-to-edge control overlay一致；system inset、cutout和视频letterbox
+   不缩小或重排坐标。
+4. 位置由adaptive anchor与offset表达；绘制和逆映射只调用v3权威geometry，前端不推导
+   anchor、舍入或越界规则。
 5. 拖动/缩放可在 View 内逐帧 preview，但每次手势只在 pointer-up 提交一次 typed action。
 6. 黑色 canvas 始终占满 Activity 可用内容区。新增、属性、层级与保存操作位于可收起的
    半透明浮层；浮层开关不得改变 canvas 测量结果或控件像素位置。
-7. 浮层打开时拦截底层触控；外部点击与 Back 先关闭浮层且不得穿透。关闭后才允许
-   画布选择、拖动和缩放。
-8. 键盘键与鼠标按钮的新建默认形状为圆形；编辑浮层可显式切换圆形、圆角矩形或矩形。
-   形状值由 v2 schema 与 strict codec 约束，前端只更新 typed properties，不复制存储协议。
+7. 浮层只拦截自身 bounds，不以透明全屏层禁用画布。点控件主体会选中并直接打开浮层；
+   浮层依据控件映射后的像素中心自动放到相反侧，未被覆盖的画布仍可选择和拖动。
+   Back 或浮层内的显式关闭操作负责收起浮层。
+8. 右下角缩放手柄只提交 resize，视觉与命中区均受控件渲染尺寸比例限制；控件主体的
+   其余区域优先用于 drag，三种形状遵循同一手势仲裁。
+9. 细调位置采用方向键排布；轻点移动一个 canonical unit，长按只在 UI 内逐帧 preview，
+   释放时最多提交一次typed nudge，Activity停止或组合销毁不会留下repeat job。
+10. 键盘键与鼠标按钮的新建默认形状为圆形；编辑浮层可显式切换圆形、圆角矩形或矩形。
+   形状值由v3 schema与strict codec约束，前端只更新typed properties。
 
-handoff、exclusive lease、viewport mapper 与全屏浮层 Activity 已进入生产代码；
-真实手机/平板交互仍必须以对应冻结 APK 的设备证据为准，自动测试不能替代真机验收。
+handoff、exclusive lease、adaptive mapper与全屏浮层Activity已进入生产代码；真实手机/
+平板交互仍必须以对应冻结APK的设备证据为准，自动测试不能替代真机验收。
 
 ## 设备验收矩阵
 
