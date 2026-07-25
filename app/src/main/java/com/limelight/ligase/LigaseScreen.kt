@@ -26,6 +26,11 @@ import com.limelight.ligase.feature.layout.domain.LayoutCatalogUiState
 import com.limelight.ligase.feature.layout.domain.LayoutControlKind
 import com.limelight.ligase.feature.layout.domain.LayoutEditorSessionState
 import com.limelight.ligase.feature.input.layout.v2.domain.LayoutCatalogV2UiState
+import com.limelight.ligase.feature.input.layout.v2.application.LayoutV2EditorWorkspaceUiState
+import com.limelight.ligase.feature.input.layout.v2.domain.ControlKind
+import com.limelight.ligase.feature.input.layout.v2.domain.HorizontalAnchor
+import com.limelight.ligase.feature.input.layout.v2.domain.VerticalAnchor
+import com.limelight.ligase.feature.input.layout.v2.editor.LayoutV2EditableProperties
 import com.limelight.ligase.feature.library.data.dto.LigaseResolutionDto
 import com.limelight.ligase.feature.library.domain.HostSortMode
 import com.limelight.ligase.feature.library.domain.LibraryHdrState
@@ -77,6 +82,7 @@ fun LigaseRoot(
     layoutCatalogState: LayoutCatalogUiState,
     layoutCatalogV2State: LayoutCatalogV2UiState,
     layoutEditorState: LayoutEditorSessionState,
+    layoutV2EditorWorkspaceState: LayoutV2EditorWorkspaceUiState,
     pairingState: AttendedPairingUiState,
     streamBitrateState: StreamBitrateUiState,
     onPageSelected: (LigasePage) -> Unit,
@@ -111,6 +117,23 @@ fun LigaseRoot(
     onLayoutAdd: (LayoutControlKind) -> Unit,
     onLayoutSave: () -> Unit,
     onLayoutDiscard: () -> Unit,
+    onLayoutV2CreateBlank: (String?) -> Unit,
+    onLayoutV2CreateFromPackaged: (String, Long, String) -> Unit,
+    onLayoutV2CreateFromLocal: (String, Long, String) -> Unit,
+    onLayoutV2ResumeRecovery: (String) -> Unit,
+    onLayoutV2DiscardRecovery: (String) -> Unit,
+    onLayoutV2SelectElement: (String) -> Unit,
+    onLayoutV2MoveElement: (String, Int, Int) -> Unit,
+    onLayoutV2ResizeElement: (String, Int, Int) -> Unit,
+    onLayoutV2SetAnchors: (String, HorizontalAnchor, VerticalAnchor) -> Unit,
+    onLayoutV2SetZOrder: (String, Int) -> Unit,
+    onLayoutV2DeleteElement: (String) -> Unit,
+    onLayoutV2UpdateProperties: (String, LayoutV2EditableProperties) -> Unit,
+    onLayoutV2AddElement: (ControlKind) -> Unit,
+    onLayoutV2Validate: () -> Unit,
+    onLayoutV2Save: () -> Unit,
+    onLayoutV2Discard: () -> Unit,
+    onLayoutV2Leave: () -> Unit,
     onGlobalResolutionClick: () -> Unit,
     onStreamBitratePresetSelected: (StreamBitratePresetId) -> Unit,
     onStreamBitrateCustomSubmitted: (String) -> Unit,
@@ -149,6 +172,7 @@ fun LigaseRoot(
     layoutCatalogState = layoutCatalogState,
     layoutCatalogV2State = layoutCatalogV2State,
     layoutEditorState = layoutEditorState,
+    layoutV2EditorWorkspaceState = layoutV2EditorWorkspaceState,
     pairingState = pairingState,
     streamBitrateState = streamBitrateState,
     onPageSelected = onPageSelected,
@@ -183,6 +207,23 @@ fun LigaseRoot(
     onLayoutAdd = onLayoutAdd,
     onLayoutSave = onLayoutSave,
     onLayoutDiscard = onLayoutDiscard,
+    onLayoutV2CreateBlank = onLayoutV2CreateBlank,
+    onLayoutV2CreateFromPackaged = onLayoutV2CreateFromPackaged,
+    onLayoutV2CreateFromLocal = onLayoutV2CreateFromLocal,
+    onLayoutV2ResumeRecovery = onLayoutV2ResumeRecovery,
+    onLayoutV2DiscardRecovery = onLayoutV2DiscardRecovery,
+    onLayoutV2SelectElement = onLayoutV2SelectElement,
+    onLayoutV2MoveElement = onLayoutV2MoveElement,
+    onLayoutV2ResizeElement = onLayoutV2ResizeElement,
+    onLayoutV2SetAnchors = onLayoutV2SetAnchors,
+    onLayoutV2SetZOrder = onLayoutV2SetZOrder,
+    onLayoutV2DeleteElement = onLayoutV2DeleteElement,
+    onLayoutV2UpdateProperties = onLayoutV2UpdateProperties,
+    onLayoutV2AddElement = onLayoutV2AddElement,
+    onLayoutV2Validate = onLayoutV2Validate,
+    onLayoutV2Save = onLayoutV2Save,
+    onLayoutV2Discard = onLayoutV2Discard,
+    onLayoutV2Leave = onLayoutV2Leave,
     onGlobalResolutionClick = onGlobalResolutionClick,
     onStreamBitratePresetSelected = onStreamBitratePresetSelected,
     onStreamBitrateCustomSubmitted = onStreamBitrateCustomSubmitted,

@@ -6,6 +6,7 @@ internal enum class LigaseLayoutRoute {
     MAIN,
     HALL,
     EDITOR,
+    V2_EDITOR,
 }
 
 internal data class LibraryGridRetentionKey(

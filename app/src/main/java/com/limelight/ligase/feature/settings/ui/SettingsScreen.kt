@@ -47,6 +47,7 @@ fun SettingsScreen(
     state: SettingsUiState,
     streamBitrateDialogState: StreamBitrateDialogState,
     onOpenInput: () -> Unit,
+    onOpenLayoutHall: () -> Unit,
     onThemeSelected: (LigaseThemeMode) -> Unit,
     onLanguageSelected: (LigaseLanguageMode) -> Unit,
     onGlobalResolutionClick: () -> Unit,
@@ -94,6 +95,42 @@ fun SettingsScreen(
                             )
                             Text(
                                 text = stringResource(R.string.ligase_settings_input_summary),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onOpenLayoutHall),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    ),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_ligase_touch),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                        Column(Modifier.padding(start = 16.dp)) {
+                            Text(
+                                text = stringResource(
+                                    R.string.ligase_settings_layout_hall_title,
+                                ),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Text(
+                                text = stringResource(
+                                    R.string.ligase_settings_layout_hall_summary,
+                                ),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }

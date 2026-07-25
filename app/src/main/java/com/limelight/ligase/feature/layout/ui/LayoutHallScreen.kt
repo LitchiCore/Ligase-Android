@@ -19,13 +19,20 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -39,7 +46,10 @@ import com.limelight.ligase.feature.layout.domain.LayoutCatalogUiState
 import com.limelight.ligase.feature.layout.domain.LayoutEditorError
 import com.limelight.ligase.feature.layout.presentation.layoutHallColumns
 import com.limelight.ligase.feature.input.layout.v2.domain.LayoutCatalogV2UiState
+import com.limelight.ligase.feature.input.layout.v2.editor.RecoverableDraftSummary
 import com.limelight.ligase.feature.input.layout.v2.ui.LayoutCatalogV2Section
+import java.text.DateFormat
+import java.util.Date
 
 @Composable
 fun LayoutHallScreen(
@@ -55,6 +65,10 @@ fun LayoutHallScreen(
     onV2Refresh: () -> Unit = {},
     onV2PreferredVariant: (String, Long, String) -> Unit = { _, _, _ -> },
     onV2ClearPreference: (String) -> Unit = {},
+    recoverableV2Drafts: List<RecoverableDraftSummary> = emptyList(),
+    onV2CreateBlank: (String?) -> Unit = {},
+    onV2ResumeRecovery: (String) -> Unit = {},
+    onV2DiscardRecovery: (String) -> Unit = {},
 ) {
     BackHandler(onBack = onBack)
     LigasePageScaffold(
@@ -73,6 +87,14 @@ fun LayoutHallScreen(
                         contentPadding = PaddingValues(20.dp),
                         verticalArrangement = Arrangement.spacedBy(20.dp),
                     ) {
+                        item {
+                            LayoutV2CreatorSection(
+                                recoverableDrafts = recoverableV2Drafts,
+                                onCreateBlank = onV2CreateBlank,
+                                onResumeRecovery = onV2ResumeRecovery,
+                                onDiscardRecovery = onV2DiscardRecovery,
+                            )
+                        }
                         item {
                             LayoutCatalogV2Section(
                                 state = v2State,
@@ -99,6 +121,14 @@ fun LayoutHallScreen(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            LayoutV2CreatorSection(
+                                recoverableDrafts = recoverableV2Drafts,
+                                onCreateBlank = onV2CreateBlank,
+                                onResumeRecovery = onV2ResumeRecovery,
+                                onDiscardRecovery = onV2DiscardRecovery,
+                            )
+                        }
                         item(span = { GridItemSpan(maxLineSpan) }) {
                             LayoutCatalogV2Section(
                                 state = v2State,
@@ -132,6 +162,14 @@ fun LayoutHallScreen(
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
                         item {
+                            LayoutV2CreatorSection(
+                                recoverableDrafts = recoverableV2Drafts,
+                                onCreateBlank = onV2CreateBlank,
+                                onResumeRecovery = onV2ResumeRecovery,
+                                onDiscardRecovery = onV2DiscardRecovery,
+                            )
+                        }
+                        item {
                             LayoutCatalogV2Section(
                                 state = v2State,
                                 onRefresh = onV2Refresh,
@@ -161,6 +199,88 @@ fun LayoutHallScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun LayoutV2CreatorSection(
+    recoverableDrafts: List<RecoverableDraftSummary>,
+    onCreateBlank: (String?) -> Unit,
+    onResumeRecovery: (String) -> Unit,
+    onDiscardRecovery: (String) -> Unit,
+) {
+    var discardTarget by remember { mutableStateOf<RecoverableDraftSummary?>(null) }
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                stringResource(R.string.ligase_layout_v2_creator_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                stringResource(R.string.ligase_layout_v2_creator_message),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Button(
+                onClick = { onCreateBlank(null) },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.ligase_layout_v2_create_blank))
+            }
+            if (recoverableDrafts.isNotEmpty()) {
+                HorizontalDivider()
+                Text(
+                    stringResource(R.string.ligase_layout_v2_recovery_title),
+                    fontWeight = FontWeight.SemiBold,
+                )
+                recoverableDrafts.forEach { draft ->
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(draft.displayName, fontWeight = FontWeight.Medium)
+                        Text(
+                            DateFormat.getDateTimeInstance(
+                                DateFormat.MEDIUM,
+                                DateFormat.SHORT,
+                            ).format(Date(draft.updatedAtEpochMillis)),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(onClick = { onResumeRecovery(draft.draftId) }) {
+                                Text(stringResource(R.string.ligase_layout_v2_resume))
+                            }
+                            OutlinedButton(onClick = { discardTarget = draft }) {
+                                Text(stringResource(R.string.ligase_layout_v2_discard))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    discardTarget?.let { draft ->
+        AlertDialog(
+            onDismissRequest = { discardTarget = null },
+            title = { Text(stringResource(R.string.ligase_layout_v2_discard_recovery_title)) },
+            text = { Text(stringResource(R.string.ligase_layout_v2_discard_recovery_message)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    discardTarget = null
+                    onDiscardRecovery(draft.draftId)
+                }) { Text(stringResource(R.string.ligase_layout_v2_discard)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { discardTarget = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
     }
 }
 
