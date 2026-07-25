@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,9 +30,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -61,10 +57,8 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.sp
 import com.limelight.R
 import com.limelight.grid.assets.CachedAppAssetLoader
 import com.limelight.ligase.feature.library.data.dto.LigaseResolutionDto
@@ -80,12 +74,13 @@ import com.limelight.ligase.feature.layout.presentation.LayoutSaveNavigation
 import com.limelight.ligase.feature.layout.presentation.layoutSaveNavigation
 import com.limelight.ligase.feature.layout.ui.LayoutEditorScreen
 import com.limelight.ligase.feature.layout.ui.LayoutHallScreen
+import com.limelight.ligase.feature.settings.presentation.SettingsUiState
+import com.limelight.ligase.feature.settings.ui.SettingsScreen
 import com.limelight.ligase.library.LigaseLibraryPage
 import com.limelight.ligase.library.LibraryConnectivity
 import com.limelight.ligase.library.ManualLibraryOrderDraft
 import com.limelight.ligase.library.ManualLibrarySortActionState
 import com.limelight.ligase.library.ManualLibrarySortError
-import com.limelight.ligase.library.messageResource
 import com.limelight.ligase.input.LigaseInputCategory
 import com.limelight.ligase.input.LigaseInputDevice
 import com.limelight.ligase.input.LigaseInputPage
@@ -447,13 +442,15 @@ fun LigaseRoot(
                                     }
                                 },
                             )
-                            LigasePage.SETTINGS -> SettingsPage(
-                                selectedInput = selectedInput ?: InputDeviceMode.TOUCH,
-                                themeMode = themeMode,
-                                languageMode = languageMode,
-                                globalResolution = libraryGlobalResolution,
-                                hdrState = libraryHdrState,
-                                canOperate = libraryCanOperate && libraryOnline,
+                            LigasePage.SETTINGS -> SettingsScreen(
+                                state = SettingsUiState(
+                                    selectedInput = selectedInput ?: InputDeviceMode.TOUCH,
+                                    themeMode = themeMode,
+                                    languageMode = languageMode,
+                                    globalResolution = libraryGlobalResolution,
+                                    hdrState = libraryHdrState,
+                                    canOperate = libraryCanOperate && libraryOnline,
+                                ),
                                 onOpenInput = {
                                     navigateToMainPage(LigasePage.INPUT)
                                 },
@@ -682,276 +679,6 @@ internal fun LigasePageScaffold(
     ) { padding ->
         content(Modifier.padding(padding))
     }
-}
-
-@Composable
-private fun SettingsPage(
-    selectedInput: InputDeviceMode,
-    themeMode: LigaseThemeMode,
-    languageMode: LigaseLanguageMode,
-    globalResolution: LigaseResolutionDto?,
-    hdrState: LibraryHdrState,
-    canOperate: Boolean,
-    onOpenInput: () -> Unit,
-    onThemeSelected: (LigaseThemeMode) -> Unit,
-    onLanguageSelected: (LigaseLanguageMode) -> Unit,
-    onGlobalResolutionClick: () -> Unit,
-    onAdvancedSettings: () -> Unit,
-) {
-    LigasePageScaffold(stringResource(R.string.ligase_settings_title)) { pageModifier ->
-        val bottomPadding = ligaseNavigationContentBottomPadding()
-        LazyColumn(
-            modifier = pageModifier.fillMaxSize(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                start = 20.dp,
-                top = 20.dp,
-                end = 20.dp,
-                bottom = bottomPadding,
-            ),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            item {
-                SectionTitle(R.string.ligase_settings_input_title)
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(enabled = canOperate, onClick = onOpenInput),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    ),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(20.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_ligase_touch),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                        Column(Modifier.padding(start = 16.dp)) {
-                            Text(
-                                text = stringResource(inputTitle(selectedInput)),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                            )
-                            Text(
-                                text = stringResource(R.string.ligase_settings_input_summary),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-            }
-            item {
-                Spacer(Modifier.height(8.dp))
-                SectionTitle(R.string.ligase_streaming_settings_title)
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            enabled = canOperate && globalResolution != null,
-                            onClick = onGlobalResolutionClick,
-                        ),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        contentColor = if (canOperate && globalResolution != null) {
-                            MaterialTheme.colorScheme.onSurface
-                        } else {
-                            LigaseSemanticTheme.colors.disabled
-                        },
-                    ),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(20.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_ligase_monitor),
-                            contentDescription = null,
-                            tint = if (globalResolution != null) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                LigaseSemanticTheme.colors.disabled
-                            },
-                        )
-                        Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(start = 16.dp),
-                        ) {
-                            Text(
-                                text = stringResource(R.string.ligase_global_resolution),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                            )
-                            Text(
-                                text = globalResolution?.label
-                                    ?: stringResource(R.string.ligase_sync_unavailable_short),
-                                color = if (globalResolution != null) {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                } else {
-                                    LigaseSemanticTheme.colors.disabled
-                                },
-                            )
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                text = stringResource(hdrState.reason.messageResource()),
-                                color = if (globalResolution != null) {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                } else {
-                                    LigaseSemanticTheme.colors.disabled
-                                },
-                                style = MaterialTheme.typography.labelMedium,
-                            )
-                        }
-                    }
-                }
-            }
-            item {
-                Spacer(Modifier.height(8.dp))
-                SectionTitle(R.string.ligase_settings_appearance_title)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    ThemeChoice(
-                        mode = LigaseThemeMode.SYSTEM,
-                        selected = themeMode == LigaseThemeMode.SYSTEM,
-                        label = R.string.ligase_theme_system,
-                        onClick = onThemeSelected,
-                    )
-                    ThemeChoice(
-                        mode = LigaseThemeMode.LIGHT,
-                        selected = themeMode == LigaseThemeMode.LIGHT,
-                        label = R.string.ligase_theme_light,
-                        onClick = onThemeSelected,
-                    )
-                    ThemeChoice(
-                        mode = LigaseThemeMode.DARK,
-                        selected = themeMode == LigaseThemeMode.DARK,
-                        label = R.string.ligase_theme_dark,
-                        onClick = onThemeSelected,
-                    )
-                }
-            }
-            item {
-                Spacer(Modifier.height(8.dp))
-                SectionTitle(R.string.ligase_settings_language_title)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    LanguageChoice(
-                        mode = LigaseLanguageMode.SYSTEM,
-                        selected = languageMode == LigaseLanguageMode.SYSTEM,
-                        label = R.string.ligase_language_system,
-                        onClick = onLanguageSelected,
-                    )
-                    LanguageChoice(
-                        mode = LigaseLanguageMode.SIMPLIFIED_CHINESE,
-                        selected = languageMode == LigaseLanguageMode.SIMPLIFIED_CHINESE,
-                        label = R.string.ligase_language_chinese,
-                        onClick = onLanguageSelected,
-                    )
-                    LanguageChoice(
-                        mode = LigaseLanguageMode.ENGLISH,
-                        selected = languageMode == LigaseLanguageMode.ENGLISH,
-                        label = R.string.ligase_language_english,
-                        onClick = onLanguageSelected,
-                    )
-                }
-            }
-            item {
-                Spacer(Modifier.height(8.dp))
-                HorizontalDivider()
-                Spacer(Modifier.height(18.dp))
-                SectionTitle(R.string.ligase_advanced_title)
-                Text(
-                    text = stringResource(R.string.ligase_advanced_summary),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(12.dp))
-                Button(
-                    onClick = onAdvancedSettings,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(18.dp),
-                ) {
-                    Text(stringResource(R.string.ligase_advanced_action))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RowScope.ThemeChoice(
-    mode: LigaseThemeMode,
-    selected: Boolean,
-    @StringRes label: Int,
-    onClick: (LigaseThemeMode) -> Unit,
-) {
-    FilterChip(
-        selected = selected,
-        onClick = { onClick(mode) },
-        label = {
-            Text(
-                text = stringResource(label),
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-                fontSize = 14.sp,
-            )
-        },
-        colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = LigaseSemanticTheme.colors.selected,
-            selectedLabelColor = LigaseSemanticTheme.colors.textPrimary,
-            selectedLeadingIconColor = LigaseSemanticTheme.colors.brandPrimary,
-            disabledLabelColor = LigaseSemanticTheme.colors.disabled,
-        ),
-        modifier = Modifier.weight(1f),
-    )
-}
-
-@Composable
-private fun RowScope.LanguageChoice(
-    mode: LigaseLanguageMode,
-    selected: Boolean,
-    @StringRes label: Int,
-    onClick: (LigaseLanguageMode) -> Unit,
-) {
-    FilterChip(
-        selected = selected,
-        onClick = { onClick(mode) },
-        label = {
-            Text(
-                text = stringResource(label),
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-                fontSize = 14.sp,
-            )
-        },
-        colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = LigaseSemanticTheme.colors.selected,
-            selectedLabelColor = LigaseSemanticTheme.colors.textPrimary,
-            selectedLeadingIconColor = LigaseSemanticTheme.colors.brandPrimary,
-            disabledLabelColor = LigaseSemanticTheme.colors.disabled,
-        ),
-        modifier = Modifier.weight(1f),
-    )
-}
-
-@Composable
-private fun SectionTitle(@StringRes text: Int) {
-    Text(
-        text = stringResource(text),
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier.padding(bottom = 10.dp),
-    )
 }
 
 @StringRes
