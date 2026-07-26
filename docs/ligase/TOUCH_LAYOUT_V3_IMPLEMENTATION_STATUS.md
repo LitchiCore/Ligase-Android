@@ -42,6 +42,10 @@ read only by tests.
 - the single typed resize policy used by preview and persisted actions:
   keyboard/mouse circles use the dominant drag axis and always read back as a
   square, while rectangle shapes retain independent width and height;
+- the session-owned opacity mutation accepts only the frozen `0..1000`
+  permille range, publishes immutable authoritative readback through both
+  Workspace and Activity owners, and persists through journal and formal
+  generation save/readback;
 - the atomic keyboard-key batch seam, including canonical key order, bounded
   cardinality, deterministic center stack/IDs/layers, and persisted
   `nextKeyboardBatchOrdinal`.

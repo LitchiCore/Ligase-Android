@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.limelight.ligase.feature.input.layout.v3.domain.*
 import com.limelight.ligase.feature.input.layout.v3.editor.LayoutV3EditorPhase
 import com.limelight.ligase.feature.input.layout.v3.editor.LayoutV3EditorExitCode
+import com.limelight.ligase.feature.input.layout.v3.editor.LayoutV3EditorIssue
 import com.limelight.ligase.feature.input.layout.v3.editor.LayoutV3EditorLaunchMode
 import org.junit.Assert.*
 import org.junit.After
@@ -72,6 +73,20 @@ class LayoutV3EditorWorkspaceViewModelTest {
                 summary.variants.single().variantId,
             )!!.mode,
         )
+    }
+
+    @Test
+    fun workspaceOpacityActionPublishesTypedRejectionWithoutWriting() {
+        val owner = LayoutV3EditorWorkspaceViewModel(application)
+        owner.setOpacityPermille(
+            "10000000-0000-0000-0000-000000000099",
+            500,
+        )
+        assertEquals(
+            LayoutV3EditorIssue.NO_ACTIVE_DRAFT,
+            owner.state.value.lastAction?.issue,
+        )
+        assertNull(owner.state.value.editor.draft)
     }
 
     private fun cleanup() {

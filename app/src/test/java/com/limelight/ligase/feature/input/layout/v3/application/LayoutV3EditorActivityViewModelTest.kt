@@ -136,6 +136,22 @@ class LayoutV3EditorActivityViewModelTest {
         owner.closeForTest()
     }
 
+    @Test
+    fun opacityActionPublishesAuthoritativeReadbackAndDoesNotReviveStaleGesture() {
+        val owner = newOwner()
+        owner.addElement(ControlKind.SOFT_KEYBOARD)
+        val element = owner.state.value.editor.draft!!.elements.single()
+        val token = (owner.beginGesture(element.elementId) as LayoutV3GestureStartResult.Ready).token
+        assertEquals(LayoutV3EditResult.Applied, owner.cancelGesture(token))
+
+        owner.setOpacityPermille(element.elementId, 425)
+        assertEquals(425, owner.state.value.editor.draft!!.elements.single().opacityPermille)
+        val stale = owner.commitMove(token, 20, 30) as LayoutV3EditResult.Rejected
+        assertEquals(LayoutV3EditorIssue.STALE_GESTURE, stale.issue)
+        assertEquals(425, owner.state.value.editor.draft!!.elements.single().opacityPermille)
+        owner.closeForTest()
+    }
+
     private fun newOwner(): LayoutV3EditorActivityViewModel {
         val owner = LayoutV3EditorActivityViewModel(
             application,

@@ -172,6 +172,8 @@ class LayoutV3EditorActivityViewModel internal constructor(
     ) = publish(session.setAnchors(elementId, horizontal, vertical))
     fun setZOrder(elementId: String, zOrder: Int) =
         publish(session.setZOrder(elementId, zOrder))
+    fun setOpacityPermille(elementId: String, opacityPermille: Int) =
+        publish(session.setOpacityPermille(elementId, opacityPermille))
     fun deleteElement(elementId: String) = publish(session.deleteElement(elementId))
     fun updateProperties(elementId: String, properties: LayoutV3EditableProperties) =
         publish(session.updateProperties(elementId, properties))

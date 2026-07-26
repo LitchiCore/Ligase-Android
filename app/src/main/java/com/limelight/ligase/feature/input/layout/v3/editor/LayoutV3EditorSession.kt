@@ -235,6 +235,18 @@ class LayoutV3EditorSession(
         return replaceElements(reordered.mapIndexed { index, element -> element.copy(zOrder = index) })
     }
 
+    fun setOpacityPermille(
+        elementId: String,
+        opacityPermille: Int,
+    ): LayoutV3EditResult {
+        if (opacityPermille !in MIN_OPACITY_PERMILLE..MAX_OPACITY_PERMILLE) {
+            return reject(LayoutV3EditorIssue.INVALID_OPACITY, elementId)
+        }
+        return updateElement(elementId) { current ->
+            current.copy(opacityPermille = opacityPermille)
+        }
+    }
+
     fun deleteElement(elementId: String): LayoutV3EditResult {
         val variant = selectedVariant() ?: return reject(LayoutV3EditorIssue.NO_ACTIVE_DRAFT)
         val element = variant.elements.firstOrNull { it.elementId == elementId }
@@ -724,6 +736,8 @@ class LayoutV3EditorSession(
 
     private companion object {
         const val JOURNAL_DEBOUNCE_MILLIS = 350L
+        const val MIN_OPACITY_PERMILLE = 0
+        const val MAX_OPACITY_PERMILLE = 1000
         val EDITABLE_KINDS = setOf(
             ControlKind.KEYBOARD, ControlKind.MOUSE, ControlKind.ANALOG,
             ControlKind.DPAD, ControlKind.SOFT_KEYBOARD,

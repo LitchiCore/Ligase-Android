@@ -84,6 +84,64 @@ class LayoutV3EditorSessionTest {
         session.close()
     }
 
+    @Test
+    fun opacityUsesFrozenRangeAndSurvivesJournalAndFormalReadback() {
+        val session = session()
+        activate(session)
+        val element = session.state.draft!!.elements.first { it.kind == ControlKind.KEYBOARD }
+        val propertiesBefore = element.editableProperties
+
+        assertEquals(LayoutV3EditResult.Applied, session.setOpacityPermille(element.elementId, 0))
+        assertEquals(LayoutV3EditResult.Applied, session.setOpacityPermille(element.elementId, 1000))
+        assertEquals(LayoutV3EditResult.Applied, session.setOpacityPermille(element.elementId, 375))
+        val after = session.state.draft!!.elements.first { it.elementId == element.elementId }
+        assertEquals(375, after.opacityPermille)
+        assertEquals(propertiesBefore, after.editableProperties)
+
+        assertEquals(LayoutV3JournalWriteResult.SAVED, session.flushJournal())
+        val draftId = session.state.recoverableDrafts.single().draftId
+        val recovered = session()
+        assertEquals(LayoutV3EditResult.Applied, recovered.resumeRecoverableDraft(draftId))
+        assertEquals(375, recovered.state.draft!!.elements.first {
+            it.elementId == element.elementId
+        }.opacityPermille)
+
+        val saved = recovered.saveDraft() as LayoutV3SaveResult.Saved
+        val generation = requireNotNull(
+            LayoutV3GenerationRepository(context).read(saved.layoutId, saved.revision),
+        )
+        val document = (TouchLayoutV3ContentVerifier.verify(generation.artifact) as
+            LayoutV3ContentVerificationResult.Verified).content.document
+        assertEquals(375, document.variants.single().elements.first {
+            it.elementId == element.elementId
+        }.opacityPermille)
+        session.close()
+        recovered.close()
+    }
+
+    @Test
+    fun invalidOrUnknownOpacityFailsClosedWithoutMutation() {
+        val session = session()
+        activate(session)
+        val element = session.state.draft!!.elements.first { it.kind == ControlKind.KEYBOARD }
+        val before = session.state.draft
+
+        listOf(-1, 1001).forEach { invalid ->
+            val rejected = session.setOpacityPermille(element.elementId, invalid) as
+                LayoutV3EditResult.Rejected
+            assertEquals(LayoutV3EditorIssue.INVALID_OPACITY, rejected.issue)
+            assertEquals(element.elementId, rejected.elementId)
+            assertEquals(before, session.state.draft)
+        }
+        val unknown = session.setOpacityPermille(
+            "10000000-0000-0000-0000-000000000099",
+            500,
+        ) as LayoutV3EditResult.Rejected
+        assertEquals(LayoutV3EditorIssue.UNKNOWN_ELEMENT, unknown.issue)
+        assertEquals(before, session.state.draft)
+        session.close()
+    }
+
     private fun session(): LayoutV3EditorSession {
         val ids = ArrayDeque(listOf(
             "10000000-0000-0000-0000-000000000001",
