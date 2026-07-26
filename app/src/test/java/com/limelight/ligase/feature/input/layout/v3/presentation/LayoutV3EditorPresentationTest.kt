@@ -202,6 +202,30 @@ class LayoutV3EditorPresentationTest {
     }
 
     @Test
+    fun `changing keyboard description preserves all other typed fields`() {
+        val original = LayoutV3EditableProperties.Keyboard(
+            inputCode = InputCode(InputCodeNamespace.ANDROID_KEY_CODE, 51),
+            appearance = Appearance(
+                label = "W",
+                description = "",
+                shape = "circle",
+                showPhysicalKeyNames = true,
+            ),
+            trigger = Trigger.TIMED_HOLD,
+            timedHoldMs = 400,
+        )
+
+        val changed = original.withEditorDescription("Move forward")
+
+        assertEquals(
+            original.copy(
+                appearance = original.appearance.copy(description = "Move forward"),
+            ),
+            changed,
+        )
+    }
+
+    @Test
     fun `changing mouse shape preserves button trigger and appearance metadata`() {
         val original = LayoutV3EditableProperties.Mouse(
             button = "secondary",

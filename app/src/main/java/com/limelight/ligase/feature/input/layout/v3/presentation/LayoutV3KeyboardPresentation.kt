@@ -124,6 +124,11 @@ val LAYOUT_V3_ANSI_SELECTABLE_KEYS =
         LAYOUT_V3_ANSI_NAVIGATION_ROWS.flatten() +
         LAYOUT_V3_ANSI_NUMPAD_GRID.map(LayoutV3KeyboardGridPlacement::key)
 
+private val LAYOUT_V3_ANDROID_KEY_LABELS =
+    LAYOUT_V3_ANSI_SELECTABLE_KEYS
+        .mapNotNull { key -> key.inputCode?.let { it to key.label } }
+        .toMap()
+
 const val LAYOUT_V3_KEYBOARD_KEY_GAP_DP = 4f
 const val LAYOUT_V3_KEYBOARD_MIN_KEY_DP = 24f
 const val LAYOUT_V3_KEYBOARD_MAX_KEY_DP = 42f
@@ -169,6 +174,9 @@ fun toggleLayoutV3KeyboardSelection(
     selected: Set<InputCode>,
     key: InputCode,
 ): Set<InputCode> = if (key in selected) selected - key else selected + key
+
+fun layoutV3KeyboardLabel(inputCode: InputCode): String? =
+    LAYOUT_V3_ANDROID_KEY_LABELS[inputCode]
 
 private fun keyboardRow(vararg keys: LayoutV3KeyboardKey) = keys.toList()
 

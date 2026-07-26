@@ -63,7 +63,9 @@ LigaseActivity（composition / Android lifecycle / legacy ABI bridge）
   Hall不读取路径、raw、hash或文件名。卡片可继续编辑，但不宣称runtime可执行。
 - 编辑器的“添加键盘按键”由前端真实键盘浮层收集多选结果，并仅向 application
   owner 提交一次 `Set<InputCode>`；中心堆叠、canonical 顺序、UUID、z-order 与
-  journal 原子性仍由 v3 editor session 唯一负责。Host 下载、publish 与
+  journal 原子性仍由 v3 editor session 唯一负责。编辑器通过 canonical
+  `InputCode` 投影真实键名，未知 code 只显示通用安全标签；可选功能说明写回既有
+  typed `Appearance.description`，不建立 UI sidecar。Host 下载、publish 与
   runtime/export/share 不在此能力内。
 
 ### 黑色横屏编辑器

@@ -1260,6 +1260,9 @@
     <string name="ligase_layout_v3_keyboard_code">输入 %1$s · %2$d</string>
     <string name="ligase_layout_v3_mouse_button">鼠标按键：%1$s</string>
     <string name="ligase_layout_v3_soft_keyboard_summary">打开设备软键盘。</string>
+    <string name="ligase_layout_v3_description_label">功能说明（可选）</string>
+    <string name="ligase_layout_v3_description_help">启用功能说明时随控件显示；留空表示不显示说明。</string>
+    <string name="ligase_layout_v3_apply_description">应用说明</string>
     <string name="ligase_layout_v3_keep_draft_leave">保留草稿并离开</string>
     <string name="ligase_layout_v3_resize_handle">缩放%1$s</string>
     <string name="ligase_layout_v3_handoff_failed">无法安全打开这份草稿。请返回布局大厅后重试。</string>

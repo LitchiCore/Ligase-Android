@@ -1274,6 +1274,9 @@
     <string name="ligase_layout_v3_keyboard_code">Input %1$s · %2$d</string>
     <string name="ligase_layout_v3_mouse_button">Mouse button: %1$s</string>
     <string name="ligase_layout_v3_soft_keyboard_summary">Opens the device soft keyboard.</string>
+    <string name="ligase_layout_v3_description_label">Function description (optional)</string>
+    <string name="ligase_layout_v3_description_help">Shown with this control when function descriptions are enabled. Leave empty for no description.</string>
+    <string name="ligase_layout_v3_apply_description">Apply description</string>
     <string name="ligase_layout_v3_keep_draft_leave">Keep draft and leave</string>
     <string name="ligase_layout_v3_resize_handle">Resize %1$s</string>
     <string name="ligase_layout_v3_handoff_failed">This draft could not be opened safely. Return to the layout hall and try again.</string>

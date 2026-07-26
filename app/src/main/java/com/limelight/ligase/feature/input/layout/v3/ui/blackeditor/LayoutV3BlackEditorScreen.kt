@@ -353,7 +353,12 @@ private fun BlackTouchElement(
         resizedRect.width,
         resizedRect.height,
     )
-    val label = blackEditorKindLabel(element.kind)
+    val label = when (val properties = element.editableProperties) {
+        is LayoutV3EditableProperties.Keyboard ->
+            layoutV3KeyboardLabel(properties.inputCode)
+                ?: blackEditorKindLabel(element.kind)
+        else -> blackEditorKindLabel(element.kind)
+    }
     val semanticsText = stringResource(
         R.string.ligase_layout_v3_element_geometry,
         element.resolvedRect.x,
@@ -902,18 +907,12 @@ private fun LayoutV3KeyboardKeyCap(
             .clickable { onToggle(code) },
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                Text(
-                    key.label,
-                    color = Color.White,
-                    style = MaterialTheme.typography.labelSmall,
-                    maxLines = 1,
-                )
-                if (selected) Text(" ✓", color = Color.White)
-            }
+            Text(
+                key.label,
+                color = Color.White,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+            )
         }
     }
 }
@@ -1062,6 +1061,16 @@ private fun BlackPropertySummary(
                 onUpdate(element.elementId, p.copy(trigger = next))
             }
             BlackShapeSelector(element, p, onUpdate)
+            BlackDescriptionEditor(
+                elementId = element.elementId,
+                description = p.appearance.description,
+                onApply = { description ->
+                    onUpdate(
+                        element.elementId,
+                        p.withEditorDescription(description),
+                    )
+                },
+            )
         }
         is LayoutV3EditableProperties.Mouse -> {
             Text(
@@ -1073,6 +1082,16 @@ private fun BlackPropertySummary(
                 onUpdate(element.elementId, p.copy(trigger = next))
             }
             BlackShapeSelector(element, p, onUpdate)
+            BlackDescriptionEditor(
+                elementId = element.elementId,
+                description = p.appearance.description,
+                onApply = { description ->
+                    onUpdate(
+                        element.elementId,
+                        p.withEditorDescription(description),
+                    )
+                },
+            )
         }
         is LayoutV3EditableProperties.Analog ->
             Text(p.diagonalPolicy, color = Color.White.copy(alpha = 0.8f))
@@ -1084,6 +1103,33 @@ private fun BlackPropertySummary(
                 color = Color.White.copy(alpha = 0.8f),
             )
         null -> Unit
+    }
+}
+
+@Composable
+private fun BlackDescriptionEditor(
+    elementId: String,
+    description: String,
+    onApply: (String) -> Unit,
+) {
+    var draft by rememberSaveable(elementId, description) {
+        mutableStateOf(description)
+    }
+    OutlinedTextField(
+        value = draft,
+        onValueChange = { draft = it },
+        label = { Text(stringResource(R.string.ligase_layout_v3_description_label)) },
+        supportingText = {
+            Text(stringResource(R.string.ligase_layout_v3_description_help))
+        },
+        minLines = 2,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    Button(
+        onClick = { onApply(draft) },
+        enabled = draft != description,
+    ) {
+        Text(stringResource(R.string.ligase_layout_v3_apply_description))
     }
 }
 

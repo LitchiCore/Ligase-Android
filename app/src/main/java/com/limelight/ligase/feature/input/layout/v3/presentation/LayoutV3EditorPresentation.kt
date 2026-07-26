@@ -72,6 +72,16 @@ fun LayoutV3EditableProperties.withEditorShape(
     else -> this
 }
 
+fun LayoutV3EditableProperties.withEditorDescription(
+    description: String,
+): LayoutV3EditableProperties = when (this) {
+    is LayoutV3EditableProperties.Keyboard ->
+        copy(appearance = appearance.copy(description = description))
+    is LayoutV3EditableProperties.Mouse ->
+        copy(appearance = appearance.copy(description = description))
+    else -> this
+}
+
 fun layoutV3EditorShape(protocolValue: String): LayoutV3EditorShape? =
     LayoutV3EditorShape.entries.firstOrNull { it.protocolValue == protocolValue }
 

@@ -32,6 +32,28 @@ class LayoutV3KeyboardPresentationTest {
     }
 
     @Test
+    fun `known input codes resolve to canonical key labels and unknown stays unresolved`() {
+        assertEquals(
+            "W",
+            layoutV3KeyboardLabel(
+                InputCode(InputCodeNamespace.ANDROID_KEY_CODE, 51),
+            ),
+        )
+        assertEquals(
+            "Enter",
+            layoutV3KeyboardLabel(
+                InputCode(InputCodeNamespace.ANDROID_KEY_CODE, 160),
+            ),
+        )
+        assertEquals(
+            null,
+            layoutV3KeyboardLabel(
+                InputCode(InputCodeNamespace.ANDROID_KEY_CODE, 9999),
+            ),
+        )
+    }
+
+    @Test
     fun `keyboard shrinks to available width before horizontal scrolling`() {
         val fittedUnit = layoutV3KeyboardUnitWidthDp(900f)
         assertTrue(fittedUnit in LAYOUT_V3_KEYBOARD_MIN_KEY_DP..LAYOUT_V3_KEYBOARD_MAX_KEY_DP)
