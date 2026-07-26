@@ -91,13 +91,8 @@ fun InputRoute(
                 }
                 InputDeviceMode.TOUCH -> {
                     touchInputItems(
-                        presentation = presentation,
-                        touchLayouts = state.touchLayouts,
                         touchOverlayMode = state.touchOverlayMode,
-                        selectedTouchLayoutId = state.selectedTouchLayoutId,
-                        onTouchLayoutSelected = actions.onTouchLayoutSelected,
                         onTouchOverlayModeChanged = actions.onTouchOverlayModeChanged,
-                        onBrowseLayouts = actions.onBrowseLayouts,
                     )
                 }
             }

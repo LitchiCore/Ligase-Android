@@ -53,10 +53,6 @@ import com.limelight.LimeLog;
 import com.limelight.ligase.LigaseActivity;
 import com.limelight.ligase.feature.stream.infrastructure.StreamBitratePreferences;
 import com.limelight.R;
-import com.limelight.TouchKitLayoutEditorActivity;
-import com.limelight.TouchKitLayoutNames;
-import com.limelight.TouchKitLayoutTransfer;
-import com.limelight.binding.input.virtual_controller.keyboard.KeyBoardControllerConfigurationLoader;
 import com.limelight.binding.video.MediaCodecHelper;
 import com.limelight.utils.Dialog;
 import com.limelight.utils.FileUriUtils;
@@ -384,15 +380,6 @@ public class StreamSettings extends AppCompatActivity {
             configureCollapsibleCategories(screen);
             applyTouchKitCategoryOrder();
 
-            Preference layoutEditor = findPreference("touchkit_layout_editor");
-            if (layoutEditor != null) {
-                layoutEditor.setOnPreferenceClickListener(preference -> {
-                    startActivity(new Intent(requireActivity(), TouchKitLayoutEditorActivity.class));
-                    return true;
-                });
-            }
-
-            configureTouchKitLayoutPreferences();
             configureTouchKitMouseModePreferences();
 
             Preference mouseMode = findPreference("mouse_mode_list");
@@ -802,20 +789,6 @@ public class StreamSettings extends AppCompatActivity {
             });
 
             Preference _pref;
-            _pref = findPreference("import_keyboard_file");
-            if (_pref != null) {
-                _pref.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
-                    @Override
-                    public boolean onPreferenceClick(Preference preference) {
-                        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-                        intent.addCategory(Intent.CATEGORY_OPENABLE);
-                        intent.setType("application/json");
-                        startActivityForResult(intent, READ_REQUEST_CODE);
-                        return false;
-                    }
-                });
-            }
-
             _pref = findPreference("import_special_button_file");
             if (_pref != null) {
                 _pref.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
@@ -876,33 +849,6 @@ public class StreamSettings extends AppCompatActivity {
                         } catch (android.content.ActivityNotFoundException ex) {
                             Toast.makeText(context, noEmailClientsMsg, Toast.LENGTH_SHORT).show();
                         }
-                        return false;
-                    }
-                });
-            }
-
-            _pref = findPreference("export_keyboard_file");
-            if (_pref != null) {
-                _pref.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
-                    @Override
-                    public boolean onPreferenceClick(Preference preference) {
-                        File file = new File(requireActivity().getExternalCacheDir(),"export_settings");
-                        if(!file.exists()){
-                            file.mkdir();
-                        }
-                        File file1= getJsonContent(requireActivity(),file);
-                        if(file1==null){
-                            Toast.makeText(requireActivity(),getString(R.string.pref_error_occurred),Toast.LENGTH_SHORT).show();
-                            return false;
-                        }
-                        Uri uri;
-                        Intent intent = new Intent(Intent.ACTION_SEND);
-                        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                        String authority= BuildConfig.APPLICATION_ID+".fileprovider";
-                        uri = FileProvider.getUriForFile(requireActivity(),authority,file1);
-                        intent.putExtra(Intent.EXTRA_STREAM, uri);
-                        intent.setType("application/json");
-                        startActivity(Intent.createChooser(intent,getString(R.string.pref_save_keyboard_profile)));
                         return false;
                     }
                 });
@@ -1024,147 +970,6 @@ public class StreamSettings extends AppCompatActivity {
             }
         }
 
-        private void configureTouchKitLayoutPreferences() {
-            Preference manager = findPreference("touchkit_layout_manager");
-            if (manager != null) {
-                manager.setOnPreferenceClickListener(preference -> {
-                    showTouchKitLayoutManager(manager);
-                    return true;
-                });
-            }
-            Preference transfer = findPreference("touchkit_layout_transfer");
-            if (transfer != null) {
-                transfer.setOnPreferenceClickListener(preference -> {
-                    showTouchKitLayoutTransferDialog();
-                    return true;
-                });
-            }
-        }
-
-        private void showTouchKitLayoutTransferDialog() {
-            String[] actions = {
-                    getString(R.string.touchkit_layout_export_action),
-                    getString(R.string.touchkit_layout_import_action)
-            };
-            new AlertDialog.Builder(requireContext())
-                    .setTitle(R.string.title_touchkit_layout_transfer)
-                    .setItems(actions, (dialog, which) -> {
-                        if (which == 0) {
-                            launchTouchKitLayoutExport();
-                        } else {
-                            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-                            intent.addCategory(Intent.CATEGORY_OPENABLE);
-                            // Huawei's Android 8 document provider reports JSON files as
-                            // application/octet-stream, which makes them impossible to tap
-                            // when filtering for application/json. The importer validates
-                            // the TouchKit signature and contents after selection instead.
-                            intent.setType("*/*");
-                            startActivityForResult(intent, TOUCHKIT_IMPORT_REQUEST_CODE);
-                        }
-                    })
-                    .setNegativeButton(R.string.cancel, null)
-                    .show();
-        }
-
-        private void launchTouchKitLayoutExport() {
-            String layoutId = TouchKitLayoutNames.getDefaultLayout(requireContext());
-            String displayName = layoutId;
-            String[] values = TouchKitLayoutNames.getValues(requireContext());
-            String[] names = TouchKitLayoutNames.getNames(requireContext());
-            for (int i = 0; i < values.length; i++) {
-                if (values[i].equals(layoutId)) {
-                    displayName = names[i];
-                    break;
-                }
-            }
-            String safeName = displayName.replaceAll("[\\\\/:*?\"<>|]", "_");
-            Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-            intent.addCategory(Intent.CATEGORY_OPENABLE);
-            intent.setType("application/json");
-            intent.putExtra(Intent.EXTRA_TITLE, safeName + ".touchkit.json");
-            startActivityForResult(intent, TOUCHKIT_EXPORT_REQUEST_CODE);
-        }
-
-        private void showTouchKitLayoutManager(Preference manager) {
-            String[] values = TouchKitLayoutNames.getValues(requireContext());
-            String[] names = TouchKitLayoutNames.getNames(requireContext());
-            String current = TouchKitLayoutNames.getDefaultLayout(requireContext());
-            int selectedIndex = 0;
-            for (int i = 0; i < values.length; i++) {
-                if (values[i].equals(current)) {
-                    selectedIndex = i;
-                    break;
-                }
-            }
-            int[] selected = { selectedIndex };
-            new AlertDialog.Builder(requireContext())
-                    .setTitle(R.string.title_touchkit_layout_manager)
-                    .setSingleChoiceItems(names, selectedIndex, (dialog, which) -> {
-                        selected[0] = which;
-                        PreferenceManager.getDefaultSharedPreferences(requireContext()).edit()
-                                .putString(TouchKitLayoutNames.DEFAULT_LAYOUT_PREF, values[which])
-                                .putString(KeyBoardControllerConfigurationLoader.OSC_PREFERENCE,
-                                        values[which])
-                                .apply();
-                    })
-                    .setPositiveButton(R.string.touchkit_layout_add_action,
-                            (dialog, which) -> showTouchKitAddLayoutDialog())
-                    .setNeutralButton(R.string.touchkit_layout_delete_action,
-                            (dialog, which) -> showTouchKitDeleteLayoutDialog(
-                                    values[selected[0]], names[selected[0]]))
-                    .setNegativeButton(R.string.touchkit_layout_manager_done, null)
-                    .show();
-        }
-
-        private void showTouchKitAddLayoutDialog() {
-            EditText input = new EditText(requireContext());
-            input.setSingleLine(true);
-            input.setHint(R.string.touchkit_new_layout_name);
-            new AlertDialog.Builder(requireContext())
-                    .setTitle(R.string.title_touchkit_add_layout)
-                    .setView(input)
-                    .setPositiveButton(R.string.keyboard_add, (dialog, which) -> {
-                        String name = input.getText().toString().trim();
-                        if (name.isEmpty()) {
-                            Toast.makeText(requireContext(),
-                                    R.string.profile_manager_name_cannot_be_blank,
-                                    Toast.LENGTH_SHORT).show();
-                            return;
-                        }
-                        String id = TouchKitLayoutNames.add(requireContext(), name);
-                        PreferenceManager.getDefaultSharedPreferences(requireContext()).edit()
-                                .putString(TouchKitLayoutNames.DEFAULT_LAYOUT_PREF, id)
-                                .putString(KeyBoardControllerConfigurationLoader.OSC_PREFERENCE, id)
-                                .apply();
-                        configureTouchKitLayoutPreferences();
-                        Toast.makeText(requireContext(), getString(
-                                R.string.touchkit_layout_added, name), Toast.LENGTH_SHORT).show();
-                    })
-                    .setNegativeButton(R.string.cancel, null)
-                    .show();
-        }
-
-        private void showTouchKitDeleteLayoutDialog(String layoutId, String layoutName) {
-            if (TouchKitLayoutNames.getValues(requireContext()).length <= 1) {
-                Toast.makeText(requireContext(), R.string.touchkit_layout_keep_one,
-                        Toast.LENGTH_SHORT).show();
-                return;
-            }
-            new AlertDialog.Builder(requireContext())
-                    .setTitle(R.string.title_touchkit_delete_layout)
-                    .setMessage(getString(R.string.touchkit_delete_layout_confirm, layoutName))
-                    .setPositiveButton(R.string.touchkit_delete_control, (dialog, which) -> {
-                        if (TouchKitLayoutNames.delete(requireContext(), layoutId)) {
-                            configureTouchKitLayoutPreferences();
-                            Toast.makeText(requireContext(), getString(
-                                    R.string.touchkit_layout_deleted, layoutName),
-                                    Toast.LENGTH_SHORT).show();
-                        }
-                    })
-                    .setNegativeButton(R.string.cancel, null)
-                    .show();
-        }
-
         private void applyTouchKitCategoryOrder() {
             String[] categoryKeys = {
                     "category_video_settings",
@@ -1258,78 +1063,11 @@ public class StreamSettings extends AppCompatActivity {
             }, 500);
         }
 
-        int READ_REQUEST_CODE = 1001;
         int READ_REQUEST_SPECIAL_CODE = 1002;
-        int TOUCHKIT_IMPORT_REQUEST_CODE = 1003;
-        int TOUCHKIT_EXPORT_REQUEST_CODE = 1004;
 
         @Override
         public void onActivityResult(int requestCode, int resultCode, Intent data) {
             super.onActivityResult(requestCode, resultCode, data);
-            if (requestCode == TOUCHKIT_IMPORT_REQUEST_CODE
-                    && resultCode == Activity.RESULT_OK && data != null && data.getData() != null) {
-                try {
-                    String json = FileUriUtils.openUriForRead(requireContext(), data.getData());
-                    TouchKitLayoutTransfer.ImportResult imported = TouchKitLayoutTransfer.importLayout(
-                            requireContext(), json, getString(R.string.touchkit_imported_layout_name));
-                    configureTouchKitLayoutPreferences();
-                    Toast.makeText(requireContext(), getString(
-                            R.string.touchkit_layout_imported, imported.displayName),
-                            Toast.LENGTH_SHORT).show();
-                } catch (Exception e) {
-                    Log.e("TouchKitTransfer", "Unable to import layout", e);
-                    Toast.makeText(requireContext(), R.string.touchkit_layout_import_failed,
-                            Toast.LENGTH_LONG).show();
-                }
-                return;
-            }
-
-            if (requestCode == TOUCHKIT_EXPORT_REQUEST_CODE
-                    && resultCode == Activity.RESULT_OK && data != null && data.getData() != null) {
-                try {
-                    String layoutId = TouchKitLayoutNames.getDefaultLayout(requireContext());
-                    String json = TouchKitLayoutTransfer.exportLayout(requireContext(), layoutId);
-                    try (OutputStream output = requireContext().getContentResolver()
-                            .openOutputStream(data.getData(), "wt")) {
-                        if (output == null) throw new IOException("Unable to open destination");
-                        output.write(json.getBytes(StandardCharsets.UTF_8));
-                    }
-                    Toast.makeText(requireContext(), R.string.touchkit_layout_exported,
-                            Toast.LENGTH_SHORT).show();
-                } catch (Exception e) {
-                    Log.e("TouchKitTransfer", "Unable to export layout", e);
-                    Toast.makeText(requireContext(), R.string.touchkit_layout_export_failed,
-                            Toast.LENGTH_LONG).show();
-                }
-                return;
-            }
-            if (requestCode == READ_REQUEST_CODE && resultCode == Activity.RESULT_OK && data.getData() != null) {
-                try {
-                    Uri uri = data.getData();
-                    String json = FileUriUtils.openUriForRead(getActivity(), uri);
-                    if (TextUtils.isEmpty(json)) {
-                        Toast.makeText(getActivity(), getString(R.string.pref_empty_file), Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    String name = getPrefs().getString(KeyBoardControllerConfigurationLoader.OSC_PREFERENCE, KeyBoardControllerConfigurationLoader.OSC_PREFERENCE_VALUE);
-                    SharedPreferences.Editor prefEditor = requireActivity().getSharedPreferences(name, Activity.MODE_PRIVATE).edit();
-                    JSONObject object = new JSONObject(json);
-                    Iterator it = object.keys();
-                    prefEditor.clear();
-                    while (it.hasNext()) {
-                        String key = (String) it.next();// 获得key
-                        String value = object.getString(key);// 获得value
-                        prefEditor.putString(key, value);
-                    }
-                    prefEditor.apply();
-                    Toast.makeText(getActivity(), getString(R.string.pref_import_success), Toast.LENGTH_SHORT).show();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    Toast.makeText(getActivity(), getString(R.string.pref_error_occurred) + e.getMessage(), Toast.LENGTH_SHORT).show();
-                }
-                return;
-            }
-
             if (requestCode == READ_REQUEST_SPECIAL_CODE && resultCode == Activity.RESULT_OK && data.getData() != null) {
                 try {
                     Uri uri = data.getData();
@@ -1355,23 +1093,7 @@ public class StreamSettings extends AppCompatActivity {
                 DialogFragment dialogFragment = ConfirmDeleteOscPreference.DialogFragmentCompat.newInstance(preference.getKey());
                 dialogFragment.setTargetFragment(this, 0);
                 dialogFragment.show(getFragmentManager(), null);
-            } else if (preference instanceof ConfirmDeleteKeyboardPreference) {
-                DialogFragment dialogFragment = ConfirmDeleteKeyboardPreference.DialogFragmentCompat.newInstance(preference.getKey());
-                dialogFragment.setTargetFragment(this, 0);
-                dialogFragment.show(getFragmentManager(), null);
             } else super.onDisplayPreferenceDialog(preference);
-        }
-
-        private File getJsonContent(Context context,File file){
-            String name = getPrefs().getString(KeyBoardControllerConfigurationLoader.OSC_PREFERENCE, KeyBoardControllerConfigurationLoader.OSC_PREFERENCE_VALUE);
-            SharedPreferences pref = context.getSharedPreferences(name, Activity.MODE_PRIVATE);
-            Map<String,?> map = pref.getAll();
-            File file1= new File(file,name+".json");
-            String jsonStr=new Gson().toJson(map);
-            if(!FileUriUtils.writerFileString(file1,jsonStr)){
-                return null;
-            }
-            return file1;
         }
 
         //获取所有设置项配置文件

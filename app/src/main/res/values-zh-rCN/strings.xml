@@ -549,18 +549,11 @@
     <string name="summary_touchkit_adjustable_overlay">串流时显示当前按键布局，可独立于云游戏模式开启</string>
     <string name="touchkit_editor_title">悬浮按键编辑器</string>
     <string name="touchkit_editor_title_with_layout">悬浮按键编辑器 · %1$s</string>
-    <string name="title_touchkit_layout_editor">编辑悬浮按键布局</string>
-    <string name="summary_touchkit_layout_editor">拖动控件可移动；轻点控件可修改大小、外观和触发方式</string>
-    <string name="touchkit_layout_editor_hint">拖动可移动，轻点可编辑；编辑器不会向远端发送输入</string>
     <string name="title_touchkit_show_descriptions">显示功能说明</string>
     <string name="summary_touchkit_show_descriptions">显示通过“按键=说明”配置的说明文字</string>
     <string name="title_touchkit_overlay_opacity">全局灰底不透明度</string>
     <string name="summary_touchkit_overlay_opacity">统一调整按键灰底和外边框；文字与图标不受影响</string>
     <string name="title_touchkit_default_layout">默认按键布局</string>
-    <string name="title_touchkit_layout_manager">按键布局</string>
-    <string name="summary_touchkit_layout_manager">选择、新建或删除布局；每个游戏会记住最后使用的布局</string>
-    <string name="title_touchkit_layout_transfer">导入与导出布局</string>
-    <string name="summary_touchkit_layout_transfer">将当前布局导出为 JSON 文件，或把文件导入为一套新布局</string>
     <string name="touchkit_layout_export_action">导出当前布局</string>
     <string name="touchkit_layout_import_action">导入布局</string>
     <string name="touchkit_imported_layout_name">导入的布局</string>
@@ -568,7 +561,6 @@
     <string name="touchkit_layout_exported">布局已导出</string>
     <string name="touchkit_layout_import_failed">该文件不是有效的 TouchKit 布局</string>
     <string name="touchkit_layout_export_failed">无法导出该布局</string>
-    <string name="touchkit_layout_manager_done">完成</string>
     <string name="touchkit_layout_add_action">新增</string>
     <string name="touchkit_layout_delete_action">删除</string>
     <string name="touchkit_combo_input_title">组合键</string>
@@ -866,7 +858,6 @@
     <string name="ligase_gamepad_behavior">使用实体手柄输入，默认隐藏触控控件。</string>
     <string name="ligase_keyboard_mouse_behavior">使用实体键盘和鼠标输入，不显示触控布局。</string>
     <string name="ligase_touch_behavior">触屏输入使用下方选择的全局 TouchKit 布局。</string>
-    <string name="ligase_global_touch_layout">全局触控布局</string>
     <string name="ligase_touch_overlays">屏幕控件</string>
     <string name="ligase_touch_overlays_summary">为触屏串流选择一种屏幕控件。</string>
     <string name="ligase_virtual_gamepad">虚拟手柄</string>
@@ -880,7 +871,6 @@
     <string name="ligase_touch_behavior_gamepad">串流时只显示虚拟手柄。</string>
     <string name="ligase_touch_behavior_keyboard">串流时只显示所选 TouchKit 虚拟键盘布局。</string>
     <string name="ligase_touch_behavior_gestures">串流时不显示屏幕控件，只保留触摸手势。</string>
-    <string name="ligase_global_touch_layout_summary">尚未精确绑定游戏布局时，Ligase 会使用这个稳定 layout ID；不会根据游戏名称或数字 appid 猜测。</string>
     <string name="ligase_touch_layout_available">本设备可用</string>
     <string name="ligase_touch_layout_missing">已保存的布局“%1$s”已不存在。开始串流前请重新选择。</string>
     <string name="ligase_touch_layout_missing_short">这个布局已不存在</string>

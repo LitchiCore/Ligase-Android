@@ -590,18 +590,11 @@
     <string name="summary_touchkit_adjustable_overlay">Show the current button layout while streaming; works independently of cloud gaming mode</string>
     <string name="touchkit_editor_title">Key overlay editor</string>
     <string name="touchkit_editor_title_with_layout">Key overlay editor · %1$s</string>
-    <string name="title_touchkit_layout_editor">Edit button layout</string>
-    <string name="summary_touchkit_layout_editor">Drag controls to move them; tap to edit size, appearance, and trigger behavior</string>
-    <string name="touchkit_layout_editor_hint">Drag to move a control. Tap to edit it. The editor never sends input to the host.</string>
     <string name="title_touchkit_show_descriptions">Show function descriptions</string>
     <string name="summary_touchkit_show_descriptions">Show descriptions configured with KEY=description</string>
     <string name="title_touchkit_overlay_opacity">Global background opacity</string>
     <string name="summary_touchkit_overlay_opacity">Adjust gray backgrounds and outlines; text and icons are unaffected</string>
     <string name="title_touchkit_default_layout">Default button layout</string>
-    <string name="title_touchkit_layout_manager">Button layouts</string>
-    <string name="summary_touchkit_layout_manager">Select, create, or delete layouts; each game remembers the last layout it used</string>
-    <string name="title_touchkit_layout_transfer">Import and export layouts</string>
-    <string name="summary_touchkit_layout_transfer">Export the current layout as JSON, or import a file as a new layout</string>
     <string name="touchkit_layout_export_action">Export current layout</string>
     <string name="touchkit_layout_import_action">Import layout</string>
     <string name="touchkit_imported_layout_name">Imported layout</string>
@@ -609,7 +602,6 @@
     <string name="touchkit_layout_exported">Layout exported</string>
     <string name="touchkit_layout_import_failed">This file is not a valid TouchKit layout</string>
     <string name="touchkit_layout_export_failed">Could not export this layout</string>
-    <string name="touchkit_layout_manager_done">Done</string>
     <string name="touchkit_layout_add_action">Add</string>
     <string name="touchkit_layout_delete_action">Delete</string>
     <string name="touchkit_combo_input_title">Key combination</string>
@@ -880,7 +872,6 @@
     <string name="ligase_gamepad_behavior">Physical controller input is enabled. Touch controls stay hidden by default.</string>
     <string name="ligase_keyboard_mouse_behavior">Physical keyboard and mouse input is enabled. No touch layout is shown.</string>
     <string name="ligase_touch_behavior">Touch input uses the global TouchKit layout selected below.</string>
-    <string name="ligase_global_touch_layout">Global touch layout</string>
     <string name="ligase_touch_overlays">On-screen controls</string>
     <string name="ligase_touch_overlays_summary">Choose one screen-control style for touch streaming.</string>
     <string name="ligase_virtual_gamepad">Virtual gamepad</string>
@@ -894,7 +885,6 @@
     <string name="ligase_touch_behavior_gamepad">Streaming shows only the virtual gamepad.</string>
     <string name="ligase_touch_behavior_keyboard">Streaming shows only the selected TouchKit keyboard layout.</string>
     <string name="ligase_touch_behavior_gestures">Streaming keeps touch gestures without on-screen controls.</string>
-    <string name="ligase_global_touch_layout_summary">This stable layout ID is used for Ligase games that do not yet have an exact game-specific binding.</string>
     <string name="ligase_touch_layout_available">Available on this device</string>
     <string name="ligase_touch_layout_missing">The saved layout “%1$s” is no longer available. Select another layout before streaming.</string>
     <string name="ligase_touch_layout_missing_short">That layout is no longer available</string>

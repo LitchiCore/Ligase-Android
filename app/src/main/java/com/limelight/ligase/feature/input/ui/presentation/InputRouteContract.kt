@@ -3,7 +3,6 @@ package com.limelight.ligase.feature.input.ui.presentation
 import com.limelight.ligase.InputDeviceMode
 import com.limelight.ligase.input.LigaseInputCategory
 import com.limelight.ligase.input.LigaseInputDevice
-import com.limelight.ligase.input.LigaseTouchLayout
 import com.limelight.ligase.input.LigaseTouchOverlayMode
 
 data class InputRouteState(
@@ -13,8 +12,6 @@ data class InputRouteState(
     val selectedGamepadKey: String?,
     val selectedKeyboardKey: String?,
     val selectedMouseKey: String?,
-    val touchLayouts: List<LigaseTouchLayout>,
-    val selectedTouchLayoutId: String?,
     val touchOverlayMode: LigaseTouchOverlayMode,
 )
 
@@ -22,9 +19,7 @@ data class InputRouteActions(
     val onInputSelected: (InputDeviceMode) -> Unit,
     val onInputConfirmed: () -> Unit,
     val onDeviceSelected: (LigaseInputCategory, String) -> Unit,
-    val onTouchLayoutSelected: (String) -> Unit,
     val onTouchOverlayModeChanged: (LigaseTouchOverlayMode) -> Unit,
-    val onBrowseLayouts: () -> Unit,
 )
 
 fun InputRouteState.presentation(): InputPresentation = inputPresentation(
@@ -33,6 +28,4 @@ fun InputRouteState.presentation(): InputPresentation = inputPresentation(
     selectedGamepadKey = selectedGamepadKey,
     selectedKeyboardKey = selectedKeyboardKey,
     selectedMouseKey = selectedMouseKey,
-    touchLayouts = touchLayouts,
-    selectedTouchLayoutId = selectedTouchLayoutId,
 )

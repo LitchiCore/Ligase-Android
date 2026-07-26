@@ -21,11 +21,6 @@ data class LigaseInputDevice(
     val connection: LigaseInputConnection,
 )
 
-data class LigaseTouchLayout(
-    val id: String,
-    val displayName: String,
-)
-
 enum class LigaseTouchOverlayMode(val storedValue: String) {
     TOUCHKIT_KEYBOARD("touchkitKeyboard"),
     VIRTUAL_GAMEPAD("virtualGamepad"),

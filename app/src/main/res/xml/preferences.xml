@@ -17,32 +17,6 @@
             android:title="@string/title_touchkit_cloud_gaming_mode"
             app:iconSpaceReserved="false" />
 
-        <CheckBoxPreference
-            android:defaultValue="false"
-            android:key="checkbox_touchkit_adjustable_overlay"
-            android:summary="@string/summary_touchkit_adjustable_overlay"
-            android:title="@string/title_touchkit_adjustable_overlay"
-            app:iconSpaceReserved="false" />
-
-        <Preference
-            android:key="touchkit_layout_editor"
-            android:summary="@string/summary_touchkit_layout_editor"
-            android:title="@string/title_touchkit_layout_editor"
-            app:iconSpaceReserved="false" />
-
-        <CheckBoxPreference
-            android:defaultValue="true"
-            android:key="checkbox_touchkit_show_descriptions"
-            android:summary="@string/summary_touchkit_show_descriptions"
-            android:title="@string/title_touchkit_show_descriptions"
-            app:iconSpaceReserved="false" />
-
-        <Preference
-            android:key="touchkit_layout_manager"
-            android:summary="@string/summary_touchkit_layout_manager"
-            android:title="@string/title_touchkit_layout_manager"
-            app:iconSpaceReserved="false" />
-
         <ListPreference
                 android:defaultValue="accelerated"
                 android:entries="@array/touchkit_input_mode_names"
@@ -80,30 +54,6 @@
                 app:iconSpaceReserved="false"
                 seekbar:min="-200"
                 seekbar:step="10" />
-
-        <com.limelight.preferences.SeekBarPreference
-                android:defaultValue="100"
-                android:key="seekbar_touchkit_overlay_opacity"
-                android:max="100"
-                android:summary="@string/summary_touchkit_overlay_opacity"
-                android:text="%"
-                android:title="@string/title_touchkit_overlay_opacity"
-                app:iconSpaceReserved="false"
-                seekbar:min="10"
-                seekbar:step="1" />
-
-        <CheckBoxPreference
-                android:defaultValue="false"
-                android:key="checkbox_vibrate_keyboard"
-                android:summary="@string/summary_vibrate_keyboard"
-                android:title="@string/title_checkbox_vibrate_osc"
-                app:iconSpaceReserved="false" />
-
-        <Preference
-            android:key="touchkit_layout_transfer"
-            android:summary="@string/summary_touchkit_layout_transfer"
-            android:title="@string/title_touchkit_layout_transfer"
-            app:iconSpaceReserved="false" />
 
     </PreferenceCategory>
 

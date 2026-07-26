@@ -33,7 +33,6 @@ import com.limelight.ligase.feature.stream.application.StreamBitrateUiState
 import com.limelight.ligase.feature.stream.domain.StreamBitratePresetId
 import com.limelight.ligase.input.LigaseInputCategory
 import com.limelight.ligase.input.LigaseInputDevice
-import com.limelight.ligase.input.LigaseTouchLayout
 import com.limelight.ligase.input.LigaseTouchOverlayMode
 import com.limelight.ligase.library.LibraryConnectivity
 import com.limelight.ligase.library.ManualLibrarySortActionState
@@ -50,8 +49,6 @@ fun LigaseRoot(
     selectedGamepadKey: String?,
     selectedKeyboardKey: String?,
     selectedMouseKey: String?,
-    touchLayouts: List<LigaseTouchLayout>,
-    selectedTouchLayoutId: String?,
     touchOverlayMode: LigaseTouchOverlayMode,
     languageMode: LigaseLanguageMode,
     hosts: List<ComputerDetails>,
@@ -79,7 +76,6 @@ fun LigaseRoot(
     onInputSelected: (InputDeviceMode) -> Unit,
     onInputConfirmed: () -> Unit,
     onInputDeviceSelected: (LigaseInputCategory, String) -> Unit,
-    onTouchLayoutSelected: (String) -> Unit,
     onTouchOverlayModeChanged: (LigaseTouchOverlayMode) -> Unit,
     onThemeSelected: (LigaseThemeMode) -> Unit,
     onLanguageSelected: (LigaseLanguageMode) -> Unit,
@@ -111,8 +107,6 @@ fun LigaseRoot(
     selectedGamepadKey = selectedGamepadKey,
     selectedKeyboardKey = selectedKeyboardKey,
     selectedMouseKey = selectedMouseKey,
-    touchLayouts = touchLayouts,
-    selectedTouchLayoutId = selectedTouchLayoutId,
     touchOverlayMode = touchOverlayMode,
     languageMode = languageMode,
     hosts = hosts,
@@ -139,7 +133,6 @@ fun LigaseRoot(
     onInputSelected = onInputSelected,
     onInputConfirmed = onInputConfirmed,
     onInputDeviceSelected = onInputDeviceSelected,
-    onTouchLayoutSelected = onTouchLayoutSelected,
     onTouchOverlayModeChanged = onTouchOverlayModeChanged,
     onThemeSelected = onThemeSelected,
     onLanguageSelected = onLanguageSelected,

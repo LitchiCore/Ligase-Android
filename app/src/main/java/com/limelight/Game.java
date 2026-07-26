@@ -22,7 +22,6 @@ import com.limelight.binding.input.evdev.EvdevListener;
 import com.limelight.binding.input.touch.TouchContext;
 import com.limelight.binding.input.touch.TrackpadContext;
 import com.limelight.binding.input.virtual_controller.VirtualController;
-import com.limelight.binding.input.virtual_controller.keyboard.KeyBoardController;
 import com.limelight.binding.input.virtual_controller.keyboard.KeyBoardLayoutController;
 import com.limelight.binding.video.CrashListener;
 import com.limelight.binding.video.MediaCodecDecoderRenderer;
@@ -174,9 +173,7 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
     private KeyboardTranslator keyboardTranslator;
     private VirtualController virtualController;
 
-    private KeyBoardController keyBoardController;
     private final int[] emulatedMouseButtonHoldCounts = new int[6];
-    private int touchKitTrackpadPointerId = -1;
 
     private KeyBoardLayoutController keyBoardLayoutController;
 
@@ -1240,10 +1237,6 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
             virtualController.refreshLayout();
         }
 
-        if(keyBoardController != null){
-            keyBoardController.refreshLayout();
-        }
-
         if(keyBoardLayoutController != null){
             keyBoardLayoutController.refreshLayout();
         }
@@ -1267,10 +1260,6 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
 
                 if (virtualController != null) {
                     virtualController.hide();
-                }
-
-                if (keyBoardController != null && keyBoardController.shown) {
-                    keyBoardController.hide(true);
                 }
 
                 if (keyBoardLayoutController!=null && keyBoardLayoutController.shown) {
@@ -1303,10 +1292,6 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
 
                 if (virtualController != null) {
                     virtualController.show();
-                }
-
-                if (keyBoardController != null && keyBoardController.shown) {
-                    keyBoardController.show();
                 }
 
                 if(keyBoardLayoutController!=null && keyBoardLayoutController.shown){
@@ -1811,10 +1796,6 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
         if (virtualController != null) {
             virtualController.hide();
         }
-        if (keyBoardController != null) {
-            keyBoardController.hide();
-        }
-
         if(keyBoardLayoutController!=null){
             keyBoardLayoutController.hide();
         }
@@ -3127,76 +3108,6 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
                         return true;
                     }
 
-                    // Android may deliver a full multi-pointer event to the stream even
-                    // when one pointer is owned by a TouchKit overlay button. Strip those
-                    // pointers before trackpad processing. Otherwise the button position
-                    // becomes an uninitialized first touch and creates a huge cursor delta.
-                    if (prefConfig.touchkitCloudGamingMode && keyBoardController != null &&
-                            keyBoardController.hasActiveControlPointers()) {
-                        int nonControlPointerCount;
-                        int nonControlPointerIndex;
-                        if (event.getPointerCount() == 1) {
-                            // With split touch dispatch, sibling views can each receive a
-                            // one-pointer event using the same pointer ID. Since this event
-                            // reached the stream/background view, it is the trackpad finger.
-                            nonControlPointerCount = 1;
-                            nonControlPointerIndex = 0;
-                        } else {
-                            nonControlPointerCount = 0;
-                            nonControlPointerIndex = -1;
-                            for (int i = 0; i < event.getPointerCount(); i++) {
-                                int pointerId = event.getPointerId(i);
-                                if (!keyBoardController.isControlPointerActive(pointerId)) {
-                                    nonControlPointerCount++;
-                                    nonControlPointerIndex = i;
-                                }
-                            }
-                        }
-                        if (nonControlPointerCount == 0) {
-                            touchKitTrackpadPointerId = -1;
-                            return true;
-                        }
-                        if (nonControlPointerCount == 1) {
-                            int pointerId = event.getPointerId(nonControlPointerIndex);
-                            int sourceAction = event.getActionMasked();
-                            boolean pointerEnding = sourceAction == MotionEvent.ACTION_CANCEL ||
-                                    sourceAction == MotionEvent.ACTION_UP ||
-                                    (sourceAction == MotionEvent.ACTION_POINTER_UP &&
-                                            event.getActionIndex() == nonControlPointerIndex);
-
-                            // A stream finger can first arrive as MOVE when another finger
-                            // is already held on an overlay child. Force a fresh DOWN to
-                            // rebase TrackpadContext instead of calculating a delta from the
-                            // previous gesture, which can fling the cursor to a screen edge.
-                            int trackpadAction;
-                            if (touchKitTrackpadPointerId != pointerId ||
-                                    sourceAction == MotionEvent.ACTION_DOWN) {
-                                if (pointerEnding) {
-                                    touchKitTrackpadPointerId = -1;
-                                    return true;
-                                }
-                                touchKitTrackpadPointerId = pointerId;
-                                trackpadAction = MotionEvent.ACTION_DOWN;
-                            } else if (pointerEnding) {
-                                trackpadAction = sourceAction == MotionEvent.ACTION_CANCEL
-                                        ? MotionEvent.ACTION_CANCEL : MotionEvent.ACTION_UP;
-                            } else {
-                                trackpadAction = MotionEvent.ACTION_MOVE;
-                            }
-
-                            MotionEvent trackpadOnlyEvent = obtainSinglePointerMotionEvent(
-                                    event, nonControlPointerIndex, trackpadAction);
-                            try {
-                                return handleTouchInput(trackpadOnlyEvent, touchContextMap, true);
-                            } finally {
-                                trackpadOnlyEvent.recycle();
-                                if (pointerEnding) {
-                                    touchKitTrackpadPointerId = -1;
-                                }
-                            }
-                        }
-                    }
-
                     if (!(prefConfig.touchkitCloudGamingMode && prefConfig.touchkitDisableGestures) &&
                             (prefConfig.enableMultiTouchGestures || !prefConfig.enableMultiTouchScreen)) {
                         int pointerCount = event.getPointerCount();
@@ -3231,32 +3142,6 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
 
         // Unknown class
         return false;
-    }
-
-    private MotionEvent obtainSinglePointerMotionEvent(MotionEvent source, int pointerIndex,
-                                                       int action) {
-        MotionEvent.PointerProperties properties = new MotionEvent.PointerProperties();
-        MotionEvent.PointerCoords coordinates = new MotionEvent.PointerCoords();
-        source.getPointerProperties(pointerIndex, properties);
-        source.getPointerCoords(pointerIndex, coordinates);
-
-        long downTime = action == MotionEvent.ACTION_DOWN
-                ? source.getEventTime() : source.getDownTime();
-        return MotionEvent.obtain(
-                downTime,
-                source.getEventTime(),
-                action,
-                1,
-                new MotionEvent.PointerProperties[] { properties },
-                new MotionEvent.PointerCoords[] { coordinates },
-                source.getMetaState(),
-                source.getButtonState(),
-                source.getXPrecision(),
-                source.getYPrecision(),
-                source.getDeviceId(),
-                source.getEdgeFlags(),
-                source.getSource(),
-                source.getFlags());
     }
 
     private boolean handleTouchInput(MotionEvent event, TouchContext[] inputContextMap, boolean isTouchScreen) {

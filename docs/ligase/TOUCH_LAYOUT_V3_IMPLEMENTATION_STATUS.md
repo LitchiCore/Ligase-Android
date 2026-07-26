@@ -59,10 +59,12 @@ only content authority. They are not a fallback and are not read or written.
 The exact cutover coordinator remains responsible for quarantining the
 layout-owned v2 test-data targets before opening v3 repositories.
 
-Preview/runtime rendering, Game/input dispatch, Host transport, Sync,
-publication, download, and real-keyboard selection UI remain outside this
-block. The former TouchKit v1 layout runtime and persistence are test-only
-residuals scheduled for exact deletion; they are not a product fallback.
+V3 runtime rendering and layout input dispatch, Host transport, Sync,
+publication, download, and real-keyboard batch selection UI remain outside
+this block. The former TouchKit v1 catalog, editor, profile-backed overlay
+runtime, persistence, Activities, settings entries, and tests have been
+deleted. The independent soft-keyboard input panel remains because it does
+not load or persist a layout.
 
 ## Product runtime gate
 
@@ -73,7 +75,6 @@ do not read a v1 layout selection, pass a v1 layout Intent extra, load an OSC
 profile, or fall back to per-game/default TouchKit layout storage. Virtual
 gamepad and gesture-only touch input remain independent of layout execution.
 
-The unreachable v1 catalog/editor/storage classes are removed in the
-subsequent residual deletion block after the frontend removes its old typed
-surface. Their presence during that compile-safe dependency step is not a
-runtime fallback.
+The old v1 typed surface and residual implementation are absent from the
+production tree. Existing device test preferences are not proactively read,
+migrated, or deleted; they are inert while the v3 runtime gate is unavailable.

@@ -5,7 +5,6 @@ import com.limelight.ligase.input.LigaseInputCategory
 import com.limelight.ligase.input.LigaseInputDevice
 import com.limelight.ligase.input.LigaseInputSelection
 import com.limelight.ligase.input.LigaseInputSelectionStatus
-import com.limelight.ligase.input.LigaseTouchLayout
 
 data class InputDeviceSelectionPresentation(
     val devices: List<LigaseInputDevice>,
@@ -19,8 +18,6 @@ data class InputPresentation(
     val gamepads: InputDeviceSelectionPresentation,
     val keyboards: InputDeviceSelectionPresentation,
     val mice: InputDeviceSelectionPresentation,
-    val selectedTouchLayout: LigaseTouchLayout?,
-    val touchLayoutMissing: Boolean,
 )
 
 fun inputPresentation(
@@ -29,8 +26,6 @@ fun inputPresentation(
     selectedGamepadKey: String?,
     selectedKeyboardKey: String?,
     selectedMouseKey: String?,
-    touchLayouts: List<LigaseTouchLayout>,
-    selectedTouchLayoutId: String?,
 ): InputPresentation = InputPresentation(
     mode = selectedInput ?: InputDeviceMode.TOUCH,
     gamepads = selection(
@@ -48,9 +43,6 @@ fun inputPresentation(
         LigaseInputCategory.MOUSE,
         selectedMouseKey,
     ),
-    selectedTouchLayout = touchLayouts.firstOrNull { it.id == selectedTouchLayoutId },
-    touchLayoutMissing = selectedTouchLayoutId != null &&
-        touchLayouts.none { it.id == selectedTouchLayoutId },
 )
 
 private fun selection(

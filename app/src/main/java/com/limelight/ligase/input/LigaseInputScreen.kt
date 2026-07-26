@@ -15,16 +15,12 @@ fun LigaseInputPage(
     selectedGamepadKey: String?,
     selectedKeyboardKey: String?,
     selectedMouseKey: String?,
-    touchLayouts: List<LigaseTouchLayout>,
-    selectedTouchLayoutId: String?,
     touchOverlayMode: LigaseTouchOverlayMode,
     onInputSelected: (InputDeviceMode) -> Unit,
     onInputConfirmed: () -> Unit,
     onDeviceSelected: (LigaseInputCategory, String) -> Unit,
-    onTouchLayoutSelected: (String) -> Unit,
     onTouchOverlayModeChanged: (LigaseTouchOverlayMode) -> Unit,
     listState: LazyListState? = null,
-    onBrowseLayouts: () -> Unit = {},
 ) {
     InputRoute(
         state = InputRouteState(
@@ -34,17 +30,13 @@ fun LigaseInputPage(
             selectedGamepadKey = selectedGamepadKey,
             selectedKeyboardKey = selectedKeyboardKey,
             selectedMouseKey = selectedMouseKey,
-            touchLayouts = touchLayouts,
-            selectedTouchLayoutId = selectedTouchLayoutId,
             touchOverlayMode = touchOverlayMode,
         ),
         actions = InputRouteActions(
             onInputSelected = onInputSelected,
             onInputConfirmed = onInputConfirmed,
             onDeviceSelected = onDeviceSelected,
-            onTouchLayoutSelected = onTouchLayoutSelected,
             onTouchOverlayModeChanged = onTouchOverlayModeChanged,
-            onBrowseLayouts = onBrowseLayouts,
         ),
         listState = listState,
     )

@@ -70,7 +70,6 @@ import com.limelight.ligase.library.ManualLibrarySortError
 import com.limelight.ligase.input.LigaseInputCategory
 import com.limelight.ligase.input.LigaseInputDevice
 import com.limelight.ligase.input.LigaseInputPage
-import com.limelight.ligase.input.LigaseTouchLayout
 import com.limelight.ligase.input.LigaseTouchOverlayMode
 import com.limelight.ligase.feature.pairing.ui.AttendedPairingDialog
 import com.limelight.ligase.pairing.AttendedPairingUiState
@@ -86,8 +85,6 @@ internal fun LigaseRootContent(
     selectedGamepadKey: String?,
     selectedKeyboardKey: String?,
     selectedMouseKey: String?,
-    touchLayouts: List<LigaseTouchLayout>,
-    selectedTouchLayoutId: String?,
     touchOverlayMode: LigaseTouchOverlayMode,
     languageMode: LigaseLanguageMode,
     hosts: List<ComputerDetails>,
@@ -115,7 +112,6 @@ internal fun LigaseRootContent(
     onInputSelected: (InputDeviceMode) -> Unit,
     onInputConfirmed: () -> Unit,
     onInputDeviceSelected: (LigaseInputCategory, String) -> Unit,
-    onTouchLayoutSelected: (String) -> Unit,
     onTouchOverlayModeChanged: (LigaseTouchOverlayMode) -> Unit,
     onThemeSelected: (LigaseThemeMode) -> Unit,
     onLanguageSelected: (LigaseLanguageMode) -> Unit,
@@ -154,13 +150,10 @@ internal fun LigaseRootContent(
                     selectedGamepadKey = selectedGamepadKey,
                     selectedKeyboardKey = selectedKeyboardKey,
                     selectedMouseKey = selectedMouseKey,
-                    touchLayouts = touchLayouts,
-                    selectedTouchLayoutId = selectedTouchLayoutId,
                     touchOverlayMode = touchOverlayMode,
                     onInputSelected = onInputSelected,
                     onInputConfirmed = onInputConfirmed,
                     onDeviceSelected = onInputDeviceSelected,
-                    onTouchLayoutSelected = onTouchLayoutSelected,
                     onTouchOverlayModeChanged = onTouchOverlayModeChanged,
                 )
             } else {
@@ -308,18 +301,12 @@ internal fun LigaseRootContent(
                                 selectedGamepadKey = selectedGamepadKey,
                                 selectedKeyboardKey = selectedKeyboardKey,
                                 selectedMouseKey = selectedMouseKey,
-                                touchLayouts = touchLayouts,
-                                selectedTouchLayoutId = selectedTouchLayoutId,
                                 touchOverlayMode = touchOverlayMode,
                                 onInputSelected = onInputSelected,
                                 onInputConfirmed = onInputConfirmed,
                                 onDeviceSelected = onInputDeviceSelected,
-                                onTouchLayoutSelected = onTouchLayoutSelected,
                                 onTouchOverlayModeChanged = onTouchOverlayModeChanged,
                                 listState = inputListState,
-                                onBrowseLayouts = {
-                                    layoutRoute = LigaseLayoutRoute.HALL
-                                },
                             )
                             LigasePage.SETTINGS -> SettingsScreen(
                                 state = SettingsUiState(

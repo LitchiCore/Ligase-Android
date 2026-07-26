@@ -135,7 +135,6 @@ fun CurrentInputSummaryCard(
         )
         InputDeviceMode.TOUCH -> touchOverlaySummary(
             mode = touchOverlayMode,
-            layoutName = presentation.selectedTouchLayout?.displayName,
         )
     }
     Card(
@@ -317,15 +316,11 @@ private fun deviceSummary(selection: InputDeviceSelectionPresentation): String =
 @Composable
 private fun touchOverlaySummary(
     mode: LigaseTouchOverlayMode,
-    layoutName: String?,
 ): String = when {
     mode == LigaseTouchOverlayMode.VIRTUAL_GAMEPAD ->
         stringResource(R.string.ligase_virtual_gamepad)
     mode == LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD ->
-        stringResource(
-            R.string.ligase_touch_keyboard_summary,
-            layoutName ?: stringResource(R.string.ligase_layout_reselect_required),
-        )
+        stringResource(R.string.ligase_touch_layout_runtime_unavailable)
     else -> stringResource(R.string.ligase_touch_overlays_none_summary)
 }
 

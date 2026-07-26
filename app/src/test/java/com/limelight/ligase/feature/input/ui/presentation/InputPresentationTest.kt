@@ -5,11 +5,8 @@ import com.limelight.ligase.input.LigaseInputCategory
 import com.limelight.ligase.input.LigaseInputConnection
 import com.limelight.ligase.input.LigaseInputDevice
 import com.limelight.ligase.input.LigaseInputSelectionStatus
-import com.limelight.ligase.input.LigaseTouchLayout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
-import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class InputPresentationTest {
@@ -39,43 +36,18 @@ class InputPresentationTest {
         assertNull(presentation.mice.selectedDeviceName)
     }
 
-    @Test
-    fun `layout selection distinguishes present missing and absent ids`() {
-        val layouts = listOf(LigaseTouchLayout("layout-a", "Layout A"))
-        val selected = presentation(
-            touchLayouts = layouts,
-            selectedTouchLayoutId = "layout-a",
-        )
-        assertEquals("Layout A", selected.selectedTouchLayout?.displayName)
-        assertFalse(selected.touchLayoutMissing)
-
-        val missing = presentation(
-            touchLayouts = layouts,
-            selectedTouchLayoutId = "missing",
-        )
-        assertNull(missing.selectedTouchLayout)
-        assertTrue(missing.touchLayoutMissing)
-
-        val absent = presentation(touchLayouts = layouts)
-        assertFalse(absent.touchLayoutMissing)
-    }
-
     private fun presentation(
         selectedInput: InputDeviceMode? = InputDeviceMode.TOUCH,
         devices: List<LigaseInputDevice> = emptyList(),
         selectedGamepadKey: String? = null,
         selectedKeyboardKey: String? = null,
         selectedMouseKey: String? = null,
-        touchLayouts: List<LigaseTouchLayout> = emptyList(),
-        selectedTouchLayoutId: String? = null,
     ): InputPresentation = inputPresentation(
         selectedInput = selectedInput,
         devices = devices,
         selectedGamepadKey = selectedGamepadKey,
         selectedKeyboardKey = selectedKeyboardKey,
         selectedMouseKey = selectedMouseKey,
-        touchLayouts = touchLayouts,
-        selectedTouchLayoutId = selectedTouchLayoutId,
     )
 
     private fun device(
