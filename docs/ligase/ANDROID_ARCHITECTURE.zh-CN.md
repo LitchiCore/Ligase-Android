@@ -96,12 +96,19 @@ v3 编辑体验采用独立横屏沉浸式黑色TouchKit画布，而不是壳层
 11. 浮层分成互斥的“控件属性”和“布局设置”。控件属性仅消费当前选中控件的typed
     payload、说明、形状、层级与删除动作；布局设置只承载新增、批量键盘、
     保存与保留草稿。两者共用唯一Activity ViewModel/Session，不创建第二store。
-12. 单控件不透明度编辑入口已撤下；布局级全局不透明度仍等待独立machine contract，
-    前端不得循环修改所有element冒充原子全局设置。现有element值只作为authoritative
-    readback渲染。focus轮廓和缩放手柄属于编辑器chrome，保持可见。
+12. 单控件不透明度已从协议与UI移除；布局设置只通过Session的布局级typed action
+    提交全局不透明度，canvas从root draft投影统一合成全部控件。拖动滑杆仅本地预览，
+    释放时提交一次，失败回到authoritative readback；前端不得循环修改element。
+    focus轮廓和缩放手柄属于编辑器chrome，保持可见。
 13. 属性层用共享安全键名投影显示`W`、`Space`等可读名称，不展示numeric InputCode；
     canonical identity仍由typed model持有。文字字号按控件实际短边在安全上下限内
     缩放，空间不足时单行省略。
+14. COMBO与RADIAL只在控件属性浮层编辑。组合键与轮盘动作的按键选择复用真实键盘
+    picker，但确认只调用一次对应payload typed action，不创建canvas element。
+    轮盘动作由backend生成并返回稳定actionId；前端按actionId执行标签、组合键、排序
+    与删除，失败保留当前编辑上下文。布局设置的新建入口分别一次提交完整Combo chord
+    或包含2至16项的Radial request；element/action ID、位置和默认值全部由Session
+    policy拥有。运行态仍由typed gate明确为不可用。
 
 handoff、exclusive lease、adaptive mapper与全屏浮层Activity已进入生产代码；真实手机/
 平板交互仍必须以对应冻结APK的设备证据为准，自动测试不能替代真机验收。

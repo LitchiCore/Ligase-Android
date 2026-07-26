@@ -32,6 +32,21 @@ class LayoutV3EditorPresentationTest {
     }
 
     @Test
+    fun `combo and radial chord labels preserve order and hide numeric identities`() {
+        assertEquals(
+            listOf("A", "Space", "Unknown"),
+            layoutV3ChordLabels(
+                listOf(
+                    InputCode(InputCodeNamespace.ANDROID_KEY_CODE, 29),
+                    InputCode(InputCodeNamespace.ANDROID_KEY_CODE, 62),
+                    InputCode(InputCodeNamespace.USB_HID_KEYBOARD_USAGE, 999),
+                ),
+                unknownLabel = "Unknown",
+            ),
+        )
+    }
+
+    @Test
     fun `blank draft without elements cannot be saved`() {
         val result = presentLayoutV3Editor(LayoutV3EditorState())
 

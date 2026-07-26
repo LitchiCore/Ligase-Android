@@ -63,6 +63,15 @@ class LayoutV3BlackEditorActivity : AppCompatActivity() {
                     onUpdateProperties = editorViewModel::updateProperties,
                     onAdd = editorViewModel::addElement,
                     onAddKeyboardKeys = editorViewModel::addKeyboardKeys,
+                    onAddComboElement = editorViewModel::addComboElement,
+                    onAddRadialElement = editorViewModel::addRadialElement,
+                    onSetLayoutOpacity = editorViewModel::setLayoutOpacityPermille,
+                    onReplaceComboChord = editorViewModel::replaceComboChord,
+                    onAddRadialAction = editorViewModel::addRadialAction,
+                    onRemoveRadialAction = editorViewModel::removeRadialAction,
+                    onReorderRadialAction = editorViewModel::reorderRadialAction,
+                    onReplaceRadialActionLabel = editorViewModel::replaceRadialActionLabel,
+                    onReplaceRadialActionChord = editorViewModel::replaceRadialActionChord,
                     onValidate = editorViewModel::validate,
                     onKeepAndFinish = {
                         finishIfSuccessful(editorViewModel.keepDraftAndFinish().code)

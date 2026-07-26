@@ -8,6 +8,7 @@ import com.limelight.ligase.feature.input.layout.v3.editor.LayoutV3EditorState
 import com.limelight.ligase.feature.input.layout.v3.editor.LayoutV3ElementCapability
 import com.limelight.ligase.feature.input.layout.v3.editor.LayoutV3RecoveryProtection
 import com.limelight.ligase.feature.input.layout.v3.domain.IntRect
+import com.limelight.ligase.feature.input.layout.v3.domain.InputCode
 import com.limelight.ligase.feature.input.layout.v3.editor.LayoutV3ResizeDecision
 import com.limelight.ligase.feature.input.layout.v3.editor.LayoutV3ResizePolicy
 
@@ -36,6 +37,11 @@ fun layoutV3EditorContentAlpha(opacityPermille: Int): Float =
 
 fun layoutV3EditorTextAlpha(opacityPermille: Int): Float =
     layoutV3EditorContentAlpha(opacityPermille) * LAYOUT_V3_EDITOR_TEXT_BASE_ALPHA
+
+fun layoutV3ChordLabels(
+    keys: List<InputCode>,
+    unknownLabel: String,
+): List<String> = keys.map { layoutV3KeyboardLabel(it) ?: unknownLabel }
 
 fun presentLayoutV3Editor(state: LayoutV3EditorState): LayoutV3EditorPresentation {
     val hasDraft = state.draft != null

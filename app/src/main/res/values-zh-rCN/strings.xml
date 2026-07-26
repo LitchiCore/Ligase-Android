@@ -1287,4 +1287,23 @@
     <string name="ligase_layout_v3_combo_read_only_summary">组合键包含 %1$d 个按键；编辑控件正在等待 typed action 接线。</string>
     <string name="ligase_layout_v3_radial_read_only_summary">轮盘包含 %1$d 个动作；编辑控件正在等待 typed action 接线。</string>
     <string name="ligase_layout_v3_continue_editing">继续编辑</string>
+    <string name="ligase_layout_v3_layout_opacity_value">布局不透明度：%1$d%%</string>
+    <string name="ligase_layout_v3_edit_combo_chord">选择按键</string>
+    <string name="ligase_layout_v3_add_radial_action">添加轮盘动作</string>
+    <string name="ligase_layout_v3_radial_action_label">动作说明（可选）</string>
+    <string name="ligase_layout_v3_unknown_key">未知按键</string>
+    <string name="ligase_layout_v3_issue_empty_chord">请至少选择一个按键。</string>
+    <string name="ligase_layout_v3_issue_too_many_keys">一个组合最多包含 16 个按键。</string>
+    <string name="ligase_layout_v3_issue_duplicate_key">同一个按键不能重复。</string>
+    <string name="ligase_layout_v3_issue_unsupported_key">包含当前不支持的按键。</string>
+    <string name="ligase_layout_v3_issue_invalid_label">动作说明无效或过长。</string>
+    <string name="ligase_layout_v3_issue_action_limit">一个轮盘最多包含 16 个动作。</string>
+    <string name="ligase_layout_v3_issue_id_generation">无法安全生成动作标识，本次没有修改。</string>
+    <string name="ligase_layout_v3_issue_unknown_action">该轮盘动作已不存在，已保留最新布局状态。</string>
+    <string name="ligase_layout_v3_issue_stale">布局已在其他位置变化，请检查最新状态后重试。</string>
+    <string name="ligase_layout_v3_create_combo">添加组合键</string>
+    <string name="ligase_layout_v3_create_radial">添加轮盘</string>
+    <string name="ligase_layout_v3_radial_action_number">动作 %1$d</string>
+    <string name="ligase_layout_v3_no_keys_selected">尚未选择按键</string>
+    <string name="ligase_layout_v3_create">创建</string>
 </resources>

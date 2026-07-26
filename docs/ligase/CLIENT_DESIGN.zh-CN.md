@@ -84,8 +84,13 @@
   编辑工具明确拆成两个互斥入口：“控件属性”只展示所选控件的可读键名、说明、形状、
   层级和删除；“布局设置”只展示新增、批量键盘、布局名称、保存与保留草稿。属性页
   不展示numeric InputCode。控件文字按实际尺寸放大并在空间不足时省略。单控件
-  不透明度入口已撤下；布局级全局不透明度等待独立machine contract，不能用逐元素
-  修改模拟。
+  不透明度入口已撤下；布局设置提供唯一全局不透明度，释放滑杆时经Session原子提交，
+  canvas只读取root draft值统一合成，不能用逐元素修改模拟。组合键与轮盘只出现在
+  选中控件的属性层：复用真实键盘picker选择closed InputCode列表并一次替换payload；
+  轮盘动作以backend返回的稳定actionId完成新增、删除、排序、标签与组合键编辑。
+  新建Combo或Radial时，前端只提交完整chord/action request一次，不生成identity、
+  rect、zOrder或默认payload。
+  typed失败不关闭上下文、不伪成功；运行态仍保持不可用。
 - v1 TouchKit 布局运行与持久化已退出产品消费链；残余类仅等待后续精确删除。编辑器
   不以decoded video rect、DPI或system inset替代full-overlay坐标权威。
 - “添加键盘按键”打开半透明 ANSI 键盘浮层，键帽支持多选；选中键帽以蓝色填充、

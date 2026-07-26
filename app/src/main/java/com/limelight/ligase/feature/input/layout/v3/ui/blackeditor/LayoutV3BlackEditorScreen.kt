@@ -60,6 +60,18 @@ fun LayoutV3BlackEditorScreen(
     onUpdateProperties: (String, LayoutV3EditableProperties) -> Unit,
     onAdd: (ControlKind) -> Unit,
     onAddKeyboardKeys: (Set<InputCode>) -> Unit,
+    onAddComboElement: (List<InputCode>, String?, String?) -> LayoutV3ElementCreateResult,
+    onAddRadialElement: (
+        List<LayoutV3NewRadialActionRequest>,
+        String?,
+    ) -> LayoutV3ElementCreateResult,
+    onSetLayoutOpacity: (Int) -> Unit,
+    onReplaceComboChord: (String, List<InputCode>) -> Unit,
+    onAddRadialAction: (String, String?, List<InputCode>) -> LayoutV3RadialEditResult,
+    onRemoveRadialAction: (String, String) -> LayoutV3RadialEditResult,
+    onReorderRadialAction: (String, String, Int) -> LayoutV3RadialEditResult,
+    onReplaceRadialActionLabel: (String, String, String?) -> LayoutV3RadialEditResult,
+    onReplaceRadialActionChord: (String, String, List<InputCode>) -> LayoutV3RadialEditResult,
     onValidate: () -> Unit,
     onKeepAndFinish: () -> Unit,
     onSaveAndFinish: () -> Unit,
@@ -72,8 +84,15 @@ fun LayoutV3BlackEditorScreen(
     var toolsModeName by rememberSaveable { mutableStateOf<String?>(null) }
     val toolsMode = toolsModeName?.let(LayoutV3EditorToolsMode::valueOf)
     val showTools = toolsMode != null
-    var showKeyboardPicker by rememberSaveable { mutableStateOf(false) }
+    var keyboardPickerTarget by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedKeyboardCodes by rememberSaveable { mutableStateOf(emptyList<Int>()) }
+    var showRadialCreator by rememberSaveable { mutableStateOf(false) }
+    var radialDraftChords by rememberSaveable {
+        mutableStateOf(listOf(emptyList<Int>(), emptyList()))
+    }
+    var radialDraftLabels by rememberSaveable {
+        mutableStateOf(listOf("", ""))
+    }
     var nudgePreview by remember { mutableStateOf<LayoutV3NudgeDelta?>(null) }
     val toolsFocusRequester = remember { FocusRequester() }
     LaunchedEffect(showTools) {
@@ -190,8 +209,33 @@ fun LayoutV3BlackEditorScreen(
                         onAdd = onAdd,
                         onOpenKeyboardPicker = {
                             selectedKeyboardCodes = emptyList()
-                            showKeyboardPicker = true
+                            keyboardPickerTarget = KEYBOARD_PICKER_ADD_ELEMENTS
                         },
+                        onOpenComboCreator = {
+                            selectedKeyboardCodes = emptyList()
+                            keyboardPickerTarget = KEYBOARD_PICKER_CREATE_COMBO
+                        },
+                        onOpenRadialCreator = {
+                            radialDraftChords = listOf(emptyList(), emptyList())
+                            radialDraftLabels = listOf("", "")
+                            showRadialCreator = true
+                        },
+                        onSetLayoutOpacity = onSetLayoutOpacity,
+                        onEditComboChord = { elementId, keys ->
+                            selectedKeyboardCodes = keys.androidKeyCodes()
+                            keyboardPickerTarget = "combo:$elementId"
+                        },
+                        onAddRadialAction = { elementId ->
+                            selectedKeyboardCodes = emptyList()
+                            keyboardPickerTarget = "radial-add:$elementId"
+                        },
+                        onEditRadialChord = { elementId, actionId, keys ->
+                            selectedKeyboardCodes = keys.androidKeyCodes()
+                            keyboardPickerTarget = "radial-edit:$elementId:$actionId"
+                        },
+                        onRemoveRadialAction = onRemoveRadialAction,
+                        onReorderRadialAction = onReorderRadialAction,
+                        onReplaceRadialActionLabel = onReplaceRadialActionLabel,
                         onValidate = onValidate,
                         onSaveAndFinish = onSaveAndFinish,
                         onRequestLeave = {
@@ -246,7 +290,7 @@ fun LayoutV3BlackEditorScreen(
         )
     }
 
-    if (showKeyboardPicker) {
+    keyboardPickerTarget?.let { pickerTarget ->
         LayoutV3KeyboardPickerDialog(
             selectedCodes = selectedKeyboardCodes.toSet(),
             onToggle = { code ->
@@ -260,17 +304,132 @@ fun LayoutV3BlackEditorScreen(
             },
             onDismiss = {
                 selectedKeyboardCodes = emptyList()
-                showKeyboardPicker = false
+                keyboardPickerTarget = null
             },
             onConfirm = {
-                val selected = selectedKeyboardCodes.mapTo(linkedSetOf()) {
+                val selected = selectedKeyboardCodes.map {
                     InputCode(InputCodeNamespace.ANDROID_KEY_CODE, it)
                 }
                 if (selected.isNotEmpty()) {
-                    onAddKeyboardKeys(selected)
-                    selectedKeyboardCodes = emptyList()
-                    showKeyboardPicker = false
-                    toolsModeName = null
+                    val accepted = when {
+                        pickerTarget == KEYBOARD_PICKER_ADD_ELEMENTS ->
+                            true.also { onAddKeyboardKeys(selected.toSet()) }
+                        pickerTarget.startsWith("combo:") ->
+                            false.also { onReplaceComboChord(
+                                pickerTarget.substringAfter("combo:"),
+                                selected,
+                            ) }
+                        pickerTarget.startsWith("radial-add:") ->
+                            onAddRadialAction(
+                                pickerTarget.substringAfter("radial-add:"),
+                                null,
+                                selected,
+                            ) is LayoutV3RadialEditResult.Applied
+                        pickerTarget.startsWith("radial-edit:") -> {
+                            val parts = pickerTarget.split(':', limit = 3)
+                            onReplaceRadialActionChord(
+                                parts[1],
+                                parts[2],
+                                selected,
+                            ) is LayoutV3RadialEditResult.Applied
+                        }
+                        pickerTarget == KEYBOARD_PICKER_CREATE_COMBO ->
+                            onAddComboElement(selected, null, null) is
+                                LayoutV3ElementCreateResult.Created
+                        pickerTarget.startsWith("radial-create:") -> {
+                            val index = pickerTarget.substringAfterLast(':').toInt()
+                            radialDraftChords = radialDraftChords.toMutableList().also {
+                                it[index] = selectedKeyboardCodes
+                            }
+                            true
+                        }
+                        else -> false
+                    }
+                    if (accepted) {
+                        selectedKeyboardCodes = emptyList()
+                        keyboardPickerTarget = null
+                        if (pickerTarget == KEYBOARD_PICKER_ADD_ELEMENTS) toolsModeName = null
+                        if (pickerTarget == KEYBOARD_PICKER_CREATE_COMBO) {
+                            toolsModeName =
+                                LayoutV3EditorToolsMode.CONTROL_PROPERTIES.name
+                        }
+                    }
+                }
+            },
+        )
+    }
+    if (showRadialCreator && keyboardPickerTarget == null) {
+        AlertDialog(
+            onDismissRequest = { showRadialCreator = false },
+            title = { Text(stringResource(R.string.ligase_layout_v3_create_radial)) },
+            text = {
+                Column(
+                    Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    radialDraftChords.indices.forEach { index ->
+                        OutlinedTextField(
+                            value = radialDraftLabels[index],
+                            onValueChange = { value ->
+                                radialDraftLabels = radialDraftLabels.toMutableList().also {
+                                    it[index] = value
+                                }
+                            },
+                            label = {
+                                Text(
+                                    stringResource(
+                                        R.string.ligase_layout_v3_radial_action_number,
+                                        index + 1,
+                                    ),
+                                )
+                            },
+                        )
+                        Text(
+                            radialDraftChords[index].map {
+                                InputCode(InputCodeNamespace.ANDROID_KEY_CODE, it)
+                            }.safeChordLabel(
+                                stringResource(R.string.ligase_layout_v3_no_keys_selected),
+                            ),
+                        )
+                        TextButton(onClick = {
+                            selectedKeyboardCodes = radialDraftChords[index]
+                            keyboardPickerTarget = "radial-create:$index"
+                        }) { Text(stringResource(R.string.ligase_layout_v3_edit_combo_chord)) }
+                    }
+                    TextButton(
+                        onClick = {
+                            radialDraftChords = radialDraftChords + listOf(emptyList())
+                            radialDraftLabels = radialDraftLabels + ""
+                        },
+                        enabled = radialDraftChords.size < 16,
+                    ) { Text(stringResource(R.string.ligase_layout_v3_add_radial_action)) }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = radialDraftChords.size >= 2 &&
+                        radialDraftChords.all(List<Int>::isNotEmpty),
+                    onClick = {
+                        val requests = radialDraftChords.indices.map { index ->
+                            LayoutV3NewRadialActionRequest(
+                                label = radialDraftLabels[index].ifBlank { null },
+                                keys = radialDraftChords[index].map {
+                                    InputCode(InputCodeNamespace.ANDROID_KEY_CODE, it)
+                                },
+                            )
+                        }
+                        if (onAddRadialElement(requests, null) is
+                            LayoutV3ElementCreateResult.Created
+                        ) {
+                            showRadialCreator = false
+                            toolsModeName = LayoutV3EditorToolsMode.CONTROL_PROPERTIES.name
+                        }
+                    },
+                ) { Text(stringResource(R.string.ligase_layout_v3_create)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRadialCreator = false }) {
+                    Text(stringResource(R.string.cancel))
                 }
             },
         )
@@ -281,6 +440,12 @@ private enum class LayoutV3EditorToolsMode {
     CONTROL_PROPERTIES,
     LAYOUT_SETTINGS,
 }
+
+private const val KEYBOARD_PICKER_ADD_ELEMENTS = "add-elements"
+private const val KEYBOARD_PICKER_CREATE_COMBO = "create-combo"
+
+private fun List<InputCode>.androidKeyCodes(): List<Int> =
+    filter { it.namespace == InputCodeNamespace.ANDROID_KEY_CODE }.map(InputCode::code)
 
 @Composable
 private fun BlackTouchCanvas(
@@ -572,6 +737,15 @@ private fun BlackEditorPanel(
     onUpdateProperties: (String, LayoutV3EditableProperties) -> Unit,
     onAdd: (ControlKind) -> Unit,
     onOpenKeyboardPicker: () -> Unit,
+    onOpenComboCreator: () -> Unit,
+    onOpenRadialCreator: () -> Unit,
+    onSetLayoutOpacity: (Int) -> Unit,
+    onEditComboChord: (String, List<InputCode>) -> Unit,
+    onAddRadialAction: (String) -> Unit,
+    onEditRadialChord: (String, String, List<InputCode>) -> Unit,
+    onRemoveRadialAction: (String, String) -> LayoutV3RadialEditResult,
+    onReorderRadialAction: (String, String, Int) -> LayoutV3RadialEditResult,
+    onReplaceRadialActionLabel: (String, String, String?) -> LayoutV3RadialEditResult,
     onValidate: () -> Unit,
     onSaveAndFinish: () -> Unit,
     onRequestLeave: () -> Unit,
@@ -648,6 +822,21 @@ private fun BlackEditorPanel(
                 BlackPropertySummary(
                     element = element,
                     onUpdate = onUpdateProperties,
+                    onEditComboChord = onEditComboChord,
+                    onAddRadialAction = onAddRadialAction,
+                    onEditRadialChord = onEditRadialChord,
+                    onRemoveRadialAction = { elementId, actionId ->
+                        onRemoveRadialAction(elementId, actionId)
+                        Unit
+                    },
+                    onReorderRadialAction = { elementId, actionId, order ->
+                        onReorderRadialAction(elementId, actionId, order)
+                        Unit
+                    },
+                    onReplaceRadialActionLabel = { elementId, actionId, label ->
+                        onReplaceRadialActionLabel(elementId, actionId, label)
+                        Unit
+                    },
                 )
                 EditorNudgePad(element, onNudgePreview, onNudgeCommit)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -665,15 +854,52 @@ private fun BlackEditorPanel(
             }
         }
         if (mode == LayoutV3EditorToolsMode.LAYOUT_SETTINGS) {
+            val authoritativeOpacity = state.draft?.opacityPermille ?: 1000
+            var opacityPreview by rememberSaveable(state.draft?.identity?.layoutId) {
+                mutableFloatStateOf(authoritativeOpacity.toFloat())
+            }
+            var opacityDragging by remember { mutableStateOf(false) }
+            LaunchedEffect(authoritativeOpacity, opacityDragging) {
+                if (!opacityDragging) opacityPreview = authoritativeOpacity.toFloat()
+            }
             Text(
                 state.draft?.displayName.orEmpty(),
                 color = Color.White.copy(alpha = 0.8f),
             )
             HorizontalDivider(color = Color.White.copy(alpha = 0.2f))
+            Text(
+                stringResource(
+                    R.string.ligase_layout_v3_layout_opacity_value,
+                    (opacityPreview / 10f).roundToInt(),
+                ),
+                color = Color.White,
+            )
+            Slider(
+                value = opacityPreview,
+                onValueChange = {
+                    opacityDragging = true
+                    opacityPreview = it
+                },
+                onValueChangeFinished = {
+                    opacityDragging = false
+                    onSetLayoutOpacity(opacityPreview.roundToInt())
+                },
+                valueRange = 0f..1000f,
+                steps = 19,
+                modifier = Modifier.semantics {
+                    contentDescription = "Layout opacity"
+                },
+            )
             Text(stringResource(R.string.ligase_layout_v3_add_control), color = Color.White)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             EditorTinyButton(stringResource(R.string.ligase_layout_v3_add_keyboard_keys)) {
                 onOpenKeyboardPicker()
+            }
+            EditorTinyButton(stringResource(R.string.ligase_layout_v3_create_combo)) {
+                onOpenComboCreator()
+            }
+            EditorTinyButton(stringResource(R.string.ligase_layout_v3_create_radial)) {
+                onOpenRadialCreator()
             }
             listOf(
                 ControlKind.MOUSE,
@@ -1103,6 +1329,12 @@ private fun EditorRepeatButton(
 private fun BlackPropertySummary(
     element: LayoutV3EditorElement,
     onUpdate: (String, LayoutV3EditableProperties) -> Unit,
+    onEditComboChord: (String, List<InputCode>) -> Unit,
+    onAddRadialAction: (String) -> Unit,
+    onEditRadialChord: (String, String, List<InputCode>) -> Unit,
+    onRemoveRadialAction: (String, String) -> Unit,
+    onReorderRadialAction: (String, String, Int) -> Unit,
+    onReplaceRadialActionLabel: (String, String, String?) -> Unit,
 ) {
     when (val p = element.editableProperties) {
         is LayoutV3EditableProperties.Keyboard -> {
@@ -1171,25 +1403,79 @@ private fun BlackPropertySummary(
                 stringResource(R.string.ligase_layout_v3_soft_keyboard_summary),
                 color = Color.White.copy(alpha = 0.8f),
             )
-        is LayoutV3EditableProperties.Combo ->
+        is LayoutV3EditableProperties.Combo -> {
             Text(
-                stringResource(
-                    R.string.ligase_layout_v3_combo_read_only_summary,
-                    p.keys.size,
-                ),
+                p.keys.safeChordLabel(stringResource(R.string.ligase_layout_v3_unknown_key)),
                 color = Color.White.copy(alpha = 0.8f),
             )
-        is LayoutV3EditableProperties.Radial ->
+            Button(onClick = { onEditComboChord(element.elementId, p.keys) }) {
+                Text(stringResource(R.string.ligase_layout_v3_edit_combo_chord))
+            }
+        }
+        is LayoutV3EditableProperties.Radial -> {
             Text(
-                stringResource(
-                    R.string.ligase_layout_v3_radial_read_only_summary,
-                    p.actions.size,
-                ),
-                color = Color.White.copy(alpha = 0.8f),
+                p.label.ifBlank { stringResource(R.string.ligase_layout_v3_kind_radial) },
+                color = Color.White,
             )
+            p.actions.sortedBy(RadialAction::order)
+                .forEach { action ->
+                    var labelDraft by rememberSaveable(action.actionId, action.label) {
+                        mutableStateOf(action.label.orEmpty())
+                    }
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.12f))
+                    Text(
+                        action.keys.safeChordLabel(
+                            stringResource(R.string.ligase_layout_v3_unknown_key),
+                        ),
+                        color = Color.White.copy(alpha = 0.8f),
+                    )
+                    OutlinedTextField(
+                        value = labelDraft,
+                        onValueChange = { labelDraft = it },
+                        label = { Text(stringResource(R.string.ligase_layout_v3_radial_action_label)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        EditorTinyButton(stringResource(R.string.ligase_layout_v3_apply_label)) {
+                            onReplaceRadialActionLabel(
+                                element.elementId,
+                                action.actionId,
+                                labelDraft.ifBlank { null },
+                            )
+                        }
+                        EditorTinyButton(stringResource(R.string.ligase_layout_v3_edit_combo_chord)) {
+                            onEditRadialChord(element.elementId, action.actionId, action.keys)
+                        }
+                        EditorTinyButton("↑") {
+                            onReorderRadialAction(
+                                element.elementId,
+                                action.actionId,
+                                (action.order - 1).coerceAtLeast(0),
+                            )
+                        }
+                        EditorTinyButton("↓") {
+                            onReorderRadialAction(
+                                element.elementId,
+                                action.actionId,
+                                (action.order + 1).coerceAtMost(p.actions.lastIndex),
+                            )
+                        }
+                        EditorTinyButton(stringResource(R.string.ligase_layout_v3_delete)) {
+                            onRemoveRadialAction(element.elementId, action.actionId)
+                        }
+                    }
+                }
+            Button(onClick = { onAddRadialAction(element.elementId) }) {
+                Text(stringResource(R.string.ligase_layout_v3_add_radial_action))
+            }
+        }
         null -> Unit
     }
 }
+
+private fun List<InputCode>.safeChordLabel(unknownLabel: String): String =
+    layoutV3ChordLabels(this, unknownLabel).joinToString(" + ")
 
 @Composable
 private fun BlackLabelEditor(
@@ -1351,6 +1637,17 @@ private fun blackEditorIssueText(issue: LayoutV3EditorIssue): String = stringRes
         LayoutV3EditorIssue.READ_ONLY_KIND -> R.string.ligase_layout_v3_inspect_only
         LayoutV3EditorIssue.OUT_OF_CANVAS,
         LayoutV3EditorIssue.INVALID_RECT -> R.string.ligase_layout_v3_issue_bounds
+        LayoutV3EditorIssue.EMPTY_CHORD -> R.string.ligase_layout_v3_issue_empty_chord
+        LayoutV3EditorIssue.TOO_MANY_KEYS -> R.string.ligase_layout_v3_issue_too_many_keys
+        LayoutV3EditorIssue.DUPLICATE_KEY -> R.string.ligase_layout_v3_issue_duplicate_key
+        LayoutV3EditorIssue.UNSUPPORTED_INPUT_CODE,
+        LayoutV3EditorIssue.UNSUPPORTED_NAMESPACE -> R.string.ligase_layout_v3_issue_unsupported_key
+        LayoutV3EditorIssue.INVALID_LABEL -> R.string.ligase_layout_v3_issue_invalid_label
+        LayoutV3EditorIssue.ACTION_LIMIT -> R.string.ligase_layout_v3_issue_action_limit
+        LayoutV3EditorIssue.ID_GENERATION_FAILED -> R.string.ligase_layout_v3_issue_id_generation
+        LayoutV3EditorIssue.UNKNOWN_ACTION -> R.string.ligase_layout_v3_issue_unknown_action
+        LayoutV3EditorIssue.STALE_SOURCE_GENERATION,
+        LayoutV3EditorIssue.STALE_GESTURE -> R.string.ligase_layout_v3_issue_stale
         else -> R.string.ligase_layout_v3_issue_generic
     },
 )

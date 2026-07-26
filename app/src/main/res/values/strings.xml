@@ -1301,4 +1301,23 @@
     <string name="ligase_layout_v3_combo_read_only_summary">Combination with %1$d keys. Editing controls are pending the typed action integration.</string>
     <string name="ligase_layout_v3_radial_read_only_summary">Radial menu with %1$d actions. Editing controls are pending the typed action integration.</string>
     <string name="ligase_layout_v3_continue_editing">Continue editing</string>
+    <string name="ligase_layout_v3_layout_opacity_value">Layout opacity: %1$d%%</string>
+    <string name="ligase_layout_v3_edit_combo_chord">Choose keys</string>
+    <string name="ligase_layout_v3_add_radial_action">Add radial action</string>
+    <string name="ligase_layout_v3_radial_action_label">Action label (optional)</string>
+    <string name="ligase_layout_v3_unknown_key">Unknown key</string>
+    <string name="ligase_layout_v3_issue_empty_chord">Choose at least one key.</string>
+    <string name="ligase_layout_v3_issue_too_many_keys">A combination can contain at most 16 keys.</string>
+    <string name="ligase_layout_v3_issue_duplicate_key">The same key cannot appear twice.</string>
+    <string name="ligase_layout_v3_issue_unsupported_key">One or more keys are not supported.</string>
+    <string name="ligase_layout_v3_issue_invalid_label">The action label is invalid or too long.</string>
+    <string name="ligase_layout_v3_issue_action_limit">A radial menu supports at most 16 actions.</string>
+    <string name="ligase_layout_v3_issue_id_generation">A safe action ID could not be created. Nothing was changed.</string>
+    <string name="ligase_layout_v3_issue_unknown_action">This radial action no longer exists. The current layout was reloaded.</string>
+    <string name="ligase_layout_v3_issue_stale">The layout changed elsewhere. Review the latest state and try again.</string>
+    <string name="ligase_layout_v3_create_combo">Add combination</string>
+    <string name="ligase_layout_v3_create_radial">Add radial menu</string>
+    <string name="ligase_layout_v3_radial_action_number">Action %1$d</string>
+    <string name="ligase_layout_v3_no_keys_selected">No keys selected</string>
+    <string name="ligase_layout_v3_create">Create</string>
 </resources>
