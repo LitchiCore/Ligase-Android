@@ -21,7 +21,6 @@ data class InputPresentation(
     val mice: InputDeviceSelectionPresentation,
     val selectedTouchLayout: LigaseTouchLayout?,
     val touchLayoutMissing: Boolean,
-    val canEditTouchLayout: Boolean,
 )
 
 fun inputPresentation(
@@ -52,7 +51,6 @@ fun inputPresentation(
     selectedTouchLayout = touchLayouts.firstOrNull { it.id == selectedTouchLayoutId },
     touchLayoutMissing = selectedTouchLayoutId != null &&
         touchLayouts.none { it.id == selectedTouchLayoutId },
-    canEditTouchLayout = selectedTouchLayoutId != null,
 )
 
 private fun selection(

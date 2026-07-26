@@ -24,9 +24,7 @@ fun LigaseInputPage(
     onTouchLayoutSelected: (String) -> Unit,
     onTouchOverlayModeChanged: (LigaseTouchOverlayMode) -> Unit,
     listState: LazyListState? = null,
-    selectedTouchLayoutEditable: Boolean = false,
     onBrowseLayouts: () -> Unit = {},
-    onEditTouchLayout: () -> Unit = {},
 ) {
     InputRoute(
         state = InputRouteState(
@@ -39,7 +37,6 @@ fun LigaseInputPage(
             touchLayouts = touchLayouts,
             selectedTouchLayoutId = selectedTouchLayoutId,
             touchOverlayMode = touchOverlayMode,
-            selectedTouchLayoutEditable = selectedTouchLayoutEditable,
         ),
         actions = InputRouteActions(
             onInputSelected = onInputSelected,
@@ -48,7 +45,6 @@ fun LigaseInputPage(
             onTouchLayoutSelected = onTouchLayoutSelected,
             onTouchOverlayModeChanged = onTouchOverlayModeChanged,
             onBrowseLayouts = onBrowseLayouts,
-            onEditTouchLayout = onEditTouchLayout,
         ),
         listState = listState,
     )

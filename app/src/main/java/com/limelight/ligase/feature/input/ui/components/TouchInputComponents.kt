@@ -35,11 +35,9 @@ fun LazyListScope.touchInputItems(
     touchLayouts: List<LigaseTouchLayout>,
     touchOverlayMode: LigaseTouchOverlayMode,
     selectedTouchLayoutId: String?,
-    selectedTouchLayoutEditable: Boolean,
     onTouchLayoutSelected: (String) -> Unit,
     onTouchOverlayModeChanged: (LigaseTouchOverlayMode) -> Unit,
     onBrowseLayouts: () -> Unit,
-    onEditTouchLayout: () -> Unit,
 ) {
     item { InputSectionTitle(R.string.ligase_touch_overlays) }
     item {
@@ -93,21 +91,6 @@ fun LazyListScope.touchInputItems(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(stringResource(R.string.ligase_layout_browse))
-        }
-        OutlinedButton(
-            onClick = onEditTouchLayout,
-            enabled = presentation.canEditTouchLayout,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(
-                stringResource(
-                    if (selectedTouchLayoutEditable) {
-                        R.string.ligase_layout_edit_current
-                    } else {
-                        R.string.ligase_layout_copy_current
-                    },
-                ),
-            )
         }
     }
 }

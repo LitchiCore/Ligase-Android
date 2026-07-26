@@ -7,9 +7,9 @@ import com.limelight.ligase.input.LigaseInputDevice
 import com.limelight.ligase.input.LigaseInputSelectionStatus
 import com.limelight.ligase.input.LigaseTouchLayout
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class InputPresentationTest {
@@ -48,7 +48,6 @@ class InputPresentationTest {
         )
         assertEquals("Layout A", selected.selectedTouchLayout?.displayName)
         assertFalse(selected.touchLayoutMissing)
-        assertTrue(selected.canEditTouchLayout)
 
         val missing = presentation(
             touchLayouts = layouts,
@@ -56,11 +55,9 @@ class InputPresentationTest {
         )
         assertNull(missing.selectedTouchLayout)
         assertTrue(missing.touchLayoutMissing)
-        assertTrue(missing.canEditTouchLayout)
 
         val absent = presentation(touchLayouts = layouts)
         assertFalse(absent.touchLayoutMissing)
-        assertFalse(absent.canEditTouchLayout)
     }
 
     private fun presentation(

@@ -338,10 +338,6 @@ class LigaseActivity : AppCompatActivity() {
                         )
                     },
                 manualSortState = librarySessionViewModel.manualSortState,
-                layoutCatalogState =
-                    com.limelight.ligase.feature.layout.domain.LayoutCatalogUiState(),
-                layoutEditorState =
-                    com.limelight.ligase.feature.layout.domain.LayoutEditorSessionState(),
                 layoutV3EditorWorkspaceState = layoutV3EditorWorkspaceState,
                 pairingState = pairingViewModel.state,
                 onPageSelected = ::selectPage,
@@ -364,17 +360,6 @@ class LigaseActivity : AppCompatActivity() {
                 onLibraryConfigure = ::showLibraryItemSettings,
                 onLibraryRetrySync = ::retryLibrarySync,
                 onManualOrderSubmit = ::submitManualLibraryOrder,
-                onLayoutCatalogRefresh = {},
-                onLayoutSelect = {},
-                onLayoutCreateCopy = {},
-                onLayoutOpenEditor = {},
-                onLayoutPreview = {},
-                onLayoutMove = { _, _, _ -> },
-                onLayoutResize = { _, _, _ -> },
-                onLayoutDelete = {},
-                onLayoutAdd = {},
-                onLayoutSave = {},
-                onLayoutDiscard = {},
                 onLayoutV3CreateBlank = ::launchNewLayoutV3Editor,
                 onLayoutV3ResumeRecovery = ::resumeLayoutV3Editor,
                 onLayoutV3DiscardRecovery =

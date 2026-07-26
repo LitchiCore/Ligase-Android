@@ -95,11 +95,9 @@ fun InputRoute(
                         touchLayouts = state.touchLayouts,
                         touchOverlayMode = state.touchOverlayMode,
                         selectedTouchLayoutId = state.selectedTouchLayoutId,
-                        selectedTouchLayoutEditable = state.selectedTouchLayoutEditable,
                         onTouchLayoutSelected = actions.onTouchLayoutSelected,
                         onTouchOverlayModeChanged = actions.onTouchOverlayModeChanged,
                         onBrowseLayouts = actions.onBrowseLayouts,
-                        onEditTouchLayout = actions.onEditTouchLayout,
                     )
                 }
             }

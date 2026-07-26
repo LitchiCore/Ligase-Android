@@ -22,9 +22,6 @@ import androidx.compose.ui.unit.dp
 import com.limelight.R
 import com.limelight.grid.assets.CachedAppAssetLoader
 import com.limelight.ligase.app.root.LigaseRootContent
-import com.limelight.ligase.feature.layout.domain.LayoutCatalogUiState
-import com.limelight.ligase.feature.layout.domain.LayoutControlKind
-import com.limelight.ligase.feature.layout.domain.LayoutEditorSessionState
 import com.limelight.ligase.feature.input.layout.v3.application.LayoutV3EditorWorkspaceUiState
 import com.limelight.ligase.feature.library.data.dto.LigaseResolutionDto
 import com.limelight.ligase.feature.library.domain.HostSortMode
@@ -74,8 +71,6 @@ fun LigaseRoot(
     libraryCanOperate: Boolean,
     libraryCanConfigureInput: Boolean,
     manualSortState: ManualLibrarySortActionState,
-    layoutCatalogState: LayoutCatalogUiState,
-    layoutEditorState: LayoutEditorSessionState,
     layoutV3EditorWorkspaceState: LayoutV3EditorWorkspaceUiState =
         LayoutV3EditorWorkspaceUiState(),
     pairingState: AttendedPairingUiState,
@@ -98,17 +93,6 @@ fun LigaseRoot(
     onLibraryConfigure: (LigaseLibraryItem) -> Unit,
     onLibraryRetrySync: () -> Unit,
     onManualOrderSubmit: (List<String>) -> Unit,
-    onLayoutCatalogRefresh: () -> Unit,
-    onLayoutSelect: (String) -> Unit,
-    onLayoutPreview: (String) -> Unit,
-    onLayoutCreateCopy: (String) -> Unit,
-    onLayoutOpenEditor: (String) -> Unit,
-    onLayoutMove: (String, Float, Float) -> Unit,
-    onLayoutResize: (String, Float, Float) -> Unit,
-    onLayoutDelete: (String) -> Unit,
-    onLayoutAdd: (LayoutControlKind) -> Unit,
-    onLayoutSave: () -> Unit,
-    onLayoutDiscard: () -> Unit,
     onLayoutV3CreateBlank: (String?) -> Unit = {},
     onLayoutV3ResumeRecovery: (String) -> Unit = {},
     onLayoutV3DiscardRecovery: (String) -> Unit = {},
@@ -148,8 +132,6 @@ fun LigaseRoot(
     libraryCanOperate = libraryCanOperate,
     libraryCanConfigureInput = libraryCanConfigureInput,
     manualSortState = manualSortState,
-    layoutCatalogState = layoutCatalogState,
-    layoutEditorState = layoutEditorState,
     layoutV3EditorWorkspaceState = layoutV3EditorWorkspaceState,
     pairingState = pairingState,
     streamBitrateState = streamBitrateState,
@@ -171,17 +153,6 @@ fun LigaseRoot(
     onLibraryConfigure = onLibraryConfigure,
     onLibraryRetrySync = onLibraryRetrySync,
     onManualOrderSubmit = onManualOrderSubmit,
-    onLayoutCatalogRefresh = onLayoutCatalogRefresh,
-    onLayoutSelect = onLayoutSelect,
-    onLayoutPreview = onLayoutPreview,
-    onLayoutCreateCopy = onLayoutCreateCopy,
-    onLayoutOpenEditor = onLayoutOpenEditor,
-    onLayoutMove = onLayoutMove,
-    onLayoutResize = onLayoutResize,
-    onLayoutDelete = onLayoutDelete,
-    onLayoutAdd = onLayoutAdd,
-    onLayoutSave = onLayoutSave,
-    onLayoutDiscard = onLayoutDiscard,
     onLayoutV3CreateBlank = onLayoutV3CreateBlank,
     onLayoutV3ResumeRecovery = onLayoutV3ResumeRecovery,
     onLayoutV3DiscardRecovery = onLayoutV3DiscardRecovery,

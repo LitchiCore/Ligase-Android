@@ -5,23 +5,20 @@ import com.limelight.ligase.input.LigaseTouchLayout
 import com.limelight.ligase.input.LigaseTouchOverlayMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class InputRouteContractTest {
     @Test
-    fun `route state preserves touch selection and editability`() {
+    fun `route state preserves touch selection without an editor capability`() {
         val state = state(
             selectedInput = InputDeviceMode.TOUCH,
             selectedTouchLayoutId = "layout-a",
-            selectedTouchLayoutEditable = true,
         )
 
         val presentation = state.presentation()
 
         assertEquals(InputDeviceMode.TOUCH, presentation.mode)
         assertEquals("layout-a", presentation.selectedTouchLayout?.id)
-        assertTrue(presentation.canEditTouchLayout)
         assertFalse(presentation.touchLayoutMissing)
     }
 
@@ -36,7 +33,6 @@ class InputRouteContractTest {
     private fun state(
         selectedInput: InputDeviceMode?,
         selectedTouchLayoutId: String? = null,
-        selectedTouchLayoutEditable: Boolean = false,
     ) = InputRouteState(
         selectedInput = selectedInput,
         onboarding = false,
@@ -47,6 +43,5 @@ class InputRouteContractTest {
         touchLayouts = listOf(LigaseTouchLayout("layout-a", "Layout A")),
         selectedTouchLayoutId = selectedTouchLayoutId,
         touchOverlayMode = LigaseTouchOverlayMode.GESTURES_ONLY,
-        selectedTouchLayoutEditable = selectedTouchLayoutEditable,
     )
 }

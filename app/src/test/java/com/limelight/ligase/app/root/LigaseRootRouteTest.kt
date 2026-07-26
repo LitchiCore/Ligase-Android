@@ -7,6 +7,11 @@ import org.junit.Test
 
 class LigaseRootRouteTest {
     @Test
+    fun layoutRoutesExposeOnlyMainAndSingleV3Hall() {
+        assertEquals(listOf("MAIN", "HALL"), LigaseLayoutRoute.entries.map { it.name })
+    }
+
+    @Test
     fun selectingAnyMainPageResetsNestedLayoutRoute() {
         assertEquals(LigaseLayoutRoute.MAIN, rootRouteAfterMainPageSelection())
     }

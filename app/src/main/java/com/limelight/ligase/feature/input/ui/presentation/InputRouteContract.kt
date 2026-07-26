@@ -16,7 +16,6 @@ data class InputRouteState(
     val touchLayouts: List<LigaseTouchLayout>,
     val selectedTouchLayoutId: String?,
     val touchOverlayMode: LigaseTouchOverlayMode,
-    val selectedTouchLayoutEditable: Boolean,
 )
 
 data class InputRouteActions(
@@ -26,7 +25,6 @@ data class InputRouteActions(
     val onTouchLayoutSelected: (String) -> Unit,
     val onTouchOverlayModeChanged: (LigaseTouchOverlayMode) -> Unit,
     val onBrowseLayouts: () -> Unit,
-    val onEditTouchLayout: () -> Unit,
 )
 
 fun InputRouteState.presentation(): InputPresentation = inputPresentation(

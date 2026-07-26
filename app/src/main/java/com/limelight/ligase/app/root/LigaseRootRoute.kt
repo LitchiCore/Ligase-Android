@@ -5,7 +5,6 @@ import com.limelight.ligase.feature.library.domain.LibraryLayoutMode
 internal enum class LigaseLayoutRoute {
     MAIN,
     HALL,
-    EDITOR,
 }
 
 internal data class LibraryGridRetentionKey(

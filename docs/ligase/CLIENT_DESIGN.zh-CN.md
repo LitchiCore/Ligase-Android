@@ -62,27 +62,11 @@
   其他设备显示“外接设备”，不猜测为蓝牙。普通 HID 不请求直连 USB 权限。
 - 设备断开后保留稳定选择并显示“已断开”，不会静默切到触屏或另一设备；重新连接同一
   稳定键后恢复“已连接”。开始串流时若所选外设均不可用，会返回输入页要求连接。
-- 全局触控布局只保存稳定 TouchKit layout ID。已保存 ID 被删除时保持缺失状态并要求
-  重选，不按显示名、`sourceLayoutId`、游戏名、numeric appid 或 `unknown_pc` 替换。
-- 当前尚未接入 `layout-contract-v1` 的游戏级 identity/variant，因此所有 Ligase 触屏
-  启动使用显式全局 layout ID。未来 2C 接入后，精确游戏 variant 优先，全局布局仅作
-  未绑定回退；本阶段不迁移或删除旧 TouchKit game store。
-- Ligase 启动 Intent 显式携带输入模式、全局 layout ID 和屏幕控件选择。触屏用户
-  在“虚拟键盘（TouchKit）/虚拟手柄/不显示屏幕控件”中三选一，产品 UI 不允许
-  两层叠加。虚拟键盘模式才要求稳定 layout ID；其他模式保留原选择但不加载布局。
-  实体手柄、键盘鼠标模式会强制关闭触控覆盖。Ligase 产品启动绕开旧的 numeric
-  appid/unknown_pc 布局回退，旧非 Ligase 入口暂时保持原行为。
-- 输入页的触屏分支提供“布局大厅”和“编辑当前布局”入口。布局大厅是 Ligase 壳层内
-  的独立子页面，只展示本机真实可用的内建布局与用户副本；当前不提供 Host 下载、
-  社区搜索或游戏级绑定。
-- 大厅可用独立 `TouchKitLayoutPreviewActivity` 打开真实 TouchKit 横屏黑色全屏预览。
-  预览复用生产 renderer，但使用只读 preferences context、关闭输入 dispatch，并禁用
-  所有控件交互；它不进入旧 `TouchKitLayoutEditorActivity` 的编辑模式，也不保存、
-  删除、添加控件或改变全局布局。返回后仍停留原大厅和滚动位置。
-- 内建 TouchKit 布局保持只读。编辑内建布局时必须先 copy-on-write 为新的本机副本；
-  新副本使用 canonical lowercase UUID D 作为稳定 `layoutId`，初始 `revision=1`，
-  并生成稳定的 canonical `variantId`。内建的 `OSC_Keyboard` 等旧标识只作为本机
-  `legacySourceReference`，不得提升为未来跨端 layout identity。
+- 输入页与设置页只提供同一个 v3 布局大厅入口；不再展示 v1 布局选择、编辑当前布局、
+  copy-on-write 或全屏预览入口。
+- Hall 只展示 v3 新建、恢复与已严格验证的本机 generation。产品启动不携带 v1 layout
+  ID，也不读取旧 profile/game store。v3 runtime 尚未实现时由 typed gate 明确提示
+  不可用，不能用默认 TouchKit、numeric appid 或 `unknown_pc` 兜底。
 - Touch Layout v3是唯一新内容契约，使用独立strict schema、journal、generation
   repository与Workspace/Activity owner，不读写v1 SharedPreferences；失效v2
   production owner已移除，不保留双读写或兼容fallback。
@@ -97,8 +81,8 @@
   支持轻点一步与长按本地预览、释放单次提交。键盘键与鼠标按钮默认采用圆形，用户可
   显式切换为圆角矩形或矩形；形状随v3 typed properties进入同一严格保存链。控件可
   部分越过全屏canvas，只要仍有协议规定的可见交集；重叠合法，zOrder决定绘制与命中。
-- v1 TouchKit仍服务现有串流运行态并读取旧布局。v3 runtime cutover仍须独立授权；
-  编辑器不以decoded video rect、DPI或system inset替代full-overlay坐标权威。
+- v1 TouchKit 布局运行与持久化已退出产品消费链；残余类仅等待后续精确删除。编辑器
+  不以decoded video rect、DPI或system inset替代full-overlay坐标权威。
 - 真实PC键盘多选浮窗与center-stack batch属于后续独立产品块，本次编辑器cutover不提供
   临时逐键循环或伪入口。
 

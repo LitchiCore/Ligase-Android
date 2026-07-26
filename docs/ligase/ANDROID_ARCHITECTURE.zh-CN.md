@@ -39,14 +39,14 @@ LigaseActivity（composition / Android lifecycle / legacy ABI bridge）
 | Input | `InputSelectionCoordinator` | UI 展示输入模式、稳定设备选择和布局摘要，不按设备名或易变 deviceId 猜测 |
 | Settings | application owners 的组合投影 | Settings route 不创建第二份偏好或 Host state |
 
-## TouchKit v1 与 Touch Layout v3
+## Touch Layout v3
 
-### v1：现有运行时
+### v1：已退出产品路径
 
-- v1 TouchKit renderer、`KeyBoardController`、旧 layout loader 和 SharedPreferences 继续
-  服务现有串流运行态。
-- v1 的 layout ID、动态元素 map 和旧 game store 不是 v3 identity 或 content schema。
-- v3 不双写 v1，不从文件名、显示名、numeric appid 或到达顺序猜 identity。
+- Hall、Input、Root 与 Activity 不再提供 v1 布局选择、创建、编辑、预览或恢复入口。
+- 产品启动也不读取 v1 layout ID、SharedPreferences profile 或旧 game store；v3 runtime
+  完成前由 typed gate 明确返回不可用，不以默认布局或隐藏入口回退。
+- v1 残余实现只为后续精确删除保持短期可编译，不构成产品能力，也不会迁移或双写。
 
 ### v3：唯一内容契约与本机 Creator
 
@@ -61,7 +61,7 @@ LigaseActivity（composition / Android lifecycle / legacy ABI bridge）
   readback。v2 production owner已移除；v3不读写v1存储。
 - committed v3 generation只能由Workspace/Repository严格枚举并投影为typed本机卡片；
   Hall不读取路径、raw、hash或文件名。卡片可继续编辑，但不宣称runtime可执行。
-- 本阶段不包含真实PC键盘多选浮窗、Host下载、publish、runtime或preview/export/share。
+- 本阶段不包含真实PC键盘多选浮窗、Host下载、publish或runtime/export/share。
 
 ### 黑色横屏编辑器
 

@@ -52,13 +52,7 @@ import com.limelight.ligase.feature.library.domain.LigaseLibraryItem
 import com.limelight.ligase.app.navigation.LigaseNavigationPlacement
 import com.limelight.ligase.app.navigation.LigaseNavigationShell
 import com.limelight.ligase.app.navigation.currentLigaseNavigationPlacement
-import com.limelight.ligase.feature.layout.domain.LayoutCatalogUiState
-import com.limelight.ligase.feature.layout.domain.LayoutControlKind
-import com.limelight.ligase.feature.layout.domain.LayoutEditorSessionState
-import com.limelight.ligase.feature.layout.presentation.LayoutSaveNavigation
-import com.limelight.ligase.feature.layout.presentation.layoutSaveNavigation
-import com.limelight.ligase.feature.layout.ui.LayoutEditorScreen
-import com.limelight.ligase.feature.layout.ui.LayoutHallScreen
+import com.limelight.ligase.feature.input.layout.v3.ui.LayoutV3HallScreen
 import com.limelight.ligase.feature.input.layout.v3.application.LayoutV3EditorWorkspaceUiState
 import com.limelight.ligase.feature.library.ui.LibraryManualEditorUiState
 import com.limelight.ligase.feature.library.ui.LibraryRouteActions
@@ -113,8 +107,6 @@ internal fun LigaseRootContent(
     libraryCanOperate: Boolean,
     libraryCanConfigureInput: Boolean,
     manualSortState: ManualLibrarySortActionState,
-    layoutCatalogState: LayoutCatalogUiState,
-    layoutEditorState: LayoutEditorSessionState,
     layoutV3EditorWorkspaceState: LayoutV3EditorWorkspaceUiState =
         LayoutV3EditorWorkspaceUiState(),
     pairingState: AttendedPairingUiState,
@@ -137,17 +129,6 @@ internal fun LigaseRootContent(
     onLibraryConfigure: (LigaseLibraryItem) -> Unit,
     onLibraryRetrySync: () -> Unit,
     onManualOrderSubmit: (List<String>) -> Unit,
-    onLayoutCatalogRefresh: () -> Unit,
-    onLayoutSelect: (String) -> Unit,
-    onLayoutPreview: (String) -> Unit,
-    onLayoutCreateCopy: (String) -> Unit,
-    onLayoutOpenEditor: (String) -> Unit,
-    onLayoutMove: (String, Float, Float) -> Unit,
-    onLayoutResize: (String, Float, Float) -> Unit,
-    onLayoutDelete: (String) -> Unit,
-    onLayoutAdd: (LayoutControlKind) -> Unit,
-    onLayoutSave: () -> Unit,
-    onLayoutDiscard: () -> Unit,
     onLayoutV3CreateBlank: (String?) -> Unit = {},
     onLayoutV3ResumeRecovery: (String) -> Unit = {},
     onLayoutV3DiscardRecovery: (String) -> Unit = {},
@@ -187,48 +168,6 @@ internal fun LigaseRootContent(
                 val libraryOnline = libraryConnectivity == LibraryConnectivity.ONLINE
                 var layoutRoute by rememberSaveable {
                     mutableStateOf(LigaseLayoutRoute.MAIN)
-                }
-                var pendingEditorOpen by rememberSaveable { mutableStateOf(false) }
-                var pendingLayoutSave by rememberSaveable { mutableStateOf(false) }
-                LaunchedEffect(
-                    layoutEditorState.draftId,
-                    layoutEditorState.error,
-                    pendingEditorOpen,
-                ) {
-                    if (pendingEditorOpen && layoutEditorState.draftId != null) {
-                        layoutRoute = LigaseLayoutRoute.EDITOR
-                        pendingEditorOpen = false
-                    } else if (
-                        pendingEditorOpen &&
-                        layoutEditorState.error != null
-                    ) {
-                        layoutRoute = LigaseLayoutRoute.HALL
-                        pendingEditorOpen = false
-                    }
-                }
-                LaunchedEffect(
-                    pendingLayoutSave,
-                    layoutEditorState.saving,
-                    layoutEditorState.dirty,
-                    layoutEditorState.error,
-                ) {
-                    when (
-                        layoutSaveNavigation(
-                            pendingSave = pendingLayoutSave,
-                            saving = layoutEditorState.saving,
-                            dirty = layoutEditorState.dirty,
-                            hasError = layoutEditorState.error != null,
-                        )
-                    ) {
-                        LayoutSaveNavigation.HALL -> {
-                            pendingLayoutSave = false
-                            layoutRoute = LigaseLayoutRoute.HALL
-                        }
-                        LayoutSaveNavigation.STAY_EDITOR -> {
-                            pendingLayoutSave = false
-                        }
-                        LayoutSaveNavigation.WAIT -> Unit
-                    }
                 }
                 val manualRetentionKey = manualDraftRetentionKey(libraryHost?.uuid)
                 var manualOrderDraft by remember(manualRetentionKey) {
@@ -283,7 +222,6 @@ internal fun LigaseRootContent(
                     LazyListState()
                 }
                 val navigateToMainPage: (LigasePage) -> Unit = { page ->
-                    pendingEditorOpen = false
                     layoutRoute = rootRouteAfterMainPageSelection()
                     onPageSelected(page)
                 }
@@ -379,28 +317,8 @@ internal fun LigaseRootContent(
                                 onTouchLayoutSelected = onTouchLayoutSelected,
                                 onTouchOverlayModeChanged = onTouchOverlayModeChanged,
                                 listState = inputListState,
-                                selectedTouchLayoutEditable = layoutCatalogState.items
-                                    .firstOrNull {
-                                        it.layoutId == selectedTouchLayoutId
-                                    }
-                                    ?.editable == true,
                                 onBrowseLayouts = {
-                                    onLayoutCatalogRefresh()
                                     layoutRoute = LigaseLayoutRoute.HALL
-                                },
-                                onEditTouchLayout = {
-                                    selectedTouchLayoutId?.let { layoutId ->
-                                        val editable = layoutCatalogState.items
-                                            .firstOrNull { it.layoutId == layoutId }
-                                            ?.editable == true
-                                        if (editable) {
-                                            onLayoutOpenEditor(layoutId)
-                                        } else {
-                                            onLayoutCreateCopy(layoutId)
-                                        }
-                                        pendingEditorOpen = true
-                                        layoutRoute = LigaseLayoutRoute.HALL
-                                    }
                                 },
                             )
                             LigasePage.SETTINGS -> SettingsScreen(
@@ -418,7 +336,6 @@ internal fun LigaseRootContent(
                                     navigateToMainPage(LigasePage.INPUT)
                                 },
                                 onOpenLayoutHall = {
-                                    onLayoutCatalogRefresh()
                                     layoutRoute = LigaseLayoutRoute.HALL
                                 },
                                 onThemeSelected = onThemeSelected,
@@ -436,11 +353,8 @@ internal fun LigaseRootContent(
                 val pageContent: @Composable () -> Unit = {
                     when (layoutRoute) {
                         LigaseLayoutRoute.MAIN -> mainPageContent()
-                        LigaseLayoutRoute.HALL -> LayoutHallScreen(
-                            state = layoutCatalogState,
-                            actionError = layoutEditorState.error,
+                        LigaseLayoutRoute.HALL -> LayoutV3HallScreen(
                             onBack = { layoutRoute = LigaseLayoutRoute.MAIN },
-                            onRefresh = onLayoutCatalogRefresh,
                             recoverableV3Drafts =
                                 layoutV3EditorWorkspaceState.editor.recoverableDrafts,
                             committedV3Layouts =
@@ -449,29 +363,6 @@ internal fun LigaseRootContent(
                             onV3ResumeRecovery = onLayoutV3ResumeRecovery,
                             onV3DiscardRecovery = onLayoutV3DiscardRecovery,
                             onV3OpenCommitted = onLayoutV3OpenCommitted,
-                            onSelect = onLayoutSelect,
-                            onPreview = onLayoutPreview,
-                            onEdit = { layoutId ->
-                                onLayoutOpenEditor(layoutId)
-                                pendingEditorOpen = true
-                            },
-                            onCreateCopy = { layoutId ->
-                                onLayoutCreateCopy(layoutId)
-                                pendingEditorOpen = true
-                            },
-                        )
-                        LigaseLayoutRoute.EDITOR -> LayoutEditorScreen(
-                            state = layoutEditorState,
-                            onBack = { layoutRoute = LigaseLayoutRoute.HALL },
-                            onMove = onLayoutMove,
-                            onResize = onLayoutResize,
-                            onDelete = onLayoutDelete,
-                            onAdd = onLayoutAdd,
-                            onSave = {
-                                pendingLayoutSave = true
-                                onLayoutSave()
-                            },
-                            onDiscard = onLayoutDiscard,
                         )
                     }
                 }
