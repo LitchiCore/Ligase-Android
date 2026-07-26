@@ -78,10 +78,7 @@ class LayoutV3EditorWorkspaceViewModelTest {
     @Test
     fun workspaceOpacityActionPublishesTypedRejectionWithoutWriting() {
         val owner = LayoutV3EditorWorkspaceViewModel(application)
-        owner.setOpacityPermille(
-            "10000000-0000-0000-0000-000000000099",
-            500,
-        )
+        owner.setLayoutOpacityPermille(500)
         assertEquals(
             LayoutV3EditorIssue.NO_ACTIVE_DRAFT,
             owner.state.value.lastAction?.issue,

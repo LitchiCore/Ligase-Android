@@ -172,11 +172,42 @@ class LayoutV3EditorActivityViewModel internal constructor(
     ) = publish(session.setAnchors(elementId, horizontal, vertical))
     fun setZOrder(elementId: String, zOrder: Int) =
         publish(session.setZOrder(elementId, zOrder))
-    fun setOpacityPermille(elementId: String, opacityPermille: Int) =
-        publish(session.setOpacityPermille(elementId, opacityPermille))
+    fun setLayoutOpacityPermille(opacityPermille: Int) =
+        publish(session.setLayoutOpacityPermille(opacityPermille))
+
+    fun replaceComboChord(elementId: String, keys: List<InputCode>) =
+        publish(session.replaceComboChord(elementId, keys))
+
+    fun addRadialAction(elementId: String, label: String?, keys: List<InputCode>) =
+        publishRadial(session.addRadialAction(elementId, label, keys))
+
+    fun removeRadialAction(elementId: String, actionId: String) =
+        publishRadial(session.removeRadialAction(elementId, actionId))
+
+    fun reorderRadialAction(elementId: String, actionId: String, targetOrder: Int) =
+        publishRadial(session.reorderRadialAction(elementId, actionId, targetOrder))
+
+    fun replaceRadialActionLabel(elementId: String, actionId: String, label: String?) =
+        publishRadial(session.replaceRadialActionLabel(elementId, actionId, label))
+
+    fun replaceRadialActionChord(elementId: String, actionId: String, keys: List<InputCode>) =
+        publishRadial(session.replaceRadialActionChord(elementId, actionId, keys))
     fun deleteElement(elementId: String) = publish(session.deleteElement(elementId))
     fun updateProperties(elementId: String, properties: LayoutV3EditableProperties) =
         publish(session.updateProperties(elementId, properties))
+
+    private fun publishRadial(result: LayoutV3RadialEditResult): LayoutV3RadialEditResult {
+        mutableState.value = mutableState.value.copy(
+            editor = session.state,
+            lastAction = when (result) {
+                is LayoutV3RadialEditResult.Applied ->
+                    LayoutV3WorkspaceActionResult(LayoutV3WorkspaceActionCode.APPLIED)
+                is LayoutV3RadialEditResult.Rejected ->
+                    LayoutV3WorkspaceActionResult(LayoutV3WorkspaceActionCode.REJECTED, result.issue)
+            },
+        )
+        return result
+    }
     fun addKeyboardKeys(keys: Set<InputCode>) =
         publish(session.addKeyboardKeys(keys))
     fun addElement(kind: ControlKind) {

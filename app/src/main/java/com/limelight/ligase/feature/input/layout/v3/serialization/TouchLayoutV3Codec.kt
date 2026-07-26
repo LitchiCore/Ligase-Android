@@ -22,7 +22,7 @@ object TouchLayoutV3Codec {
         root.exactKeys(
             setOf(
                 "format", "schemaVersion", "layoutId", "revision", "nextKeyboardBatchOrdinal", "displayName",
-                "extensions", "variants", "contentHash",
+                "opacityPermille", "extensions", "variants", "contentHash",
             ),
             "",
         )
@@ -33,6 +33,7 @@ object TouchLayoutV3Codec {
         val nextKeyboardBatchOrdinal =
             root.long("nextKeyboardBatchOrdinal", "").range(1, SAFE_MAX, "/nextKeyboardBatchOrdinal")
         val displayName = root.string("displayName", "").clean(1, 80, "/displayName")
+        val opacityPermille = root.int("opacityPermille", "").range(0, 1000, "/opacityPermille")
         val extensions = root.obj("extensions", "").fields.also {
             validateExtensions(it, "/extensions", 0)
         }
@@ -45,6 +46,7 @@ object TouchLayoutV3Codec {
             revision,
             nextKeyboardBatchOrdinal,
             displayName,
+            opacityPermille,
             extensions,
             variants,
             contentHash,
@@ -142,7 +144,7 @@ object TouchLayoutV3Codec {
         obj.exactKeys(
             setOf(
                 "elementId", "kind", "rect", "anchorX", "anchorY",
-                "zOrder", "enabled", "hidden", "opacityPermille", "payload", "sourceReference",
+                "zOrder", "enabled", "hidden", "payload", "sourceReference",
             ),
             path,
             optional = setOf("sourceReference"),
@@ -176,7 +178,6 @@ object TouchLayoutV3Codec {
             zOrder = obj.int("zOrder", path).range(-32768, 32767, "$path/zOrder"),
             enabled = obj.boolean("enabled", path),
             hidden = obj.boolean("hidden", path),
-            opacityPermille = obj.int("opacityPermille", path).range(0, 1000, "$path/opacityPermille"),
             payload = payload,
             sourceReference = obj.optionalString("sourceReference", path)?.clean(1, 160, "$path/sourceReference"),
         )
@@ -294,10 +295,12 @@ object TouchLayoutV3Codec {
         val actions = obj.array("actions", path).bounded(2, 16, "$path/actions").mapIndexed { index, item ->
             val actionPath = "$path/actions/$index"
             val action = item.obj(actionPath)
-            action.exactKeys(setOf("keys", "label"), actionPath)
+            action.exactKeys(setOf("actionId", "order", "keys", "label"), actionPath, optional = setOf("label"))
             RadialAction(
+                action.string("actionId", actionPath).uuid("$actionPath/actionId"),
+                action.int("order", actionPath).range(0, 15, "$actionPath/order"),
                 parseInputCodeList(action.array("keys", actionPath), "$actionPath/keys"),
-                action.string("label", actionPath).clean(1, 32, "$actionPath/label"),
+                action.optionalString("label", actionPath)?.clean(1, 32, "$actionPath/label"),
             )
         }
         return RadialPayload(obj.string("label", path).clean(1, 32, "$path/label"), actions)

@@ -69,7 +69,7 @@ class LayoutV3EditorSession(
         )
         return activate(
             TouchLayoutV3Document(
-                layoutId, 1, 1L, request.displayName, emptyMap(), listOf(variant), "",
+                layoutId, 1, 1L, request.displayName, 1000, emptyMap(), listOf(variant), "",
             ),
             LayoutV3DraftIdentity(layoutId, 1, variantId, LayoutV3DraftOrigin.BLANK),
         )
@@ -235,16 +235,18 @@ class LayoutV3EditorSession(
         return replaceElements(reordered.mapIndexed { index, element -> element.copy(zOrder = index) })
     }
 
-    fun setOpacityPermille(
-        elementId: String,
+    fun setLayoutOpacityPermille(
         opacityPermille: Int,
     ): LayoutV3EditResult {
         if (opacityPermille !in MIN_OPACITY_PERMILLE..MAX_OPACITY_PERMILLE) {
-            return reject(LayoutV3EditorIssue.INVALID_OPACITY, elementId)
+            return reject(LayoutV3EditorIssue.OUT_OF_RANGE)
         }
-        return updateElement(elementId) { current ->
-            current.copy(opacityPermille = opacityPermille)
-        }
+        val active = document ?: return reject(LayoutV3EditorIssue.NO_ACTIVE_DRAFT)
+        val identity = state.draft?.identity ?: return reject(LayoutV3EditorIssue.NO_ACTIVE_DRAFT)
+        return replaceDocument(
+            active.copy(opacityPermille = opacityPermille, contentHash = ""),
+            identity,
+        )
     }
 
     fun deleteElement(elementId: String): LayoutV3EditResult {
@@ -263,6 +265,99 @@ class LayoutV3EditorSession(
         current.copy(payload = payload)
     }
 
+    fun replaceComboChord(elementId: String, keys: List<InputCode>): LayoutV3EditResult {
+        val target = selectedVariant()?.elements?.firstOrNull { it.elementId == elementId }
+            ?: return reject(LayoutV3EditorIssue.UNKNOWN_ELEMENT, elementId)
+        if (target.kind != ControlKind.COMBO) {
+            return reject(LayoutV3EditorIssue.WRONG_KIND, elementId)
+        }
+        val canonical = validateAndCanonicalizeChord(keys)
+            ?: return reject(chordIssue(keys), elementId)
+        return updateElementAndPersist(elementId) { current ->
+            val payload = current.payload as? ChordPayload
+                ?: return@updateElementAndPersist null
+            if (current.kind != ControlKind.COMBO) return@updateElementAndPersist null
+            current.copy(payload = payload.copy(keys = canonical))
+        }
+    }
+
+    fun addRadialAction(
+        elementId: String,
+        label: String?,
+        keys: List<InputCode>,
+    ): LayoutV3RadialEditResult {
+        val current = radialElement(elementId) ?: return radialReject(radialTargetIssue(elementId))
+        val canonical = validateAndCanonicalizeChord(keys)
+            ?: return radialReject(chordIssue(keys))
+        if (!validOptionalLabel(label)) return radialReject(LayoutV3EditorIssue.INVALID_LABEL)
+        val payload = current.payload as RadialPayload
+        if (payload.actions.size >= MAX_RADIAL_ACTIONS) {
+            return radialReject(LayoutV3EditorIssue.ACTION_LIMIT)
+        }
+        val existing = payload.actions.mapTo(mutableSetOf()) { it.actionId }
+        val actionId = generateRadialActionId(existing)
+            ?: return radialReject(LayoutV3EditorIssue.ID_GENERATION_FAILED)
+        val actions = payload.actions + RadialAction(actionId, payload.actions.size, canonical, label)
+        return applyRadial(elementId, current, payload.copy(actions = actions), actionId)
+    }
+
+    fun removeRadialAction(elementId: String, actionId: String): LayoutV3RadialEditResult {
+        val current = radialElement(elementId) ?: return radialReject(radialTargetIssue(elementId))
+        val payload = current.payload as RadialPayload
+        if (payload.actions.none { it.actionId == actionId }) {
+            return radialReject(LayoutV3EditorIssue.UNKNOWN_ACTION)
+        }
+        if (payload.actions.size <= MIN_RADIAL_ACTIONS) {
+            return radialReject(LayoutV3EditorIssue.MINIMUM_ACTIONS)
+        }
+        val actions = payload.actions.filterNot { it.actionId == actionId }
+            .mapIndexed { order, action -> action.copy(order = order) }
+        return applyRadial(elementId, current, payload.copy(actions = actions))
+    }
+
+    fun reorderRadialAction(
+        elementId: String,
+        actionId: String,
+        targetOrder: Int,
+    ): LayoutV3RadialEditResult {
+        val current = radialElement(elementId) ?: return radialReject(radialTargetIssue(elementId))
+        val payload = current.payload as RadialPayload
+        val selected = payload.actions.firstOrNull { it.actionId == actionId }
+            ?: return radialReject(LayoutV3EditorIssue.UNKNOWN_ACTION)
+        if (targetOrder !in payload.actions.indices) return radialReject(LayoutV3EditorIssue.OUT_OF_RANGE)
+        val actions = payload.actions.sortedBy { it.order }.toMutableList()
+        actions.remove(selected)
+        actions.add(targetOrder, selected)
+        return applyRadial(
+            elementId,
+            current,
+            payload.copy(actions = actions.mapIndexed { order, action -> action.copy(order = order) }),
+        )
+    }
+
+    fun replaceRadialActionLabel(
+        elementId: String,
+        actionId: String,
+        label: String?,
+    ): LayoutV3RadialEditResult {
+        val targetIssue = radialActionTargetIssue(elementId, actionId)
+        if (targetIssue != null) return radialReject(targetIssue)
+        if (!validOptionalLabel(label)) return radialReject(LayoutV3EditorIssue.INVALID_LABEL)
+        return updateRadialAction(elementId, actionId) { it.copy(label = label) }
+    }
+
+    fun replaceRadialActionChord(
+        elementId: String,
+        actionId: String,
+        keys: List<InputCode>,
+    ): LayoutV3RadialEditResult {
+        val targetIssue = radialActionTargetIssue(elementId, actionId)
+        if (targetIssue != null) return radialReject(targetIssue)
+        val canonical = validateAndCanonicalizeChord(keys)
+            ?: return radialReject(chordIssue(keys))
+        return updateRadialAction(elementId, actionId) { it.copy(keys = canonical) }
+    }
+
     fun addElement(
         kind: ControlKind,
         rect: IntRect,
@@ -276,7 +371,7 @@ class LayoutV3EditorSession(
         val rebased = LayoutV3Geometry.rebase(variant.canvas, rect)
         val element = TouchLayoutV3Element(
             elementId, kind, rebased.second, rebased.first.first, rebased.first.second, nextZ,
-            enabled = true, hidden = false, opacityPermille = 1000, payload, null,
+            enabled = true, hidden = false, payload, null,
         )
         return replaceElements(variant.elements + element)
     }
@@ -317,7 +412,6 @@ class LayoutV3EditorSession(
                 zOrder = (firstZ + index).toInt(),
                 enabled = true,
                 hidden = false,
-                opacityPermille = 1000,
                 payload = KeyboardPayload(
                     inputCode,
                     Appearance(
@@ -570,6 +664,94 @@ class LayoutV3EditorSession(
         return replaceElements(next)
     }
 
+    private fun updateElementAndPersist(
+        elementId: String,
+        transform: (TouchLayoutV3Element) -> TouchLayoutV3Element?,
+    ): LayoutV3EditResult {
+        val active = document ?: return reject(LayoutV3EditorIssue.NO_ACTIVE_DRAFT)
+        val identity = state.draft?.identity ?: return reject(LayoutV3EditorIssue.NO_ACTIVE_DRAFT)
+        val variant = selectedVariant() ?: return reject(LayoutV3EditorIssue.NO_ACTIVE_DRAFT)
+        val index = variant.elements.indexOfFirst { it.elementId == elementId }
+        if (index < 0) return reject(LayoutV3EditorIssue.UNKNOWN_ELEMENT, elementId)
+        val current = variant.elements[index]
+        if (!current.editable()) return reject(LayoutV3EditorIssue.READ_ONLY_KIND, elementId)
+        val updated = transform(current)
+            ?: return reject(LayoutV3EditorIssue.INVALID_PAYLOAD, elementId)
+        val elements = variant.elements.toMutableList().also { it[index] = updated }
+            .sortedWith(ELEMENT_ORDER)
+        val variants = active.variants.map {
+            if (it.variantId == identity.variantId) it.copy(elements = elements) else it
+        }
+        return replaceDocument(active.copy(variants = variants, contentHash = ""), identity)
+    }
+
+    private fun radialElement(elementId: String): TouchLayoutV3Element? =
+        selectedVariant()?.elements?.firstOrNull { it.elementId == elementId && it.kind == ControlKind.RADIAL }
+
+    private fun radialTargetIssue(elementId: String): LayoutV3EditorIssue {
+        val target = selectedVariant()?.elements?.firstOrNull { it.elementId == elementId }
+        return if (target == null) LayoutV3EditorIssue.UNKNOWN_ELEMENT else LayoutV3EditorIssue.WRONG_KIND
+    }
+
+    private fun radialActionTargetIssue(
+        elementId: String,
+        actionId: String,
+    ): LayoutV3EditorIssue? {
+        val target = selectedVariant()?.elements?.firstOrNull { it.elementId == elementId }
+            ?: return LayoutV3EditorIssue.UNKNOWN_ELEMENT
+        if (target.kind != ControlKind.RADIAL) return LayoutV3EditorIssue.WRONG_KIND
+        val payload = target.payload as RadialPayload
+        return if (payload.actions.none { it.actionId == actionId }) {
+            LayoutV3EditorIssue.UNKNOWN_ACTION
+        } else {
+            null
+        }
+    }
+
+    private fun updateRadialAction(
+        elementId: String,
+        actionId: String,
+        transform: (RadialAction) -> RadialAction,
+    ): LayoutV3RadialEditResult {
+        val current = radialElement(elementId) ?: return radialReject(radialTargetIssue(elementId))
+        val payload = current.payload as RadialPayload
+        if (payload.actions.none { it.actionId == actionId }) {
+            return radialReject(LayoutV3EditorIssue.UNKNOWN_ACTION)
+        }
+        return applyRadial(
+            elementId,
+            current,
+            payload.copy(actions = payload.actions.map { if (it.actionId == actionId) transform(it) else it }),
+        )
+    }
+
+    private fun applyRadial(
+        elementId: String,
+        current: TouchLayoutV3Element,
+        payload: RadialPayload,
+        createdActionId: String? = null,
+    ): LayoutV3RadialEditResult {
+        val result = updateElementAndPersist(elementId) { current.copy(payload = payload) }
+        if (result is LayoutV3EditResult.Rejected) return radialReject(result.issue)
+        return LayoutV3RadialEditResult.Applied(
+            createdActionId,
+            LayoutV3EditableProperties.Radial(payload.label, payload.actions),
+        )
+    }
+
+    private fun generateRadialActionId(existing: Set<String>): String? {
+        repeat(MAX_ID_ATTEMPTS) {
+            val candidate = canonicalUuid()
+            if (candidate != null && candidate !in existing) return candidate
+        }
+        return null
+    }
+
+    private fun radialReject(issue: LayoutV3EditorIssue): LayoutV3RadialEditResult {
+        publish(state.copy(issue = issue))
+        return LayoutV3RadialEditResult.Rejected(issue)
+    }
+
     private fun updateResolvedRect(
         elementId: String,
         transform: (IntRect) -> IntRect,
@@ -704,7 +886,7 @@ class LayoutV3EditorSession(
         val variant = variants.first { it.variantId == identity.variantId }
         return LayoutV3EditorDraft(
             identity, displayName, variant.canvas, variant.deviceClasses, variant.orientations,
-            variant.recommendation, variant.elements.map { it.toEditorElement(variant.canvas) },
+            variant.recommendation, opacityPermille, variant.elements.map { it.toEditorElement(variant.canvas) },
         )
     }
     private fun reject(issue: LayoutV3EditorIssue, elementId: String? = null): LayoutV3EditResult {
@@ -726,7 +908,7 @@ class LayoutV3EditorSession(
         ))
         return LayoutV3SaveResult.Rejected(issue)
     }
-    private fun canonicalUuid(): String? = uuid().lowercase().takeIf {
+    private fun canonicalUuid(): String? = runCatching { uuid().lowercase() }.getOrNull()?.takeIf {
         LayoutContractV1Validator.normalizeUuid(it) == it
     }
     private fun publish(next: LayoutV3EditorState) {
@@ -740,10 +922,13 @@ class LayoutV3EditorSession(
         const val MAX_OPACITY_PERMILLE = 1000
         val EDITABLE_KINDS = setOf(
             ControlKind.KEYBOARD, ControlKind.MOUSE, ControlKind.ANALOG,
-            ControlKind.DPAD, ControlKind.SOFT_KEYBOARD,
+            ControlKind.DPAD, ControlKind.COMBO, ControlKind.RADIAL, ControlKind.SOFT_KEYBOARD,
         )
         const val KEYBOARD_SIZE = 96
         const val MAX_ELEMENTS = 512
+        const val MIN_RADIAL_ACTIONS = 2
+        const val MAX_RADIAL_ACTIONS = 16
+        const val MAX_ID_ATTEMPTS = 3
         const val MAX_Z_ORDER = 32767L
         val ELEMENT_ORDER = compareBy<TouchLayoutV3Element>({ it.zOrder }, { it.elementId })
     }
@@ -752,7 +937,7 @@ class LayoutV3EditorSession(
 private fun TouchLayoutV3Element.editable(): Boolean =
     kind in setOf(
         ControlKind.KEYBOARD, ControlKind.MOUSE, ControlKind.ANALOG,
-        ControlKind.DPAD, ControlKind.SOFT_KEYBOARD,
+        ControlKind.DPAD, ControlKind.COMBO, ControlKind.RADIAL, ControlKind.SOFT_KEYBOARD,
     )
 
 private fun LayoutV3EditableProperties.toPayload(kind: ControlKind): ControlPayload? = when (this) {
@@ -770,7 +955,29 @@ private fun LayoutV3EditableProperties.toPayload(kind: ControlKind): ControlPayl
     }
     LayoutV3EditableProperties.SoftKeyboard ->
         SoftKeyboardPayload.takeIf { kind == ControlKind.SOFT_KEYBOARD }
+    is LayoutV3EditableProperties.Combo,
+    is LayoutV3EditableProperties.Radial -> null
 }
+
+private fun canonicalChord(keys: List<InputCode>): List<InputCode>? {
+    if (keys.isEmpty() || keys.size > 16 || keys.toSet().size != keys.size) return null
+    if (keys.any { it.code !in 0..65535 }) return null
+    return keys.sortedWith(compareBy<InputCode>({ it.namespace.ordinal }, { it.code }))
+}
+
+private fun validateAndCanonicalizeChord(keys: List<InputCode>): List<InputCode>? =
+    canonicalChord(keys)
+
+private fun chordIssue(keys: List<InputCode>): LayoutV3EditorIssue = when {
+    keys.isEmpty() -> LayoutV3EditorIssue.EMPTY_CHORD
+    keys.size > 16 -> LayoutV3EditorIssue.TOO_MANY_KEYS
+    keys.any { it.code !in 0..65535 } -> LayoutV3EditorIssue.UNSUPPORTED_INPUT_CODE
+    keys.toSet().size != keys.size -> LayoutV3EditorIssue.DUPLICATE_KEY
+    else -> LayoutV3EditorIssue.INVALID_PAYLOAD
+}
+
+private fun validOptionalLabel(label: String?): Boolean =
+    label == null || (label.length in 1..32 && label.none { it.code < 0x20 || it.code in 0x7f..0x9f })
 
 private fun LayoutV3GenerationWriteCode.toEditorIssue() = when (this) {
     LayoutV3GenerationWriteCode.SAVED -> error("not an error")

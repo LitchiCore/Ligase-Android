@@ -9,6 +9,7 @@ import java.util.UUID
 object TouchLayoutV3Validator {
     fun validate(document: TouchLayoutV3Document) {
         if (document.nextKeyboardBatchOrdinal < 1L) fail("invalidNextKeyboardBatchOrdinal")
+        if (document.opacityPermille !in 0..1000) fail("invalidOpacityPermille")
         val ids = document.variants.map { it.variantId }
         if (ids != ids.sorted()) fail("nonCanonicalVariantOrder")
         if (ids.toSet().size != ids.size) fail("invalidVariantId")
@@ -57,7 +58,26 @@ object TouchLayoutV3Validator {
             if (!LayoutV3Geometry.isVisible(rect, IntRect(0, 0, variant.canvas.width, variant.canvas.height))) {
                 fail("rectNotVisible", "$path/elements/$index/rect")
             }
+            when (val payload = element.payload) {
+                is ChordPayload -> validateChord(payload.keys, "$path/elements/$index/payload/keys")
+                is RadialPayload -> {
+                    if (payload.actions.size !in 2..16 ||
+                        payload.actions.map { it.actionId }.toSet().size != payload.actions.size ||
+                        payload.actions.map { it.order } != payload.actions.indices.toList()
+                    ) fail("invalidRadialActions", "$path/elements/$index/payload/actions")
+                    payload.actions.forEachIndexed { actionIndex, action ->
+                        validateChord(action.keys, "$path/elements/$index/payload/actions/$actionIndex/keys")
+                    }
+                }
+                else -> Unit
+            }
         }
+    }
+
+    private fun validateChord(keys: List<InputCode>, path: String) {
+        if (keys.isEmpty() || keys.size > 16 || keys.toSet().size != keys.size) fail("invalidChord", path)
+        val canonical = keys.sortedWith(compareBy<InputCode>({ it.namespace.ordinal }, { it.code }))
+        if (keys != canonical) fail("nonCanonicalChordOrder", path)
     }
 
     private fun compare(left: AspectRatio, right: AspectRatio): Int =

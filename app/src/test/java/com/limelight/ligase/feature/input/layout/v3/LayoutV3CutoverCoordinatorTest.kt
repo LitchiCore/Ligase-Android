@@ -20,6 +20,8 @@ class LayoutV3CutoverCoordinatorTest {
             "ligase-touch-layout-v2",
             "ligase-touch-layout-v2-drafts",
             "ligase-touch-layout-v2-generations",
+            "ligase-touch-layout-v3-drafts",
+            "ligase-touch-layout-v3-generations",
         ).forEach { File(roots.files, it).mkdirs() }
         File(roots.preferences, "ligase_touch_layout_v2_preferences.xml").writeText(
             """<map><string name="preferred:00000000-0000-0000-0000-000000000001">variant</string></map>""",
@@ -31,6 +33,8 @@ class LayoutV3CutoverCoordinatorTest {
         coordinator.gate.requireReady()
         assertEquals(LayoutV3CutoverState.V3_READY, coordinator.ensureReady().state)
         assertFalse(File(roots.files, "ligase-touch-layout-v2").exists())
+        assertFalse(File(roots.files, "ligase-touch-layout-v3-drafts").exists())
+        assertFalse(File(roots.files, "ligase-touch-layout-v3-generations").exists())
         assertEquals("safe", mustNotTouch.readText())
     }
 
@@ -54,7 +58,7 @@ class LayoutV3CutoverCoordinatorTest {
         val roots = roots()
         File(roots.files, "ligase-touch-layout-v2").mkdirs()
         File(roots.files, "ligase-touch-layout-v2-drafts").mkdirs()
-        val quarantine = File(roots.files, "ligase-touch-layout-v3-quarantine/v2-test-data")
+        val quarantine = File(roots.files, "ligase-touch-layout-v3-quarantine/pre-authority-test-data")
             .also { it.mkdirs() }
         File(quarantine, "ligase-touch-layout-v2-drafts").mkdirs()
         val coordinator = LayoutV3CutoverCoordinator.forTest(roots.data, roots.files, roots.preferences)

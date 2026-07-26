@@ -51,6 +51,16 @@ sealed interface LayoutV3EditableProperties {
         val diagonalPolicy: String,
     ) : LayoutV3EditableProperties
     data object SoftKeyboard : LayoutV3EditableProperties
+    data class Combo(
+        val keys: List<InputCode>,
+        val trigger: Trigger,
+        val timedHoldMs: Int?,
+        val appearance: Appearance,
+    ) : LayoutV3EditableProperties
+    data class Radial(
+        val label: String,
+        val actions: List<RadialAction>,
+    ) : LayoutV3EditableProperties
 }
 
 data class LayoutV3InspectOnlySummary(
@@ -70,7 +80,6 @@ data class LayoutV3EditorElement(
     val zOrder: Int,
     val enabled: Boolean,
     val hidden: Boolean,
-    val opacityPermille: Int,
     val editableProperties: LayoutV3EditableProperties?,
     val inspectOnlySummary: LayoutV3InspectOnlySummary?,
     val capabilities: Set<LayoutV3ElementCapability>,
@@ -83,6 +92,7 @@ data class LayoutV3EditorDraft(
     val deviceClasses: List<DeviceClass>,
     val orientations: List<LayoutOrientation>,
     val recommendation: LayoutRecommendation,
+    val opacityPermille: Int,
     val elements: List<LayoutV3EditorElement>,
 )
 
@@ -115,11 +125,13 @@ data class LayoutV3EditorState(
 enum class LayoutV3EditorIssue {
     NO_ACTIVE_DRAFT, INVALID_IDENTITY, SOURCE_NOT_READY, RETIRED, VARIANT_NOT_FOUND,
     UNKNOWN_ELEMENT, READ_ONLY_KIND, INVALID_RECT, OUT_OF_CANVAS, INVALID_ANCHOR,
-    INVALID_OPACITY,
     INVALID_Z_ORDER, COLLISION, INVALID_PAYLOAD, LIMIT_EXCEEDED, VALIDATION_FAILED,
     STALE_SOURCE_GENERATION, JOURNAL_WRITE_FAILED, WRITE_FAILED, READBACK_FAILED,
     REGISTRATION_FAILED, ROLLBACK_FAILED, CUTOVER_NOT_READY, STALE_GESTURE,
     EMPTY_KEY_SET, UNSUPPORTED_NAMESPACE, ID_EXHAUSTED, Z_ORDER_EXHAUSTED,
+    EMPTY_CHORD, TOO_MANY_KEYS, DUPLICATE_KEY, UNSUPPORTED_INPUT_CODE,
+    WRONG_KIND, UNKNOWN_ACTION, MINIMUM_ACTIONS, ACTION_LIMIT, INVALID_LABEL,
+    ID_GENERATION_FAILED, OUT_OF_RANGE,
 }
 
 data class LayoutV3GestureCommitToken internal constructor(
@@ -181,6 +193,14 @@ sealed interface LayoutV3EditResult {
         LayoutV3EditResult
 }
 
+sealed interface LayoutV3RadialEditResult {
+    data class Applied(
+        val actionId: String?,
+        val radial: LayoutV3EditableProperties.Radial,
+    ) : LayoutV3RadialEditResult
+    data class Rejected(val issue: LayoutV3EditorIssue) : LayoutV3RadialEditResult
+}
+
 sealed interface LayoutV3SaveResult {
     data class Saved(val layoutId: String, val revision: Long, val variantId: String) :
         LayoutV3SaveResult
@@ -214,6 +234,10 @@ internal fun TouchLayoutV3Element.toEditorElement(canvas: IntSize): LayoutV3Edit
             else -> null
         }
         SoftKeyboardPayload -> LayoutV3EditableProperties.SoftKeyboard
+        is ChordPayload -> if (kind == ControlKind.COMBO) {
+            LayoutV3EditableProperties.Combo(value.keys, value.trigger, value.timedHoldMs, value.appearance)
+        } else null
+        is RadialPayload -> LayoutV3EditableProperties.Radial(value.label, value.actions)
         else -> null
     }
     val editableCapabilities = setOf(
@@ -244,7 +268,7 @@ internal fun TouchLayoutV3Element.toEditorElement(canvas: IntSize): LayoutV3Edit
     }
     return LayoutV3EditorElement(
         elementId, kind, rect, LayoutV3Geometry.resolve(canvas, this), anchorX, anchorY, zOrder, enabled, hidden,
-        opacityPermille, editable, summary,
+        editable, summary,
         if (editable == null) {
             setOf(LayoutV3ElementCapability.SELECT, LayoutV3ElementCapability.INSPECT_ONLY)
         } else {

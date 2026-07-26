@@ -144,11 +144,11 @@ class LayoutV3EditorActivityViewModelTest {
         val token = (owner.beginGesture(element.elementId) as LayoutV3GestureStartResult.Ready).token
         assertEquals(LayoutV3EditResult.Applied, owner.cancelGesture(token))
 
-        owner.setOpacityPermille(element.elementId, 425)
-        assertEquals(425, owner.state.value.editor.draft!!.elements.single().opacityPermille)
+        owner.setLayoutOpacityPermille(425)
+        assertEquals(425, owner.state.value.editor.draft!!.opacityPermille)
         val stale = owner.commitMove(token, 20, 30) as LayoutV3EditResult.Rejected
         assertEquals(LayoutV3EditorIssue.STALE_GESTURE, stale.issue)
-        assertEquals(425, owner.state.value.editor.draft!!.elements.single().opacityPermille)
+        assertEquals(425, owner.state.value.editor.draft!!.opacityPermille)
         owner.closeForTest()
     }
 

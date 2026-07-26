@@ -158,7 +158,6 @@ class TouchLayoutV3CoreTest {
         zOrder = z,
         enabled = true,
         hidden = false,
-        opacityPermille = 1000,
         payload = SoftKeyboardPayload,
         sourceReference = null,
     )

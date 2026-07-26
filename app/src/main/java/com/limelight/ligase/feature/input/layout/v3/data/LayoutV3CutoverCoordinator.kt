@@ -68,6 +68,8 @@ class LayoutV3CutoverCoordinator private constructor(
         File(filesRoot, V2_CONTENT_DIRECTORY),
         File(filesRoot, V2_DRAFT_DIRECTORY),
         File(filesRoot, V2_GENERATION_DIRECTORY),
+        File(filesRoot, PRE_AUTHORITY_V3_DRAFT_DIRECTORY),
+        File(filesRoot, PRE_AUTHORITY_V3_GENERATION_DIRECTORY),
         File(preferencesRoot, "$V2_PREFERENCES_FILE.xml"),
     )
 
@@ -148,13 +150,15 @@ class LayoutV3CutoverCoordinator private constructor(
         private const val V2_CONTENT_DIRECTORY = "ligase-touch-layout-v2"
         private const val V2_DRAFT_DIRECTORY = "ligase-touch-layout-v2-drafts"
         private const val V2_GENERATION_DIRECTORY = "ligase-touch-layout-v2-generations"
+        private const val PRE_AUTHORITY_V3_DRAFT_DIRECTORY = "ligase-touch-layout-v3-drafts"
+        private const val PRE_AUTHORITY_V3_GENERATION_DIRECTORY = "ligase-touch-layout-v3-generations"
         private const val V2_PREFERENCES_FILE = "ligase_touch_layout_v2_preferences"
         private const val PREFERENCE_PREFIX = "preferred:"
         private const val QUARANTINE_DIRECTORY = "ligase-touch-layout-v3-quarantine"
-        private const val QUARANTINE_GENERATION = "v2-test-data"
+        private const val QUARANTINE_GENERATION = "pre-authority-test-data"
         private const val MARKER_FILE = "ligase-touch-layout-v3-cutover.json"
         private val MARKER_BYTES =
-            """{"format":"ligase-touch-layout-v3-cutover","state":"V3_READY","version":1}""".toByteArray()
+            """{"format":"ligase-touch-layout-v3-cutover","state":"V3_READY","version":2}""".toByteArray()
         private val UUID_PATTERN =
             Regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 

@@ -7,6 +7,7 @@ data class TouchLayoutV3Document(
     val revision: Long,
     val nextKeyboardBatchOrdinal: Long,
     val displayName: String,
+    val opacityPermille: Int,
     val extensions: Map<String, StrictJsonV3Value>,
     val variants: List<TouchLayoutV3Variant>,
     val contentHash: String,
@@ -64,7 +65,6 @@ data class TouchLayoutV3Element(
     val zOrder: Int,
     val enabled: Boolean,
     val hidden: Boolean,
-    val opacityPermille: Int,
     val payload: ControlPayload,
     val sourceReference: String?,
 )
@@ -125,7 +125,12 @@ data class ChordPayload(
     val sticky: Boolean?,
 ) : ControlPayload
 
-data class RadialAction(val keys: List<InputCode>, val label: String)
+data class RadialAction(
+    val actionId: String,
+    val order: Int,
+    val keys: List<InputCode>,
+    val label: String?,
+)
 data class RadialPayload(
     val label: String,
     val actions: List<RadialAction>,

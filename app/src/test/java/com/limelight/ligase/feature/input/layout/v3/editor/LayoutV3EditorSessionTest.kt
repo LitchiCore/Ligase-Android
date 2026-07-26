@@ -88,23 +88,16 @@ class LayoutV3EditorSessionTest {
     fun opacityUsesFrozenRangeAndSurvivesJournalAndFormalReadback() {
         val session = session()
         activate(session)
-        val element = session.state.draft!!.elements.first { it.kind == ControlKind.KEYBOARD }
-        val propertiesBefore = element.editableProperties
-
-        assertEquals(LayoutV3EditResult.Applied, session.setOpacityPermille(element.elementId, 0))
-        assertEquals(LayoutV3EditResult.Applied, session.setOpacityPermille(element.elementId, 1000))
-        assertEquals(LayoutV3EditResult.Applied, session.setOpacityPermille(element.elementId, 375))
-        val after = session.state.draft!!.elements.first { it.elementId == element.elementId }
-        assertEquals(375, after.opacityPermille)
-        assertEquals(propertiesBefore, after.editableProperties)
+        assertEquals(LayoutV3EditResult.Applied, session.setLayoutOpacityPermille(0))
+        assertEquals(LayoutV3EditResult.Applied, session.setLayoutOpacityPermille(1000))
+        assertEquals(LayoutV3EditResult.Applied, session.setLayoutOpacityPermille(375))
+        assertEquals(375, session.state.draft!!.opacityPermille)
 
         assertEquals(LayoutV3JournalWriteResult.SAVED, session.flushJournal())
         val draftId = session.state.recoverableDrafts.single().draftId
         val recovered = session()
         assertEquals(LayoutV3EditResult.Applied, recovered.resumeRecoverableDraft(draftId))
-        assertEquals(375, recovered.state.draft!!.elements.first {
-            it.elementId == element.elementId
-        }.opacityPermille)
+        assertEquals(375, recovered.state.draft!!.opacityPermille)
 
         val saved = recovered.saveDraft() as LayoutV3SaveResult.Saved
         val generation = requireNotNull(
@@ -112,9 +105,7 @@ class LayoutV3EditorSessionTest {
         )
         val document = (TouchLayoutV3ContentVerifier.verify(generation.artifact) as
             LayoutV3ContentVerificationResult.Verified).content.document
-        assertEquals(375, document.variants.single().elements.first {
-            it.elementId == element.elementId
-        }.opacityPermille)
+        assertEquals(375, document.opacityPermille)
         session.close()
         recovered.close()
     }
@@ -123,22 +114,88 @@ class LayoutV3EditorSessionTest {
     fun invalidOrUnknownOpacityFailsClosedWithoutMutation() {
         val session = session()
         activate(session)
-        val element = session.state.draft!!.elements.first { it.kind == ControlKind.KEYBOARD }
         val before = session.state.draft
 
         listOf(-1, 1001).forEach { invalid ->
-            val rejected = session.setOpacityPermille(element.elementId, invalid) as
+            val rejected = session.setLayoutOpacityPermille(invalid) as
                 LayoutV3EditResult.Rejected
-            assertEquals(LayoutV3EditorIssue.INVALID_OPACITY, rejected.issue)
-            assertEquals(element.elementId, rejected.elementId)
+            assertEquals(LayoutV3EditorIssue.OUT_OF_RANGE, rejected.issue)
             assertEquals(before, session.state.draft)
         }
-        val unknown = session.setOpacityPermille(
-            "10000000-0000-0000-0000-000000000099",
-            500,
-        ) as LayoutV3EditResult.Rejected
-        assertEquals(LayoutV3EditorIssue.UNKNOWN_ELEMENT, unknown.issue)
-        assertEquals(before, session.state.draft)
+        session.close()
+    }
+
+    @Test
+    fun comboAndRadialMutationsAreCanonicalAtomicAndPersistIdentity() {
+        val session = session()
+        activate(session)
+        val combo = session.state.draft!!.elements.first { it.kind == ControlKind.COMBO }
+        val radial = session.state.draft!!.elements.first { it.kind == ControlKind.RADIAL }
+        val rawChord = listOf(
+            InputCode(InputCodeNamespace.USB_HID_KEYBOARD_USAGE, 4),
+            InputCode(InputCodeNamespace.ANDROID_KEY_CODE, 29),
+        )
+        assertEquals(LayoutV3EditResult.Applied, session.replaceComboChord(combo.elementId, rawChord))
+        val canonicalCombo = session.state.draft!!.elements.first { it.elementId == combo.elementId }
+            .editableProperties as LayoutV3EditableProperties.Combo
+        assertEquals(listOf(29, 4), canonicalCombo.keys.map { it.code })
+
+        val added = session.addRadialAction(radial.elementId, "Action", rawChord)
+            as LayoutV3RadialEditResult.Applied
+        assertNotNull(added.actionId)
+        assertEquals(listOf(29, 4), added.radial.actions.last().keys.map { it.code })
+        val beforeInvalid = session.state.draft
+        val duplicate = session.replaceRadialActionChord(
+            radial.elementId,
+            checkNotNull(added.actionId),
+            listOf(rawChord.first(), rawChord.first()),
+        ) as LayoutV3RadialEditResult.Rejected
+        assertEquals(LayoutV3EditorIssue.DUPLICATE_KEY, duplicate.issue)
+        assertEquals(beforeInvalid, session.state.draft)
+
+        assertEquals(LayoutV3JournalWriteResult.SAVED, session.flushJournal())
+        val saved = session.saveDraft() as LayoutV3SaveResult.Saved
+        val generation = requireNotNull(
+            LayoutV3GenerationRepository(context).read(saved.layoutId, saved.revision),
+        )
+        val reopened = (TouchLayoutV3ContentVerifier.verify(generation.artifact) as
+            LayoutV3ContentVerificationResult.Verified).content.document
+        val reopenedRadial = reopened.variants.single().elements.first { it.elementId == radial.elementId }
+            .payload as RadialPayload
+        assertTrue(reopenedRadial.actions.any { it.actionId == added.actionId })
+        session.close()
+    }
+
+    @Test
+    fun chordActionsExposeFrozenErrorsAndValidateTargetsBeforePayload() {
+        val session = session()
+        activate(session)
+        val combo = session.state.draft!!.elements.first { it.kind == ControlKind.COMBO }
+        val radial = session.state.draft!!.elements.first { it.kind == ControlKind.RADIAL }
+        val radialProperties = radial.editableProperties as LayoutV3EditableProperties.Radial
+        val actionId = radialProperties.actions.first().actionId
+        val key = InputCode(InputCodeNamespace.ANDROID_KEY_CODE, 29)
+
+        fun comboIssue(keys: List<InputCode>) =
+            (session.replaceComboChord(combo.elementId, keys) as LayoutV3EditResult.Rejected).issue
+        assertEquals(LayoutV3EditorIssue.EMPTY_CHORD, comboIssue(emptyList()))
+        assertEquals(LayoutV3EditorIssue.TOO_MANY_KEYS, comboIssue(List(17) { InputCode(InputCodeNamespace.ANDROID_KEY_CODE, it) }))
+        assertEquals(LayoutV3EditorIssue.UNSUPPORTED_INPUT_CODE, comboIssue(listOf(key.copy(code = -1))))
+        assertEquals(LayoutV3EditorIssue.DUPLICATE_KEY, comboIssue(listOf(key, key)))
+
+        val unknown = session.replaceRadialActionChord(
+            radial.elementId,
+            "00000000-0000-0000-0000-000000000000",
+            emptyList(),
+        ) as LayoutV3RadialEditResult.Rejected
+        assertEquals(LayoutV3EditorIssue.UNKNOWN_ACTION, unknown.issue)
+
+        val invalidLabel = session.replaceRadialActionLabel(
+            radial.elementId,
+            actionId,
+            "",
+        ) as LayoutV3RadialEditResult.Rejected
+        assertEquals(LayoutV3EditorIssue.INVALID_LABEL, invalidLabel.issue)
         session.close()
     }
 
@@ -146,6 +203,9 @@ class LayoutV3EditorSessionTest {
         val ids = ArrayDeque(listOf(
             "10000000-0000-0000-0000-000000000001",
             "10000000-0000-0000-0000-000000000002",
+            "10000000-0000-0000-0000-000000000003",
+            "10000000-0000-0000-0000-000000000004",
+            "10000000-0000-0000-0000-000000000005",
         ))
         return LayoutV3EditorSession(
             LayoutV3DraftJournal(context),

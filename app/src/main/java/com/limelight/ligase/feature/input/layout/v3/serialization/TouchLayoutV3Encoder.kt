@@ -24,6 +24,7 @@ object TouchLayoutV3Encoder {
         "revision" to int(document.revision),
         "nextKeyboardBatchOrdinal" to int(document.nextKeyboardBatchOrdinal),
         "displayName" to str(document.displayName),
+        "opacityPermille" to int(document.opacityPermille),
         "extensions" to StrictJsonV3Value.ObjectValue(document.extensions),
         "variants" to array(document.variants.map(::variant)),
         "contentHash" to str(contentHash),
@@ -61,7 +62,6 @@ object TouchLayoutV3Encoder {
             "zOrder" to int(value.zOrder),
             "enabled" to bool(value.enabled),
             "hidden" to bool(value.hidden),
-            "opacityPermille" to int(value.opacityPermille),
             "payload" to payload(value.payload),
         )
         value.sourceReference?.let { fields["sourceReference"] = str(it) }
@@ -117,7 +117,13 @@ object TouchLayoutV3Encoder {
             "direction" to str("clockwise"),
             "boundaryPolicy" to str("clockwiseInclusive"),
             "actions" to array(value.actions.map {
-                obj("keys" to inputCodes(it.keys), "label" to str(it.label))
+                val fields = linkedMapOf<String, StrictJsonV3Value>(
+                    "actionId" to str(it.actionId),
+                    "order" to int(it.order),
+                    "keys" to inputCodes(it.keys),
+                )
+                it.label?.let { label -> fields["label"] = str(label) }
+                StrictJsonV3Value.ObjectValue(fields)
             }),
         )
         is ScrollPayload -> obj(

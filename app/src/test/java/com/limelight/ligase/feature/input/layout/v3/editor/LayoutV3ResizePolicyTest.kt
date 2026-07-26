@@ -46,7 +46,6 @@ class LayoutV3ResizePolicyTest {
         zOrder = 0,
         enabled = true,
         hidden = false,
-        opacityPermille = 1000,
         editableProperties = LayoutV3EditableProperties.Keyboard(
             InputCode(InputCodeNamespace.ANDROID_KEY_CODE, 29),
             Appearance("A", "", shape, false),

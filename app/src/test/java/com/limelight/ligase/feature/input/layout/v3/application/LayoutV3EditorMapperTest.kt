@@ -89,7 +89,6 @@ class LayoutV3EditorMapperTest {
         zOrder = 0,
         enabled = enabled,
         hidden = hidden,
-        opacityPermille = 1000,
         editableProperties = null,
         inspectOnlySummary = null,
         capabilities = emptySet(),
