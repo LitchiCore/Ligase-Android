@@ -59,7 +59,6 @@ class LayoutV3BlackEditorActivity : AppCompatActivity() {
                     onCancelGesture = editorViewModel::cancelGesture,
                     onNudge = editorViewModel::nudgeElement,
                     onSetZOrder = editorViewModel::setZOrder,
-                    onSetOpacityPermille = editorViewModel::setOpacityPermille,
                     onDelete = editorViewModel::deleteElement,
                     onUpdateProperties = editorViewModel::updateProperties,
                     onAdd = editorViewModel::addElement,

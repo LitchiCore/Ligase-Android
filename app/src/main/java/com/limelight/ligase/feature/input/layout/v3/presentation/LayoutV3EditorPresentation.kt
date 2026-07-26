@@ -20,13 +20,13 @@ data class LayoutV3EditorPresentation(
     val issue: LayoutV3EditorIssue?,
 )
 
-const val LAYOUT_V3_EDITOR_LABEL_MIN_SP = 10f
-const val LAYOUT_V3_EDITOR_LABEL_MAX_SP = 28f
+const val LAYOUT_V3_EDITOR_LABEL_MIN_SP = 13f
+const val LAYOUT_V3_EDITOR_LABEL_MAX_SP = 34f
 const val LAYOUT_V3_EDITOR_UNSELECTED_BORDER_DP = 2f
 const val LAYOUT_V3_EDITOR_TEXT_BASE_ALPHA = 0.82f
 
 fun layoutV3EditorLabelSizeSp(shortEdgeDp: Float): Float =
-    (shortEdgeDp * 0.28f).coerceIn(
+    (shortEdgeDp * 0.34f).coerceIn(
         LAYOUT_V3_EDITOR_LABEL_MIN_SP,
         LAYOUT_V3_EDITOR_LABEL_MAX_SP,
     )

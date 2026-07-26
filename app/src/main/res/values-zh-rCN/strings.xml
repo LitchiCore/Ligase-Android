@@ -1271,8 +1271,6 @@
     <string name="ligase_layout_v3_open_tools">编辑 / 设置</string>
     <string name="ligase_layout_v3_control_properties">控件属性</string>
     <string name="ligase_layout_v3_layout_settings">布局设置</string>
-    <string name="ligase_layout_v3_opacity_value">不透明度：%1$d%%</string>
-    <string name="ligase_layout_v3_opacity">控件不透明度</string>
     <string name="ligase_layout_v3_close_tools">收起编辑工具</string>
     <string name="ligase_layout_v3_shape">控件形状</string>
     <string name="ligase_layout_v3_shape_circle">圆形</string>

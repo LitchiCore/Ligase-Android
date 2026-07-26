@@ -16,9 +16,9 @@ import org.junit.Test
 class LayoutV3EditorPresentationTest {
     @Test
     fun `control label scales with short edge and remains bounded`() {
-        assertEquals(10f, layoutV3EditorLabelSizeSp(8f))
-        assertEquals(14f, layoutV3EditorLabelSizeSp(50f))
-        assertEquals(28f, layoutV3EditorLabelSizeSp(500f))
+        assertEquals(13f, layoutV3EditorLabelSizeSp(8f))
+        assertEquals(17f, layoutV3EditorLabelSizeSp(50f))
+        assertEquals(34f, layoutV3EditorLabelSizeSp(500f))
     }
 
     @Test

@@ -1285,8 +1285,6 @@
     <string name="ligase_layout_v3_open_tools">Edit / settings</string>
     <string name="ligase_layout_v3_control_properties">Control properties</string>
     <string name="ligase_layout_v3_layout_settings">Layout settings</string>
-    <string name="ligase_layout_v3_opacity_value">Opacity: %1$d%%</string>
-    <string name="ligase_layout_v3_opacity">Control opacity</string>
     <string name="ligase_layout_v3_close_tools">Close editing tools</string>
     <string name="ligase_layout_v3_shape">Control shape</string>
     <string name="ligase_layout_v3_shape_circle">Circle</string>

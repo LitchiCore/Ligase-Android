@@ -56,7 +56,6 @@ fun LayoutV3BlackEditorScreen(
     onCancelGesture: (LayoutV3GestureCommitToken) -> LayoutV3EditResult,
     onNudge: (String, Int, Int) -> Unit,
     onSetZOrder: (String, Int) -> Unit,
-    onSetOpacityPermille: (String, Int) -> Unit,
     onDelete: (String) -> Unit,
     onUpdateProperties: (String, LayoutV3EditableProperties) -> Unit,
     onAdd: (ControlKind) -> Unit,
@@ -186,7 +185,6 @@ fun LayoutV3BlackEditorScreen(
                             onNudge(elementId, deltaX, deltaY)
                         },
                         onSetZOrder = onSetZOrder,
-                        onSetOpacityPermille = onSetOpacityPermille,
                         onDelete = onDelete,
                         onUpdateProperties = onUpdateProperties,
                         onAdd = onAdd,
@@ -568,7 +566,6 @@ private fun BlackEditorPanel(
     onNudgePreview: (LayoutV3NudgeDelta) -> Unit,
     onNudgeCommit: (String, Int, Int) -> Unit,
     onSetZOrder: (String, Int) -> Unit,
-    onSetOpacityPermille: (String, Int) -> Unit,
     onDelete: (String) -> Unit,
     onUpdateProperties: (String, LayoutV3EditableProperties) -> Unit,
     onAdd: (ControlKind) -> Unit,
@@ -649,7 +646,6 @@ private fun BlackEditorPanel(
                 BlackPropertySummary(
                     element = element,
                     onUpdate = onUpdateProperties,
-                    onSetOpacityPermille = onSetOpacityPermille,
                 )
                 EditorNudgePad(element, onNudgePreview, onNudgeCommit)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1105,40 +1101,12 @@ private fun EditorRepeatButton(
 private fun BlackPropertySummary(
     element: LayoutV3EditorElement,
     onUpdate: (String, LayoutV3EditableProperties) -> Unit,
-    onSetOpacityPermille: (String, Int) -> Unit,
 ) {
-    val opacityDescription = stringResource(R.string.ligase_layout_v3_opacity)
-    var opacityDraft by rememberSaveable(element.elementId, element.opacityPermille) {
-        mutableIntStateOf(element.opacityPermille)
-    }
-    Text(
-        stringResource(
-            R.string.ligase_layout_v3_opacity_value,
-            (opacityDraft / 10f).roundToInt(),
-        ),
-        color = Color.White.copy(alpha = 0.8f),
-    )
-    Slider(
-        value = opacityDraft.toFloat(),
-        onValueChange = { opacityDraft = it.roundToInt() },
-        onValueChangeFinished = {
-            if (opacityDraft != element.opacityPermille) {
-                onSetOpacityPermille(element.elementId, opacityDraft)
-            }
-        },
-        valueRange = 0f..1000f,
-        modifier = Modifier.semantics {
-            contentDescription = opacityDescription
-        },
-    )
     when (val p = element.editableProperties) {
         is LayoutV3EditableProperties.Keyboard -> {
             Text(
-                stringResource(
-                    R.string.ligase_layout_v3_keyboard_code,
-                    p.inputCode.namespace.name,
-                    p.inputCode.code,
-                ),
+                layoutV3KeyboardLabel(p.inputCode)
+                    ?: stringResource(R.string.ligase_layout_v3_kind_keyboard),
                 color = Color.White.copy(alpha = 0.8f),
             )
             EditorTinyButton(p.trigger.name) {
