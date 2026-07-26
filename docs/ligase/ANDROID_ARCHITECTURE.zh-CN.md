@@ -61,7 +61,10 @@ LigaseActivity（composition / Android lifecycle / legacy ABI bridge）
   readback。v2 production owner已移除；v3不读写v1存储。
 - committed v3 generation只能由Workspace/Repository严格枚举并投影为typed本机卡片；
   Hall不读取路径、raw、hash或文件名。卡片可继续编辑，但不宣称runtime可执行。
-- 本阶段不包含真实PC键盘多选浮窗、Host下载、publish或runtime/export/share。
+- 编辑器的“添加键盘按键”由前端真实键盘浮层收集多选结果，并仅向 application
+  owner 提交一次 `Set<InputCode>`；中心堆叠、canonical 顺序、UUID、z-order 与
+  journal 原子性仍由 v3 editor session 唯一负责。Host 下载、publish 与
+  runtime/export/share 不在此能力内。
 
 ### 黑色横屏编辑器
 
@@ -86,6 +89,7 @@ v3 编辑体验采用独立横屏沉浸式黑色TouchKit画布，而不是壳层
 9. 细调位置采用方向键排布；轻点移动一个 canonical unit，长按只在 UI 内逐帧 preview，
    释放时最多提交一次typed nudge，Activity停止或组合销毁不会留下repeat job。
 10. 键盘键与鼠标按钮的新建默认形状为圆形；编辑浮层可显式切换圆形、圆角矩形或矩形。
+    圆形控件在拖动 resize handle 的本地预览阶段即保持等宽等高，不等待提交后纠正。
    形状值由v3 schema与strict codec约束，前端只更新typed properties。
 
 handoff、exclusive lease、adaptive mapper与全屏浮层Activity已进入生产代码；真实手机/

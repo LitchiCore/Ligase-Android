@@ -1,13 +1,12 @@
 package com.limelight.ligase.feature.input.layout.v3.presentation
 
-import com.limelight.ligase.feature.input.layout.v3.domain.Appearance
-import com.limelight.ligase.feature.input.layout.v3.domain.InputCode
-import com.limelight.ligase.feature.input.layout.v3.domain.InputCodeNamespace
-import com.limelight.ligase.feature.input.layout.v3.domain.Trigger
+import com.limelight.ligase.feature.input.layout.v3.domain.*
 import com.limelight.ligase.feature.input.layout.v3.editor.LayoutV3EditableProperties
 import com.limelight.ligase.feature.input.layout.v3.editor.LayoutV3EditorHandoffIssue
 import com.limelight.ligase.feature.input.layout.v3.editor.LayoutV3EditorHandoffResult
 import com.limelight.ligase.feature.input.layout.v3.editor.LayoutV3EditorState
+import com.limelight.ligase.feature.input.layout.v3.editor.LayoutV3EditorElement
+import com.limelight.ligase.feature.input.layout.v3.editor.LayoutV3ElementCapability
 import com.limelight.ligase.feature.input.layout.v3.editor.LayoutV3RecoveryProtection
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -90,6 +89,43 @@ class LayoutV3EditorPresentationTest {
         assertEquals(20, layoutV3ResizeHandleHitSizePx(300, 200, 20))
         assertEquals(8, layoutV3ResizeHandleHitSizePx(80, 40, 20))
         assertEquals(1, layoutV3ResizeHandleHitSizePx(4, 4, 20))
+    }
+
+    @Test
+    fun `circle resize preview stays square before pointer release`() {
+        val base = IntRect(10, 20, 100, 100)
+        assertEquals(
+            IntRect(10, 20, 160, 160),
+            layoutV3ResizePreviewRect(
+                previewElement("circle", base),
+                base,
+                deltaX = 60,
+                deltaY = 10,
+            ),
+        )
+        assertEquals(
+            IntRect(10, 20, 145, 145),
+            layoutV3ResizePreviewRect(
+                previewElement("circle", base),
+                base,
+                deltaX = 5,
+                deltaY = 45,
+            ),
+        )
+    }
+
+    @Test
+    fun `rectangle resize preview keeps independent axes`() {
+        val base = IntRect(10, 20, 100, 80)
+        assertEquals(
+            IntRect(10, 20, 140, 95),
+            layoutV3ResizePreviewRect(
+                previewElement("rectangle", base),
+                base,
+                deltaX = 40,
+                deltaY = 15,
+            ),
+        )
     }
 
     @Test
@@ -189,4 +225,25 @@ class LayoutV3EditorPresentationTest {
             changed,
         )
     }
+
+    private fun previewElement(shape: String, rect: IntRect) = LayoutV3EditorElement(
+        elementId = "00000000-0000-0000-0000-000000000001",
+        kind = ControlKind.KEYBOARD,
+        rect = AnchoredRect(0, 0, rect.width, rect.height),
+        resolvedRect = rect,
+        anchorX = HorizontalAnchor.LEFT,
+        anchorY = VerticalAnchor.TOP,
+        zOrder = 0,
+        enabled = true,
+        hidden = false,
+        opacityPermille = 1000,
+        editableProperties = LayoutV3EditableProperties.Keyboard(
+            InputCode(InputCodeNamespace.ANDROID_KEY_CODE, 29),
+            Appearance("A", "", shape, false),
+            Trigger.TAP,
+            null,
+        ),
+        inspectOnlySummary = null,
+        capabilities = setOf(LayoutV3ElementCapability.RESIZE),
+    )
 }

@@ -1234,6 +1234,13 @@
     <string name="ligase_layout_v3_bring_forward">上移一层</string>
     <string name="ligase_layout_v3_delete">删除控件</string>
     <string name="ligase_layout_v3_add_control">新增控件</string>
+    <string name="ligase_layout_v3_add_keyboard_keys">添加键盘按键</string>
+    <string name="ligase_layout_v3_keyboard_picker_title">添加键盘按键</string>
+    <string name="ligase_layout_v3_keyboard_picker_hint">直接点击键帽进行多选；确认后所选按键会一起添加到画布中央。</string>
+    <string name="ligase_layout_v3_keyboard_add_selected">添加（%1$d）</string>
+    <string name="ligase_layout_v3_keyboard_key_semantics">%1$s，%2$s</string>
+    <string name="ligase_layout_v3_key_selected">已选择</string>
+    <string name="ligase_layout_v3_key_not_selected">未选择</string>
     <string name="ligase_layout_v3_save">保存本机布局</string>
     <string name="ligase_layout_v3_discard">丢弃草稿</string>
     <string name="ligase_layout_v3_unsaved_title">丢弃未保存的修改？</string>

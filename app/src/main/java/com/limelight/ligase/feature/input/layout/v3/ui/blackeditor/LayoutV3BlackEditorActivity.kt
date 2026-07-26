@@ -62,6 +62,7 @@ class LayoutV3BlackEditorActivity : AppCompatActivity() {
                     onDelete = editorViewModel::deleteElement,
                     onUpdateProperties = editorViewModel::updateProperties,
                     onAdd = editorViewModel::addElement,
+                    onAddKeyboardKeys = editorViewModel::addKeyboardKeys,
                     onValidate = editorViewModel::validate,
                     onKeepAndFinish = {
                         finishIfSuccessful(editorViewModel.keepDraftAndFinish().code)

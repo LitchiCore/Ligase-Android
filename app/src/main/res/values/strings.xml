@@ -1248,6 +1248,13 @@
     <string name="ligase_layout_v3_bring_forward">Move forward</string>
     <string name="ligase_layout_v3_delete">Delete control</string>
     <string name="ligase_layout_v3_add_control">Add control</string>
+    <string name="ligase_layout_v3_add_keyboard_keys">Add keyboard keys</string>
+    <string name="ligase_layout_v3_keyboard_picker_title">Add keyboard keys</string>
+    <string name="ligase_layout_v3_keyboard_picker_hint">Select one or more keys on the keyboard. They will be added together at the center of the canvas.</string>
+    <string name="ligase_layout_v3_keyboard_add_selected">Add (%1$d)</string>
+    <string name="ligase_layout_v3_keyboard_key_semantics">%1$s, %2$s</string>
+    <string name="ligase_layout_v3_key_selected">selected</string>
+    <string name="ligase_layout_v3_key_not_selected">not selected</string>
     <string name="ligase_layout_v3_save">Save local layout</string>
     <string name="ligase_layout_v3_discard">Discard draft</string>
     <string name="ligase_layout_v3_unsaved_title">Discard unsaved changes?</string>

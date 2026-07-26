@@ -2,6 +2,7 @@ package com.limelight.ligase.feature.input.layout.v3.ui.blackeditor
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -14,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -30,6 +32,8 @@ import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.limelight.R
 import com.limelight.ligase.feature.input.layout.v3.application.LayoutV3EditorWorkspaceUiState
 import com.limelight.ligase.feature.input.layout.v3.domain.*
@@ -53,6 +57,7 @@ fun LayoutV3BlackEditorScreen(
     onDelete: (String) -> Unit,
     onUpdateProperties: (String, LayoutV3EditableProperties) -> Unit,
     onAdd: (ControlKind) -> Unit,
+    onAddKeyboardKeys: (Set<InputCode>) -> Unit,
     onValidate: () -> Unit,
     onKeepAndFinish: () -> Unit,
     onSaveAndFinish: () -> Unit,
@@ -63,6 +68,8 @@ fun LayoutV3BlackEditorScreen(
     val presentation = presentLayoutV3Editor(state)
     var showLeaveDialog by rememberSaveable { mutableStateOf(false) }
     var showTools by rememberSaveable { mutableStateOf(false) }
+    var showKeyboardPicker by rememberSaveable { mutableStateOf(false) }
+    var selectedKeyboardCodes by rememberSaveable { mutableStateOf(emptyList<Int>()) }
     var nudgePreview by remember { mutableStateOf<LayoutV3NudgeDelta?>(null) }
     val toolsFocusRequester = remember { FocusRequester() }
     LaunchedEffect(showTools) {
@@ -161,6 +168,10 @@ fun LayoutV3BlackEditorScreen(
                         onDelete = onDelete,
                         onUpdateProperties = onUpdateProperties,
                         onAdd = onAdd,
+                        onOpenKeyboardPicker = {
+                            selectedKeyboardCodes = emptyList()
+                            showKeyboardPicker = true
+                        },
                         onValidate = onValidate,
                         onSaveAndFinish = onSaveAndFinish,
                         onRequestLeave = {
@@ -210,6 +221,36 @@ fun LayoutV3BlackEditorScreen(
                     TextButton(onClick = { showLeaveDialog = false }) {
                         Text(stringResource(R.string.cancel))
                     }
+                }
+            },
+        )
+    }
+
+    if (showKeyboardPicker) {
+        LayoutV3KeyboardPickerDialog(
+            selectedCodes = selectedKeyboardCodes.toSet(),
+            onToggle = { code ->
+                val inputCode = InputCode(InputCodeNamespace.ANDROID_KEY_CODE, code)
+                selectedKeyboardCodes = toggleLayoutV3KeyboardSelection(
+                    selectedKeyboardCodes.mapTo(linkedSetOf()) {
+                        InputCode(InputCodeNamespace.ANDROID_KEY_CODE, it)
+                    },
+                    inputCode,
+                ).map(InputCode::code)
+            },
+            onDismiss = {
+                selectedKeyboardCodes = emptyList()
+                showKeyboardPicker = false
+            },
+            onConfirm = {
+                val selected = selectedKeyboardCodes.mapTo(linkedSetOf()) {
+                    InputCode(InputCodeNamespace.ANDROID_KEY_CODE, it)
+                }
+                if (selected.isNotEmpty()) {
+                    onAddKeyboardKeys(selected)
+                    selectedKeyboardCodes = emptyList()
+                    showKeyboardPicker = false
+                    showTools = false
                 }
             },
         )
@@ -294,11 +335,23 @@ private fun BlackTouchElement(
     var resizeToken by remember(element.elementId) {
         mutableStateOf<LayoutV3GestureCommitToken?>(null)
     }
-    val previewRect = IntRect(
+    val movedBaseRect = IntRect(
         baseRect.x + previewDx.roundToInt() + (nudgePreview?.deltaX ?: 0),
         baseRect.y + previewDy.roundToInt() + (nudgePreview?.deltaY ?: 0),
-        (baseRect.width + resizeDx.roundToInt()).coerceAtLeast(1),
-        (baseRect.height + resizeDy.roundToInt()).coerceAtLeast(1),
+        baseRect.width,
+        baseRect.height,
+    )
+    val resizedRect = layoutV3ResizePreviewRect(
+        element = element,
+        basePixelRect = baseRect,
+        deltaX = resizeDx.roundToInt(),
+        deltaY = resizeDy.roundToInt(),
+    )
+    val previewRect = IntRect(
+        movedBaseRect.x,
+        movedBaseRect.y,
+        resizedRect.width,
+        resizedRect.height,
     )
     val label = blackEditorKindLabel(element.kind)
     val semanticsText = stringResource(
@@ -421,11 +474,11 @@ private fun BlackTouchElement(
                                     onCommitPixelResize(
                                         token,
                                         fullOverlay,
-                                        IntRect(
-                                            baseRect.x,
-                                            baseRect.y,
-                                            (baseRect.width + resizeDx.roundToInt()).coerceAtLeast(1),
-                                            (baseRect.height + resizeDy.roundToInt()).coerceAtLeast(1),
+                                        layoutV3ResizePreviewRect(
+                                            element,
+                                            baseRect,
+                                            resizeDx.roundToInt(),
+                                            resizeDy.roundToInt(),
                                         ),
                                     )
                                 }
@@ -470,6 +523,7 @@ private fun BlackEditorPanel(
     onDelete: (String) -> Unit,
     onUpdateProperties: (String, LayoutV3EditableProperties) -> Unit,
     onAdd: (ControlKind) -> Unit,
+    onOpenKeyboardPicker: () -> Unit,
     onValidate: () -> Unit,
     onSaveAndFinish: () -> Unit,
     onRequestLeave: () -> Unit,
@@ -479,7 +533,7 @@ private fun BlackEditorPanel(
     val selected = state.draft?.elements?.firstOrNull {
         it.elementId == state.selectedElementId
     }
-    Column(
+                    Column(
         modifier
             .background(Color(0xF220232C))
             .verticalScroll(rememberScrollState())
@@ -556,8 +610,10 @@ private fun BlackEditorPanel(
         HorizontalDivider(color = Color.White.copy(alpha = 0.2f))
         Text(stringResource(R.string.ligase_layout_v3_add_control), color = Color.White)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            EditorTinyButton(stringResource(R.string.ligase_layout_v3_add_keyboard_keys)) {
+                onOpenKeyboardPicker()
+            }
             listOf(
-                ControlKind.KEYBOARD,
                 ControlKind.MOUSE,
                 ControlKind.ANALOG,
                 ControlKind.DPAD,
@@ -579,6 +635,286 @@ private fun BlackEditorPanel(
             color = Color.White.copy(alpha = 0.65f),
             style = MaterialTheme.typography.bodySmall,
         )
+    }
+}
+
+@Composable
+private fun LayoutV3KeyboardPickerDialog(
+    selectedCodes: Set<Int>,
+    onToggle: (Int) -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+        ),
+    ) {
+        Surface(
+            color = Color(0xE620232C),
+            shape = RoundedCornerShape(20.dp),
+            tonalElevation = 8.dp,
+            modifier = Modifier
+                .fillMaxWidth(0.96f)
+                .fillMaxHeight(0.9f),
+        ) {
+            Column(
+                Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column {
+                        Text(
+                            stringResource(R.string.ligase_layout_v3_keyboard_picker_title),
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleLarge,
+                        )
+                        Text(
+                            stringResource(R.string.ligase_layout_v3_keyboard_picker_hint),
+                            color = Color.White.copy(alpha = 0.75f),
+                        )
+                    }
+                    TextButton(onClick = onDismiss) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
+                BoxWithConstraints(
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                ) {
+                    val keyUnitWidth = layoutV3KeyboardUnitWidthDp(maxWidth.value)
+                    val keyboardWidth = layoutV3KeyboardRequiredWidthDp(keyUnitWidth)
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .horizontalScroll(rememberScrollState())
+                            .verticalScroll(rememberScrollState()),
+                    ) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(5.dp),
+                            modifier = Modifier.width(keyboardWidth.dp),
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(
+                                    keyUnitWidth.dp *
+                                        LAYOUT_V3_KEYBOARD_SECTION_GAP_UNITS,
+                                ),
+                            ) {
+                                Box(
+                                    Modifier.width(
+                                        layoutV3KeyboardSectionWidthDp(
+                                            LAYOUT_V3_ANSI_MAIN_ROWS,
+                                            keyUnitWidth,
+                                        ).dp,
+                                    ),
+                                ) {
+                                    LayoutV3KeyboardRow(
+                                        LAYOUT_V3_ANSI_FUNCTION_MAIN,
+                                        keyUnitWidth,
+                                        selectedCodes,
+                                        onToggle,
+                                    )
+                                }
+                                Box(
+                                    Modifier.width(
+                                        layoutV3KeyboardSectionWidthDp(
+                                            LAYOUT_V3_ANSI_NAVIGATION_ROWS,
+                                            keyUnitWidth,
+                                        ).dp,
+                                    ),
+                                ) {
+                                    LayoutV3KeyboardRow(
+                                        LAYOUT_V3_ANSI_FUNCTION_NAVIGATION,
+                                        keyUnitWidth,
+                                        selectedCodes,
+                                        onToggle,
+                                    )
+                                }
+                            }
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(
+                                    keyUnitWidth.dp *
+                                        LAYOUT_V3_KEYBOARD_SECTION_GAP_UNITS,
+                                ),
+                            ) {
+                                LayoutV3KeyboardSection(
+                                    LAYOUT_V3_ANSI_MAIN_ROWS,
+                                    keyUnitWidth,
+                                    selectedCodes,
+                                    onToggle,
+                                )
+                                LayoutV3KeyboardSection(
+                                    LAYOUT_V3_ANSI_NAVIGATION_ROWS,
+                                    keyUnitWidth,
+                                    selectedCodes,
+                                    onToggle,
+                                )
+                                LayoutV3KeyboardNumpad(
+                                    keyUnitWidth,
+                                    selectedCodes,
+                                    onToggle,
+                                )
+                            }
+                        }
+                    }
+                }
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Button(
+                        onClick = onConfirm,
+                        enabled = selectedCodes.isNotEmpty(),
+                    ) {
+                        Text(
+                            stringResource(
+                                R.string.ligase_layout_v3_keyboard_add_selected,
+                                selectedCodes.size,
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LayoutV3KeyboardNumpad(
+    keyUnitWidth: Float,
+    selectedCodes: Set<Int>,
+    onToggle: (Int) -> Unit,
+) {
+    val gap = LAYOUT_V3_KEYBOARD_KEY_GAP_DP
+    Box(
+        Modifier
+            .width((keyUnitWidth * 4 + gap * 3).dp)
+            .height((keyUnitWidth * 5 + gap * 4).dp),
+    ) {
+        LAYOUT_V3_ANSI_NUMPAD_GRID.forEach { placement ->
+            val width = keyUnitWidth * placement.columnSpan +
+                gap * (placement.columnSpan - 1)
+            val height = keyUnitWidth * placement.rowSpan +
+                gap * (placement.rowSpan - 1)
+            LayoutV3KeyboardKeyCap(
+                key = placement.key,
+                selected = placement.key.code in selectedCodes,
+                onToggle = onToggle,
+                modifier = Modifier
+                    .offset(
+                        x = (placement.column * (keyUnitWidth + gap)).dp,
+                        y = (placement.row * (keyUnitWidth + gap)).dp,
+                    )
+                    .width(width.dp)
+                    .height(height.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun LayoutV3KeyboardSection(
+    rows: List<List<LayoutV3KeyboardKey>>,
+    keyUnitWidth: Float,
+    selectedCodes: Set<Int>,
+    onToggle: (Int) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        rows.forEach { row ->
+            if (row.isEmpty()) {
+                Spacer(Modifier.height(keyUnitWidth.dp))
+            } else {
+                LayoutV3KeyboardRow(row, keyUnitWidth, selectedCodes, onToggle)
+            }
+        }
+    }
+}
+
+@Composable
+private fun LayoutV3KeyboardRow(
+    row: List<LayoutV3KeyboardKey>,
+    keyUnitWidth: Float,
+    selectedCodes: Set<Int>,
+    onToggle: (Int) -> Unit,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(
+            LAYOUT_V3_KEYBOARD_KEY_GAP_DP.dp,
+        ),
+    ) {
+        row.forEach { key ->
+            val code = key.code
+            if (code == null) {
+                Spacer(Modifier.width(keyUnitWidth.dp * key.widthUnits))
+            } else {
+                LayoutV3KeyboardKeyCap(
+                    key = key,
+                    selected = code in selectedCodes,
+                    onToggle = onToggle,
+                    modifier = Modifier
+                        .width(keyUnitWidth.dp * key.widthUnits)
+                        .height(keyUnitWidth.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LayoutV3KeyboardKeyCap(
+    key: LayoutV3KeyboardKey,
+    selected: Boolean,
+    onToggle: (Int) -> Unit,
+    modifier: Modifier,
+) {
+    val code = requireNotNull(key.code)
+    val description = stringResource(
+        R.string.ligase_layout_v3_keyboard_key_semantics,
+        key.label,
+        if (selected) {
+            stringResource(R.string.ligase_layout_v3_key_selected)
+        } else {
+            stringResource(R.string.ligase_layout_v3_key_not_selected)
+        },
+    )
+    Surface(
+        color = if (selected) Color(0xFF6258D9) else Color(0xFF2A2E39),
+        border = BorderStroke(
+            1.dp,
+            if (selected) Color(0xFFB8B1FF)
+            else Color.White.copy(alpha = 0.45f),
+        ),
+        shape = RoundedCornerShape(6.dp),
+        modifier = modifier
+            .semantics {
+                contentDescription = description
+                this.selected = selected
+            }
+            .clickable { onToggle(code) },
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    key.label,
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                )
+                if (selected) Text(" ✓", color = Color.White)
+            }
+        }
     }
 }
 

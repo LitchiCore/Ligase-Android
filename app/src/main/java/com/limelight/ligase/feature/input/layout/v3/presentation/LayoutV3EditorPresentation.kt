@@ -7,6 +7,9 @@ import com.limelight.ligase.feature.input.layout.v3.editor.LayoutV3EditorIssue
 import com.limelight.ligase.feature.input.layout.v3.editor.LayoutV3EditorState
 import com.limelight.ligase.feature.input.layout.v3.editor.LayoutV3ElementCapability
 import com.limelight.ligase.feature.input.layout.v3.editor.LayoutV3RecoveryProtection
+import com.limelight.ligase.feature.input.layout.v3.domain.IntRect
+import com.limelight.ligase.feature.input.layout.v3.editor.LayoutV3ResizeDecision
+import com.limelight.ligase.feature.input.layout.v3.editor.LayoutV3ResizePolicy
 
 data class LayoutV3EditorPresentation(
     val hasDraft: Boolean,
@@ -107,6 +110,27 @@ fun layoutV3ResizeHandleHitSizePx(
         maximumHitSizePx,
         minOf(renderedWidthPx, renderedHeightPx) / 5,
     ).coerceAtLeast(1)
+}
+
+fun layoutV3ResizePreviewRect(
+    element: LayoutV3EditorElement,
+    basePixelRect: IntRect,
+    deltaX: Int,
+    deltaY: Int,
+): IntRect {
+    val requested = basePixelRect.copy(
+        width = (basePixelRect.width + deltaX).coerceAtLeast(1),
+        height = (basePixelRect.height + deltaY).coerceAtLeast(1),
+    )
+    return when (
+        val decision = LayoutV3ResizePolicy.constrain(
+            element.copy(resolvedRect = basePixelRect),
+            requested,
+        )
+    ) {
+        is LayoutV3ResizeDecision.Ready -> decision.rect
+        is LayoutV3ResizeDecision.Rejected -> basePixelRect
+    }
 }
 
 enum class LayoutV3NudgeDirection(val deltaX: Int, val deltaY: Int) {
