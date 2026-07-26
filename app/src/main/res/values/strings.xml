@@ -1298,5 +1298,7 @@
     <string name="ligase_layout_v3_local_copies_title">Saved layouts on this device</string>
     <string name="ligase_layout_v3_local_copy_verified">Local copy · content verified · revision %1$d · %2$d controls</string>
     <string name="ligase_layout_v3_runtime_not_ready">Editing is available. Runtime use is not implemented yet.</string>
+    <string name="ligase_layout_v3_combo_read_only_summary">Combination with %1$d keys. Editing controls are pending the typed action integration.</string>
+    <string name="ligase_layout_v3_radial_read_only_summary">Radial menu with %1$d actions. Editing controls are pending the typed action integration.</string>
     <string name="ligase_layout_v3_continue_editing">Continue editing</string>
 </resources>

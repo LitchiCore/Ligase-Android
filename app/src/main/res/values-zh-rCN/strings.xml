@@ -1284,5 +1284,7 @@
     <string name="ligase_layout_v3_local_copies_title">本机已保存布局</string>
     <string name="ligase_layout_v3_local_copy_verified">本机副本 · 内容已验证 · 修订 %1$d · %2$d 个控件</string>
     <string name="ligase_layout_v3_runtime_not_ready">当前可继续编辑；运行态尚未实现。</string>
+    <string name="ligase_layout_v3_combo_read_only_summary">组合键包含 %1$d 个按键；编辑控件正在等待 typed action 接线。</string>
+    <string name="ligase_layout_v3_radial_read_only_summary">轮盘包含 %1$d 个动作；编辑控件正在等待 typed action 接线。</string>
     <string name="ligase_layout_v3_continue_editing">继续编辑</string>
 </resources>

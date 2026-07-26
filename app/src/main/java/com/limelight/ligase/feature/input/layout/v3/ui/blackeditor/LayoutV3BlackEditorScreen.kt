@@ -306,6 +306,7 @@ private fun BlackTouchCanvas(
             BlackTouchElement(
                 element = element,
                 canvas = draft.canvas,
+                layoutOpacityPermille = draft.opacityPermille,
                 fullOverlay = fullOverlay,
                 isSelected = state.selectedElementId == element.elementId,
                 onSelect = onSelect,
@@ -336,6 +337,7 @@ private fun BlackTouchCanvas(
 private fun BlackTouchElement(
     element: LayoutV3EditorElement,
     canvas: IntSize,
+    layoutOpacityPermille: Int,
     fullOverlay: IntRect,
     isSelected: Boolean,
     onSelect: (String) -> Unit,
@@ -398,7 +400,7 @@ private fun BlackTouchElement(
     )
     val resizeDescription = stringResource(R.string.ligase_layout_v3_resize_handle, label)
     val elementShape = element.editorShape().composeShape()
-    val contentAlpha = layoutV3EditorContentAlpha(element.opacityPermille)
+    val contentAlpha = layoutV3EditorContentAlpha(layoutOpacityPermille)
     val shortEdgeDp = with(density) {
         minOf(previewRect.width, previewRect.height).toDp().value
     }
@@ -487,7 +489,7 @@ private fun BlackTouchElement(
     ) {
         Text(
             label,
-            color = Color.White.copy(alpha = layoutV3EditorTextAlpha(element.opacityPermille)),
+            color = Color.White.copy(alpha = layoutV3EditorTextAlpha(layoutOpacityPermille)),
             fontWeight = FontWeight.Bold,
             fontSize = layoutV3EditorLabelSizeSp(shortEdgeDp).sp,
             maxLines = 1,
@@ -1167,6 +1169,22 @@ private fun BlackPropertySummary(
         LayoutV3EditableProperties.SoftKeyboard ->
             Text(
                 stringResource(R.string.ligase_layout_v3_soft_keyboard_summary),
+                color = Color.White.copy(alpha = 0.8f),
+            )
+        is LayoutV3EditableProperties.Combo ->
+            Text(
+                stringResource(
+                    R.string.ligase_layout_v3_combo_read_only_summary,
+                    p.keys.size,
+                ),
+                color = Color.White.copy(alpha = 0.8f),
+            )
+        is LayoutV3EditableProperties.Radial ->
+            Text(
+                stringResource(
+                    R.string.ligase_layout_v3_radial_read_only_summary,
+                    p.actions.size,
+                ),
                 color = Color.White.copy(alpha = 0.8f),
             )
         null -> Unit
