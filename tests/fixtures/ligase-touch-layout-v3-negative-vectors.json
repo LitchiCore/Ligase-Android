@@ -1,5 +1,47 @@
 {
   "schemaVersion": 3,
+  "commonEditorActionErrors": [
+    "UNKNOWN_ELEMENT",
+    "WRONG_KIND",
+    "STALE_GENERATION",
+    "JOURNAL_WRITE_FAILED"
+  ],
+  "editorActionErrorSets": {
+    "replaceComboChord": [
+      "EMPTY_CHORD",
+      "TOO_MANY_KEYS",
+      "UNSUPPORTED_INPUT_CODE",
+      "DUPLICATE_KEY"
+    ],
+    "addRadialAction": [
+      "EMPTY_CHORD",
+      "TOO_MANY_KEYS",
+      "UNSUPPORTED_INPUT_CODE",
+      "DUPLICATE_KEY",
+      "INVALID_LABEL",
+      "ID_GENERATION_FAILED",
+      "ACTION_LIMIT"
+    ],
+    "removeRadialAction": [
+      "UNKNOWN_ACTION",
+      "MINIMUM_ACTIONS"
+    ],
+    "reorderRadialAction": [
+      "UNKNOWN_ACTION",
+      "OUT_OF_RANGE"
+    ],
+    "replaceRadialActionLabel": [
+      "UNKNOWN_ACTION",
+      "INVALID_LABEL"
+    ],
+    "replaceRadialActionChord": [
+      "EMPTY_CHORD",
+      "TOO_MANY_KEYS",
+      "UNSUPPORTED_INPUT_CODE",
+      "DUPLICATE_KEY",
+      "UNKNOWN_ACTION"
+    ]
+  },
   "documentCases": [
     {
       "id": "uppercase-layout-uuid",
@@ -50,6 +92,97 @@
         }
       ],
       "expected": "schemaRejected"
+    },
+    {
+      "id": "missing-layout-opacity",
+      "mutations": [
+        {
+          "op": "delete",
+          "path": "/opacityPermille"
+        }
+      ],
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "layout-opacity-below-range",
+      "mutations": [
+        {
+          "path": "/opacityPermille",
+          "value": -1
+        }
+      ],
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "layout-opacity-above-range",
+      "mutations": [
+        {
+          "path": "/opacityPermille",
+          "value": 1001
+        }
+      ],
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "legacy-element-opacity-rejected",
+      "mutations": [
+        {
+          "path": "/variants/0/elements/0/opacityPermille",
+          "value": 420
+        }
+      ],
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "combo-duplicate-chord-key",
+      "mutations": [
+        {
+          "op": "append",
+          "path": "/variants/0/elements/7/payload/keys",
+          "valueFrom": "/variants/0/elements/7/payload/keys/0"
+        }
+      ],
+      "expected": "schemaRejected"
+    },
+    {
+      "id": "combo-noncanonical-chord-order",
+      "mutations": [
+        {
+          "path": "/variants/0/elements/7/payload/keys/0",
+          "valueFrom": "/variants/0/elements/7/payload/keys/1"
+        },
+        {
+          "path": "/variants/0/elements/7/payload/keys/1",
+          "value": {
+            "namespace": "androidKeyCode",
+            "code": 29
+          }
+        }
+      ],
+      "rehash": true,
+      "expected": "nonCanonicalChord"
+    },
+    {
+      "id": "radial-duplicate-action-id",
+      "mutations": [
+        {
+          "path": "/variants/0/elements/5/payload/actions/1/actionId",
+          "valueFrom": "/variants/0/elements/5/payload/actions/0/actionId"
+        }
+      ],
+      "rehash": true,
+      "expected": "duplicateRadialActionId"
+    },
+    {
+      "id": "radial-noncanonical-action-order",
+      "mutations": [
+        {
+          "path": "/variants/0/elements/5/payload/actions/1/order",
+          "value": 0
+        }
+      ],
+      "rehash": true,
+      "expected": "nonCanonicalRadialActionOrder"
     },
     {
       "id": "duplicate-variant",
@@ -1899,6 +2032,470 @@
       "failure": "zOrderExhausted",
       "createdCount": 0,
       "ordinalConsumed": false
+    }
+  ],
+  "editorMutationCases": [
+    {
+      "id": "combo-input-order-canonicalized",
+      "operation": "replaceComboChord",
+      "inputKeys": [
+        {
+          "namespace": "usbHidKeyboardUsage",
+          "code": 5
+        },
+        {
+          "namespace": "androidKeyCode",
+          "code": 57
+        }
+      ],
+      "expectedCanonicalKeys": [
+        {
+          "namespace": "androidKeyCode",
+          "code": 57
+        },
+        {
+          "namespace": "usbHidKeyboardUsage",
+          "code": 5
+        }
+      ],
+      "mutationApplied": true
+    },
+    {
+      "id": "combo-duplicate-input-zero-write",
+      "operation": "replaceComboChord",
+      "inputKeys": [
+        {
+          "namespace": "androidKeyCode",
+          "code": 57
+        },
+        {
+          "namespace": "androidKeyCode",
+          "code": 57
+        }
+      ],
+      "expectedError": "DUPLICATE_KEY",
+      "mutationApplied": false,
+      "writes": 0,
+      "stateBytesUnchanged": true
+    },
+    {
+      "id": "combo-empty-input-zero-write",
+      "operation": "replaceComboChord",
+      "inputKeys": [],
+      "expectedError": "EMPTY_CHORD",
+      "mutationApplied": false,
+      "writes": 0,
+      "stateBytesUnchanged": true
+    },
+    {
+      "id": "combo-too-many-input-zero-write",
+      "operation": "replaceComboChord",
+      "inputKeys": [
+        {"namespace": "androidKeyCode", "code": 1},
+        {"namespace": "androidKeyCode", "code": 2},
+        {"namespace": "androidKeyCode", "code": 3},
+        {"namespace": "androidKeyCode", "code": 4},
+        {"namespace": "androidKeyCode", "code": 5},
+        {"namespace": "androidKeyCode", "code": 6},
+        {"namespace": "androidKeyCode", "code": 7},
+        {"namespace": "androidKeyCode", "code": 8},
+        {"namespace": "androidKeyCode", "code": 9},
+        {"namespace": "androidKeyCode", "code": 10},
+        {"namespace": "androidKeyCode", "code": 11},
+        {"namespace": "androidKeyCode", "code": 12},
+        {"namespace": "androidKeyCode", "code": 13},
+        {"namespace": "androidKeyCode", "code": 14},
+        {"namespace": "androidKeyCode", "code": 15},
+        {"namespace": "androidKeyCode", "code": 16},
+        {"namespace": "androidKeyCode", "code": 17}
+      ],
+      "expectedError": "TOO_MANY_KEYS",
+      "mutationApplied": false,
+      "writes": 0,
+      "stateBytesUnchanged": true
+    },
+    {
+      "id": "combo-unsupported-input-zero-write",
+      "operation": "replaceComboChord",
+      "inputKeys": [
+        {
+          "namespace": "futureKeyCode",
+          "code": 57
+        }
+      ],
+      "expectedError": "UNSUPPORTED_INPUT_CODE",
+      "mutationApplied": false,
+      "writes": 0,
+      "stateBytesUnchanged": true
+    },
+    {
+      "id": "radial-owner-generated-first-candidate",
+      "operation": "addRadialAction",
+      "existingActionIds": [
+        "10000000-0000-0000-0000-000000000001",
+        "10000000-0000-0000-0000-000000000002"
+      ],
+      "inputKeys": [
+        {"namespace": "usbHidKeyboardUsage", "code": 5},
+        {"namespace": "androidKeyCode", "code": 57}
+      ],
+      "label": "Valid",
+      "generatedCandidates": [
+        "10000000-0000-0000-0000-000000000003"
+      ],
+      "expectedActionId": "10000000-0000-0000-0000-000000000003",
+      "attempts": 1,
+      "mutationApplied": true,
+      "journalPersisted": true,
+      "saveReopenActionId": "10000000-0000-0000-0000-000000000003"
+    },
+    {
+      "id": "radial-add-empty-chord-before-id",
+      "operation": "addRadialAction",
+      "existingActionIds": [
+        "10000000-0000-0000-0000-000000000001"
+      ],
+      "inputKeys": [],
+      "label": "Empty",
+      "generatedCandidates": [
+        "10000000-0000-0000-0000-000000000003"
+      ],
+      "expectedError": "EMPTY_CHORD",
+      "candidateIdsConsumed": 0,
+      "mutationApplied": false,
+      "writes": 0,
+      "stateBytesUnchanged": true
+    },
+    {
+      "id": "radial-add-too-many-before-item-validation",
+      "operation": "addRadialAction",
+      "existingActionIds": [
+        "10000000-0000-0000-0000-000000000001"
+      ],
+      "inputKeys": [
+        {"namespace": "futureKeyCode", "code": 1},
+        {"namespace": "androidKeyCode", "code": 2},
+        {"namespace": "androidKeyCode", "code": 3},
+        {"namespace": "androidKeyCode", "code": 4},
+        {"namespace": "androidKeyCode", "code": 5},
+        {"namespace": "androidKeyCode", "code": 6},
+        {"namespace": "androidKeyCode", "code": 7},
+        {"namespace": "androidKeyCode", "code": 8},
+        {"namespace": "androidKeyCode", "code": 9},
+        {"namespace": "androidKeyCode", "code": 10},
+        {"namespace": "androidKeyCode", "code": 11},
+        {"namespace": "androidKeyCode", "code": 12},
+        {"namespace": "androidKeyCode", "code": 13},
+        {"namespace": "androidKeyCode", "code": 14},
+        {"namespace": "androidKeyCode", "code": 15},
+        {"namespace": "androidKeyCode", "code": 16},
+        {"namespace": "androidKeyCode", "code": 17}
+      ],
+      "label": "Count wins",
+      "generatedCandidates": [
+        "10000000-0000-0000-0000-000000000003"
+      ],
+      "expectedError": "TOO_MANY_KEYS",
+      "candidateIdsConsumed": 0,
+      "mutationApplied": false,
+      "writes": 0,
+      "stateBytesUnchanged": true
+    },
+    {
+      "id": "radial-add-duplicate-chord-before-id",
+      "operation": "addRadialAction",
+      "existingActionIds": [
+        "10000000-0000-0000-0000-000000000001"
+      ],
+      "inputKeys": [
+        {"namespace": "androidKeyCode", "code": 57},
+        {"namespace": "androidKeyCode", "code": 57}
+      ],
+      "label": "Duplicate",
+      "generatedCandidates": [
+        "10000000-0000-0000-0000-000000000003"
+      ],
+      "expectedError": "DUPLICATE_KEY",
+      "candidateIdsConsumed": 0,
+      "mutationApplied": false,
+      "writes": 0,
+      "stateBytesUnchanged": true
+    },
+    {
+      "id": "radial-add-unsupported-chord-before-id",
+      "operation": "addRadialAction",
+      "existingActionIds": [
+        "10000000-0000-0000-0000-000000000001"
+      ],
+      "inputKeys": [
+        {"namespace": "futureKeyCode", "code": 57}
+      ],
+      "label": "Unknown",
+      "generatedCandidates": [
+        "10000000-0000-0000-0000-000000000003"
+      ],
+      "expectedError": "UNSUPPORTED_INPUT_CODE",
+      "candidateIdsConsumed": 0,
+      "mutationApplied": false,
+      "writes": 0,
+      "stateBytesUnchanged": true
+    },
+    {
+      "id": "radial-add-unsupported-before-duplicate",
+      "operation": "addRadialAction",
+      "existingActionIds": [
+        "10000000-0000-0000-0000-000000000001"
+      ],
+      "inputKeys": [
+        {"namespace": "futureKeyCode", "code": 57},
+        {"namespace": "futureKeyCode", "code": 57}
+      ],
+      "label": "Unsupported wins",
+      "generatedCandidates": [
+        "10000000-0000-0000-0000-000000000003"
+      ],
+      "expectedError": "UNSUPPORTED_INPUT_CODE",
+      "candidateIdsConsumed": 0,
+      "mutationApplied": false,
+      "writes": 0,
+      "stateBytesUnchanged": true
+    },
+    {
+      "id": "radial-add-duplicate-before-invalid-label",
+      "operation": "addRadialAction",
+      "existingActionIds": [
+        "10000000-0000-0000-0000-000000000001"
+      ],
+      "inputKeys": [
+        {"namespace": "androidKeyCode", "code": 57},
+        {"namespace": "androidKeyCode", "code": 57}
+      ],
+      "label": "123456789012345678901234567890123",
+      "generatedCandidates": [
+        "10000000-0000-0000-0000-000000000003"
+      ],
+      "expectedError": "DUPLICATE_KEY",
+      "candidateIdsConsumed": 0,
+      "mutationApplied": false,
+      "writes": 0,
+      "stateBytesUnchanged": true
+    },
+    {
+      "id": "radial-add-invalid-label-before-id",
+      "operation": "addRadialAction",
+      "existingActionIds": [
+        "10000000-0000-0000-0000-000000000001"
+      ],
+      "inputKeys": [
+        {"namespace": "androidKeyCode", "code": 57}
+      ],
+      "label": "123456789012345678901234567890123",
+      "generatedCandidates": [
+        "10000000-0000-0000-0000-000000000003"
+      ],
+      "expectedError": "INVALID_LABEL",
+      "candidateIdsConsumed": 0,
+      "mutationApplied": false,
+      "writes": 0,
+      "stateBytesUnchanged": true
+    },
+    {
+      "id": "radial-add-capacity-before-id",
+      "operation": "addRadialAction",
+      "existingActionIds": [
+        "10000000-0000-0000-0000-000000000001"
+      ],
+      "inputKeys": [
+        {"namespace": "androidKeyCode", "code": 57}
+      ],
+      "label": "Capacity",
+      "radialActionCount": 16,
+      "generatedCandidates": [
+        "10000000-0000-0000-0000-000000000003"
+      ],
+      "expectedError": "ACTION_LIMIT",
+      "candidateIdsConsumed": 0,
+      "mutationApplied": false,
+      "writes": 0,
+      "stateBytesUnchanged": true
+    },
+    {
+      "id": "radial-first-collision-second-candidate",
+      "operation": "addRadialAction",
+      "existingActionIds": [
+        "10000000-0000-0000-0000-000000000001"
+      ],
+      "inputKeys": [
+        {"namespace": "androidKeyCode", "code": 57}
+      ],
+      "label": "Retry",
+      "generatedCandidates": [
+        "10000000-0000-0000-0000-000000000001",
+        "10000000-0000-0000-0000-000000000004"
+      ],
+      "expectedActionId": "10000000-0000-0000-0000-000000000004",
+      "attempts": 2,
+      "mutationApplied": true
+    },
+    {
+      "id": "radial-three-collisions-zero-write",
+      "operation": "addRadialAction",
+      "existingActionIds": [
+        "10000000-0000-0000-0000-000000000001"
+      ],
+      "inputKeys": [
+        {"namespace": "androidKeyCode", "code": 57}
+      ],
+      "label": "Exhaust",
+      "generatedCandidates": [
+        "10000000-0000-0000-0000-000000000001",
+        "10000000-0000-0000-0000-000000000001",
+        "10000000-0000-0000-0000-000000000001"
+      ],
+      "expectedError": "ID_GENERATION_FAILED",
+      "attempts": 3,
+      "mutationApplied": false,
+      "writes": 0,
+      "stateBytesUnchanged": true
+    },
+    {
+      "id": "radial-unknown-action-zero-write",
+      "operation": "replaceRadialActionChord",
+      "targetActionId": "10000000-0000-0000-0000-000000000099",
+      "expectedError": "UNKNOWN_ACTION",
+      "mutationApplied": false,
+      "writes": 0,
+      "stateBytesUnchanged": true
+    },
+    {
+      "id": "radial-remove-unknown-action-zero-write",
+      "operation": "removeRadialAction",
+      "targetActionId": "10000000-0000-0000-0000-000000000099",
+      "expectedError": "UNKNOWN_ACTION",
+      "mutationApplied": false,
+      "writes": 0,
+      "stateBytesUnchanged": true
+    },
+    {
+      "id": "radial-remove-minimum-actions-zero-write",
+      "operation": "removeRadialAction",
+      "targetActionId": "10000000-0000-0000-0000-000000000001",
+      "radialActionCount": 2,
+      "expectedError": "MINIMUM_ACTIONS",
+      "mutationApplied": false,
+      "writes": 0,
+      "stateBytesUnchanged": true
+    },
+    {
+      "id": "radial-reorder-unknown-action-zero-write",
+      "operation": "reorderRadialAction",
+      "targetActionId": "10000000-0000-0000-0000-000000000099",
+      "expectedError": "UNKNOWN_ACTION",
+      "mutationApplied": false,
+      "writes": 0,
+      "stateBytesUnchanged": true
+    },
+    {
+      "id": "radial-reorder-out-of-range-zero-write",
+      "operation": "reorderRadialAction",
+      "targetActionId": "10000000-0000-0000-0000-000000000001",
+      "targetOrder": 16,
+      "expectedError": "OUT_OF_RANGE",
+      "mutationApplied": false,
+      "writes": 0,
+      "stateBytesUnchanged": true
+    },
+    {
+      "id": "radial-label-unknown-action-zero-write",
+      "operation": "replaceRadialActionLabel",
+      "targetActionId": "10000000-0000-0000-0000-000000000099",
+      "label": "Unknown",
+      "expectedError": "UNKNOWN_ACTION",
+      "mutationApplied": false,
+      "writes": 0,
+      "stateBytesUnchanged": true
+    },
+    {
+      "id": "radial-label-invalid-zero-write",
+      "operation": "replaceRadialActionLabel",
+      "targetActionId": "10000000-0000-0000-0000-000000000001",
+      "label": "123456789012345678901234567890123",
+      "expectedError": "INVALID_LABEL",
+      "mutationApplied": false,
+      "writes": 0,
+      "stateBytesUnchanged": true
+    },
+    {
+      "id": "radial-replace-duplicate-chord-zero-write",
+      "operation": "replaceRadialActionChord",
+      "targetActionId": "10000000-0000-0000-0000-000000000001",
+      "inputKeys": [
+        {"namespace": "androidKeyCode", "code": 57},
+        {"namespace": "androidKeyCode", "code": 57}
+      ],
+      "expectedError": "DUPLICATE_KEY",
+      "mutationApplied": false,
+      "writes": 0,
+      "stateBytesUnchanged": true
+    },
+    {
+      "id": "radial-replace-empty-chord-zero-write",
+      "operation": "replaceRadialActionChord",
+      "targetActionId": "10000000-0000-0000-0000-000000000001",
+      "inputKeys": [],
+      "expectedError": "EMPTY_CHORD",
+      "mutationApplied": false,
+      "writes": 0,
+      "stateBytesUnchanged": true
+    },
+    {
+      "id": "radial-replace-too-many-chord-zero-write",
+      "operation": "replaceRadialActionChord",
+      "targetActionId": "10000000-0000-0000-0000-000000000001",
+      "inputKeys": [
+        {"namespace": "androidKeyCode", "code": 1},
+        {"namespace": "androidKeyCode", "code": 2},
+        {"namespace": "androidKeyCode", "code": 3},
+        {"namespace": "androidKeyCode", "code": 4},
+        {"namespace": "androidKeyCode", "code": 5},
+        {"namespace": "androidKeyCode", "code": 6},
+        {"namespace": "androidKeyCode", "code": 7},
+        {"namespace": "androidKeyCode", "code": 8},
+        {"namespace": "androidKeyCode", "code": 9},
+        {"namespace": "androidKeyCode", "code": 10},
+        {"namespace": "androidKeyCode", "code": 11},
+        {"namespace": "androidKeyCode", "code": 12},
+        {"namespace": "androidKeyCode", "code": 13},
+        {"namespace": "androidKeyCode", "code": 14},
+        {"namespace": "androidKeyCode", "code": 15},
+        {"namespace": "androidKeyCode", "code": 16},
+        {"namespace": "androidKeyCode", "code": 17}
+      ],
+      "expectedError": "TOO_MANY_KEYS",
+      "mutationApplied": false,
+      "writes": 0,
+      "stateBytesUnchanged": true
+    },
+    {
+      "id": "radial-replace-unsupported-chord-zero-write",
+      "operation": "replaceRadialActionChord",
+      "targetActionId": "10000000-0000-0000-0000-000000000001",
+      "inputKeys": [
+        {"namespace": "futureKeyCode", "code": 57}
+      ],
+      "expectedError": "UNSUPPORTED_INPUT_CODE",
+      "mutationApplied": false,
+      "writes": 0,
+      "stateBytesUnchanged": true
+    },
+    {
+      "id": "radial-stale-generation-zero-write",
+      "operation": "reorderRadialAction",
+      "targetActionId": "10000000-0000-0000-0000-000000000001",
+      "expectedError": "STALE_GENERATION",
+      "mutationApplied": false,
+      "writes": 0,
+      "stateBytesUnchanged": true
     }
   ],
   "roundingCases": [

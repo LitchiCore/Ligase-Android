@@ -4,7 +4,7 @@
   "marker": {
     "fileName": "ligase-touch-layout-v3-cutover.json",
     "format": "ligase-touch-layout-v3-cutover",
-    "version": 1,
+    "version": 2,
     "terminalState": "V3_READY"
   },
   "states": [
@@ -42,6 +42,15 @@
     ],
     "sharedPreferencesFile": "ligase_touch_layout_v2_preferences",
     "preferenceKeyPrefix": "preferred:"
+  },
+  "preAuthorityV3TestDataTargets": {
+    "directories": [
+      "ligase-touch-layout-v3-drafts",
+      "ligase-touch-layout-v3-generations"
+    ],
+    "acceptedPriorMarkerVersion": 1,
+    "requiredReadyMarkerVersion": 2,
+    "disposition": "quarantineAndRecreate"
   },
   "mustNotTouch": [
     "computers4.db",
@@ -93,6 +102,19 @@
       "id": "repeat-after-partial-quarantine",
       "expected": "V3_READY",
       "markerWritten": true
+    },
+    {
+      "id": "prior-v3-marker-with-test-generations",
+      "expected": "V3_READY",
+      "markerWritten": true,
+      "requiredMarkerVersion": 2,
+      "oldGenerationsQuarantined": true
+    },
+    {
+      "id": "prior-v3-test-data-quarantine-failure",
+      "expected": "FAILED_CLOSED",
+      "markerWritten": false,
+      "v3RepositoriesOpen": false
     }
   ]
 }

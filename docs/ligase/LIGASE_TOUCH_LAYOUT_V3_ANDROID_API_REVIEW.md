@@ -1,6 +1,10 @@
 # Android Touch Layout v3 API review
 
-Status: **FROZEN API / VALIDATION BASELINE**.
+Status: **REVIEW — proposed global-opacity and combo/radial API revision**.
+
+The previously frozen API/validation baseline remains authoritative until this
+fixed review snapshot completes independent review, explicit authorization,
+and commit. No production implementation is authorized by this document.
 
 The final production package is
 `com.limelight.ligase.feature.input.layout.v3`. No v2 typealias, forwarding
@@ -34,6 +38,19 @@ bar, cutout, rounded-corner, or hinge regions for warnings only. It is excluded
 from identity, canvas dimensions, element validation, JCS/hash, selection, and
 automatic movement. Video content and letterbox rectangles are not inputs to
 this API.
+
+Canonical editor state exposes one layout-level
+`opacityPermille: Int (0..1000)`. The only opacity mutation is:
+
+```text
+setLayoutOpacityPermille(value) =
+  Applied(updatedLayout)
+  | Rejected(OUT_OF_RANGE | STALE_GENERATION | JOURNAL_WRITE_FAILED)
+```
+
+It atomically updates the complete candidate, journal, and authoritative
+readback. `LayoutV3EditorElement` has no opacity property and there is no
+`setOpacityPermille(elementId, value)` action.
 
 Editor mutations retain the current typed element/property API, with:
 
@@ -94,6 +111,83 @@ Formal save/reopen and export/import preserve the next ordinal through the
 artifact and its JCS hash. Journal deletion cannot reset it. Repository
 sidecars and UUID-scanning recovery are forbidden.
 
+Closed editable payload actions additionally include:
+
+```text
+replaceComboChord(elementId, keys: List<InputCode>) =
+  Applied(canonicalChord)
+  | Rejected(EMPTY_CHORD | TOO_MANY_KEYS | DUPLICATE_KEY |
+             UNSUPPORTED_INPUT_CODE | UNKNOWN_ELEMENT | WRONG_KIND |
+             STALE_GENERATION | JOURNAL_WRITE_FAILED)
+
+addRadialAction(elementId, label?, keys: List<InputCode>) =
+  Applied(generatedActionId, canonicalRadial)
+  | Rejected(EMPTY_CHORD | TOO_MANY_KEYS | UNSUPPORTED_INPUT_CODE |
+             DUPLICATE_KEY | ID_GENERATION_FAILED | ACTION_LIMIT |
+             INVALID_LABEL | UNKNOWN_ELEMENT | WRONG_KIND |
+             STALE_GENERATION | JOURNAL_WRITE_FAILED)
+
+removeRadialAction(elementId, actionId)
+  = Applied(canonicalRadial)
+  | Rejected(UNKNOWN_ACTION | MINIMUM_ACTIONS | UNKNOWN_ELEMENT |
+             WRONG_KIND | STALE_GENERATION | JOURNAL_WRITE_FAILED)
+
+reorderRadialAction(elementId, actionId, targetOrder)
+  = Applied(canonicalRadial)
+  | Rejected(UNKNOWN_ACTION | OUT_OF_RANGE | UNKNOWN_ELEMENT |
+             WRONG_KIND | STALE_GENERATION | JOURNAL_WRITE_FAILED)
+
+replaceRadialActionLabel(elementId, actionId, label?)
+  = Applied(canonicalRadial)
+  | Rejected(UNKNOWN_ACTION | INVALID_LABEL | UNKNOWN_ELEMENT |
+             WRONG_KIND | STALE_GENERATION | JOURNAL_WRITE_FAILED)
+
+replaceRadialActionChord(elementId, actionId, keys: List<InputCode>)
+  = Applied(canonicalRadial)
+  | Rejected(EMPTY_CHORD | TOO_MANY_KEYS | UNSUPPORTED_INPUT_CODE |
+             DUPLICATE_KEY | UNKNOWN_ACTION | UNKNOWN_ELEMENT |
+             WRONG_KIND | STALE_GENERATION | JOURNAL_WRITE_FAILED)
+```
+
+Every successful radial mutation produces unique stable action IDs and
+contiguous canonical order. Each mutation is one journal state transition;
+failure is zero-write. Combo and radial properties are closed typed editor
+unions rather than raw maps. Runtime execution remains unavailable and
+fail-closed.
+
+The application owner obtains UUID D candidates from an injected identity
+source during `addRadialAction`. UI never supplies or generates persistent
+identity. The owner attempts at most three candidates: the initial candidate
+plus two collision retries. Invalid candidates or three collisions return
+`ID_GENERATION_FAILED` with zero mutation. There is no derivation from index,
+label, time, content hash, or UI state. Applied IDs persist unchanged through
+journal recovery, save/reopen, and reorder.
+
+Chord requests are bounded typed lists so duplicate caller values remain
+observable. The owner validates empty/count/namespace/code and duplicate
+identity before canonical sorting. Any failure is zero-write. Strict
+artifact/import validation independently rejects duplicate list entries before
+materialization.
+
+The action validation order is:
+
+```text
+EMPTY_CHORD -> TOO_MANY_KEYS -> UNSUPPORTED_INPUT_CODE -> DUPLICATE_KEY
+-> INVALID_LABEL -> canonical sort
+-> (radial add only) request UUID candidate
+```
+
+Radial add consumes zero identity candidates when chord, target, or optional
+label validation fails. Radial chord replacement uses the same
+`List<InputCode>` validation and never relies on a caller-side set.
+Count is checked before items, unsupported code before duplicate identity, and
+duplicate identity before label bounds. Existing layout/action identity and
+stale-generation gates remain the outer application checks.
+
+The shared keyboard picker consumes a safe readable-key presentation derived
+from canonical `InputCode`. It returns a typed set to the owning action.
+Presentation labels never enter namespace/code identity, JCS, or hash.
+
 No API in this review authorizes runtime execution, preview execution, Host
 transport, v1 migration, or deletion outside the exact v2 test-layout cutover
 targets below.
@@ -131,3 +225,12 @@ After marker state `V3_READY`, only v3 repositories may open. There is no mixed
 mode. The final implementation gate scans production and tests for
 `layout.v2`, `LayoutV2`, `layout-v2`, v2 storage names, old manifest Activity
 FQCN, and v2 Proguard/serialization keeps; expected production count is zero.
+
+A change from element opacity to root-only opacity changes accepted v3 bytes.
+Because the product is unpublished, any older app-private v3 generation,
+journal, or catalog entry is test data and must be quarantined/re-created by
+an explicitly versioned, layout-owned cutover gate before repositories open.
+It is not migrated, dual-read, assigned a guessed default, or retained through
+a compatibility branch. The quarantine allowlist remains restricted to
+layout-owned v3 storage and must-not-touch every Host, pairing, library,
+streaming, input-mode, and TouchKit v1 asset.

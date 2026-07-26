@@ -19,6 +19,7 @@ POSITIVE = ROOT / "tests/fixtures/ligase-touch-layout-v3-positive.json"
 NEGATIVE = ROOT / "tests/fixtures/ligase-touch-layout-v3-negative-vectors.json"
 V3_MANIFEST = ROOT / "tests/fixtures/ligase-touch-layout-v3-sha256.txt"
 CUTOVER = ROOT / "docs/ligase/ligase-touch-layout-v3-cutover-states.json"
+API_REVIEW = ROOT / "docs/ligase/LIGASE_TOUCH_LAYOUT_V3_ANDROID_API_REVIEW.md"
 
 
 def verify_manifest(path: Path) -> None:
@@ -32,7 +33,7 @@ def verify_cutover_state_table() -> None:
     value = strict_load(CUTOVER)
     assert set(value) == {
         "contract", "schemaVersion", "marker", "states", "quarantineTargets",
-        "mustNotTouch", "negativeScenarios",
+        "preAuthorityV3TestDataTargets", "mustNotTouch", "negativeScenarios",
     }
     assert value["contract"] == "ligase-touch-layout-v3-cutover"
     assert value["schemaVersion"] == 1
@@ -56,13 +57,40 @@ def verify_cutover_state_table() -> None:
     assert not set(targets["directories"]) & must_not_touch
     assert targets["sharedPreferencesFile"] not in must_not_touch
     cases = value["negativeScenarios"]
-    assert len(cases) == 8
+    assert value["marker"]["version"] == 2
+    prior_v3 = value["preAuthorityV3TestDataTargets"]
+    assert prior_v3 == {
+        "directories": [
+            "ligase-touch-layout-v3-drafts",
+            "ligase-touch-layout-v3-generations",
+        ],
+        "acceptedPriorMarkerVersion": 1,
+        "requiredReadyMarkerVersion": 2,
+        "disposition": "quarantineAndRecreate",
+    }
+    assert not set(prior_v3["directories"]) & must_not_touch
+    assert len(cases) == 10
     assert len({item["id"] for item in cases}) == len(cases)
 
 
 def main() -> None:
     verify_manifest(V3_MANIFEST)
     verify_cutover_state_table()
+    api_review = API_REVIEW.read_text(encoding="utf-8")
+    assert "INVALID_CHORD" not in api_review
+    add_radial = api_review.split("addRadialAction(", 1)[1].split(
+        "removeRadialAction(", 1
+    )[0]
+    replace_radial_chord = api_review.split(
+        "replaceRadialActionChord(", 1
+    )[1].split("```", 1)[0]
+    for code in (
+        "EMPTY_CHORD", "TOO_MANY_KEYS", "UNSUPPORTED_INPUT_CODE", "DUPLICATE_KEY",
+    ):
+        assert code in add_radial
+        assert code in replace_radial_chord
+    assert "INVALID_LABEL" in add_radial
+    assert "INVALID_LABEL" not in replace_radial_chord
     command = [
         sys.executable,
         str(ROOT / "tools/ligase/validate_touch_layout_v3.py"),
@@ -107,6 +135,20 @@ def main() -> None:
         "minimum-target-fail-closed",
     }
     element_schema = strict_load(SCHEMA)["$defs"]["element"]
+    schema = strict_load(SCHEMA)
+    positive = strict_load(POSITIVE)
+    assert "opacityPermille" in schema["required"]
+    assert schema["properties"]["opacityPermille"] == {
+        "type": "integer", "minimum": 0, "maximum": 1000,
+    }
+    assert "opacityPermille" not in element_schema["required"]
+    assert "opacityPermille" not in element_schema["properties"]
+    assert positive["opacityPermille"] == 420
+    assert all(
+        "opacityPermille" not in element
+        for variant in positive["variants"]
+        for element in variant["elements"]
+    )
     assert element_schema["properties"]["anchorX"]["enum"] == [
         "LEFT", "CENTER", "RIGHT",
     ]
@@ -163,6 +205,119 @@ def main() -> None:
     assert vectors["keyboardBatchCases"][2]["count"] == 33
     assert vectors["keyboardBatchCases"][3]["createdCount"] == 0
     assert vectors["keyboardBatchCases"][3]["ordinalConsumed"] is False
+    editor_cases = {
+        item["id"]: item for item in vectors["editorMutationCases"]
+    }
+    declared_editor_errors = {
+        operation: set(errors)
+        for operation, errors in vectors["editorActionErrorSets"].items()
+    }
+    common_editor_errors = set(vectors["commonEditorActionErrors"])
+    observed_editor_errors = {
+        operation: {
+            item["expectedError"]
+            for item in vectors["editorMutationCases"]
+            if item["operation"] == operation
+            and "expectedError" in item
+            and item["expectedError"] not in common_editor_errors
+        }
+        for operation in declared_editor_errors
+    }
+    assert observed_editor_errors == declared_editor_errors
+    assert editor_cases["combo-input-order-canonicalized"][
+        "expectedCanonicalKeys"
+    ] == [
+        {"namespace": "androidKeyCode", "code": 57},
+        {"namespace": "usbHidKeyboardUsage", "code": 5},
+    ]
+    assert editor_cases["combo-duplicate-input-zero-write"]["expectedError"] == (
+        "DUPLICATE_KEY"
+    )
+    assert editor_cases["combo-empty-input-zero-write"]["expectedError"] == "EMPTY_CHORD"
+    assert editor_cases["combo-too-many-input-zero-write"]["expectedError"] == (
+        "TOO_MANY_KEYS"
+    )
+    assert editor_cases["combo-unsupported-input-zero-write"][
+        "expectedError"
+    ] == "UNSUPPORTED_INPUT_CODE"
+    assert editor_cases["radial-owner-generated-first-candidate"][
+        "saveReopenActionId"
+    ] == editor_cases["radial-owner-generated-first-candidate"][
+        "expectedActionId"
+    ]
+    assert editor_cases["radial-first-collision-second-candidate"][
+        "attempts"
+    ] == 2
+    assert editor_cases["radial-three-collisions-zero-write"][
+        "expectedError"
+    ] == "ID_GENERATION_FAILED"
+    assert editor_cases["radial-three-collisions-zero-write"][
+        "mutationApplied"
+    ] is False
+    assert editor_cases["radial-add-too-many-before-item-validation"][
+        "expectedError"
+    ] == "TOO_MANY_KEYS"
+    assert editor_cases["radial-add-unsupported-before-duplicate"][
+        "expectedError"
+    ] == "UNSUPPORTED_INPUT_CODE"
+    assert editor_cases["radial-add-duplicate-before-invalid-label"][
+        "expectedError"
+    ] == "DUPLICATE_KEY"
+    assert editor_cases["radial-add-capacity-before-id"]["expectedError"] == (
+        "ACTION_LIMIT"
+    )
+    for case_id in (
+        "radial-add-empty-chord-before-id",
+        "radial-add-too-many-before-item-validation",
+        "radial-add-duplicate-chord-before-id",
+        "radial-add-unsupported-chord-before-id",
+        "radial-add-unsupported-before-duplicate",
+        "radial-add-duplicate-before-invalid-label",
+        "radial-add-invalid-label-before-id",
+    ):
+        assert editor_cases[case_id]["candidateIdsConsumed"] == 0
+        assert editor_cases[case_id]["writes"] == 0
+        assert editor_cases[case_id]["stateBytesUnchanged"] is True
+    for case_id, expected in (
+        ("radial-replace-empty-chord-zero-write", "EMPTY_CHORD"),
+        ("radial-replace-too-many-chord-zero-write", "TOO_MANY_KEYS"),
+        ("radial-replace-duplicate-chord-zero-write", "DUPLICATE_KEY"),
+        ("radial-replace-unsupported-chord-zero-write", "UNSUPPORTED_INPUT_CODE"),
+    ):
+        assert editor_cases[case_id]["expectedError"] == expected
+        assert editor_cases[case_id]["writes"] == 0
+        assert editor_cases[case_id]["stateBytesUnchanged"] is True
+    assert editor_cases["radial-unknown-action-zero-write"][
+        "mutationApplied"
+    ] is False
+    assert editor_cases["radial-stale-generation-zero-write"][
+        "mutationApplied"
+    ] is False
+    combo = positive["variants"][0]["elements"][7]["payload"]
+    assert combo["payloadKind"] == "combo"
+    assert combo["keys"] == [
+        {"namespace": "androidKeyCode", "code": 8},
+        {"namespace": "androidKeyCode", "code": 57},
+    ]
+    radial = positive["variants"][0]["elements"][5]["payload"]
+    assert radial["payloadKind"] == "radial"
+    assert [item["order"] for item in radial["actions"]] == [0, 1]
+    assert len({item["actionId"] for item in radial["actions"]}) == 2
+    assert radial["actions"][1]["keys"] == [
+        {"namespace": "androidKeyCode", "code": 57},
+        {"namespace": "usbHidKeyboardUsage", "code": 5},
+    ]
+    negative_ids = {item["id"] for item in vectors["documentCases"]}
+    assert {
+        "missing-layout-opacity",
+        "layout-opacity-below-range",
+        "layout-opacity-above-range",
+        "legacy-element-opacity-rejected",
+        "combo-duplicate-chord-key",
+        "combo-noncanonical-chord-order",
+        "radial-duplicate-action-id",
+        "radial-noncanonical-action-order",
+    } <= negative_ids
     v3_validator = Draft202012Validator(strict_load(SCHEMA))
     assert not list(v3_validator.iter_errors(strict_load(POSITIVE)))
     print("V3_CONTRACT_SELF_TEST_PASS")

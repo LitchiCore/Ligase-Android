@@ -11,6 +11,7 @@
     "revision",
     "nextKeyboardBatchOrdinal",
     "displayName",
+    "opacityPermille",
     "extensions",
     "variants",
     "contentHash"
@@ -22,6 +23,7 @@
     "revision": {"$ref": "#/$defs/safePositiveInteger"},
     "nextKeyboardBatchOrdinal": {"$ref": "#/$defs/safePositiveInteger"},
     "displayName": {"$ref": "#/$defs/name80"},
+    "opacityPermille": {"type": "integer", "minimum": 0, "maximum": 1000},
     "extensions": {"$ref": "#/$defs/extensionsRoot"},
     "variants": {
       "type": "array",
@@ -314,6 +316,7 @@
       "type": "array",
       "minItems": 1,
       "maxItems": 16,
+      "uniqueItems": true,
       "items": {"$ref": "#/$defs/inputCode"}
     },
     "trigger": {"enum": ["hold", "toggle", "tap", "timedHold"]},
@@ -433,8 +436,10 @@
     "radialAction": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["keys", "label"],
+      "required": ["actionId", "order", "keys"],
       "properties": {
+        "actionId": {"$ref": "#/$defs/uuidD"},
+        "order": {"type": "integer", "minimum": 0, "maximum": 15},
         "keys": {"$ref": "#/$defs/inputCodeList"},
         "label": {"$ref": "#/$defs/label32"}
       }
@@ -532,7 +537,7 @@
       "additionalProperties": false,
       "required": [
         "elementId", "kind", "rect", "anchorX", "anchorY",
-        "zOrder", "enabled", "hidden", "opacityPermille", "payload"
+        "zOrder", "enabled", "hidden", "payload"
       ],
       "properties": {
         "elementId": {"$ref": "#/$defs/uuidD"},
@@ -548,7 +553,6 @@
         "zOrder": {"type": "integer", "minimum": -32768, "maximum": 32767},
         "enabled": {"type": "boolean"},
         "hidden": {"type": "boolean"},
-        "opacityPermille": {"type": "integer", "minimum": 0, "maximum": 1000},
         "payload": {"$ref": "#/$defs/payload"},
         "sourceReference": {
           "allOf": [

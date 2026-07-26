@@ -5,6 +5,7 @@
   "revision": 1,
   "nextKeyboardBatchOrdinal": 1,
   "displayName": "Built-in all-types conversion fixture",
+  "opacityPermille": 420,
   "extensions": {},
   "variants": [
     {
@@ -53,7 +54,6 @@
           "zOrder": 0,
           "enabled": true,
           "hidden": false,
-          "opacityPermille": 420,
           "payload": {
             "payloadKind": "keyboard",
             "inputCode": {
@@ -85,7 +85,6 @@
           "zOrder": 1,
           "enabled": true,
           "hidden": false,
-          "opacityPermille": 420,
           "payload": {
             "payloadKind": "mouse",
             "button": "primary",
@@ -114,7 +113,6 @@
           "zOrder": 2,
           "enabled": true,
           "hidden": false,
-          "opacityPermille": 420,
           "payload": {
             "payloadKind": "analog",
             "up": [
@@ -165,7 +163,6 @@
           "zOrder": 3,
           "enabled": true,
           "hidden": false,
-          "opacityPermille": 420,
           "payload": {
             "payloadKind": "dpad",
             "up": [
@@ -210,7 +207,6 @@
           "zOrder": 4,
           "enabled": true,
           "hidden": false,
-          "opacityPermille": 420,
           "payload": {
             "payloadKind": "customKeys",
             "keys": [
@@ -251,7 +247,6 @@
           "zOrder": 5,
           "enabled": true,
           "hidden": false,
-          "opacityPermille": 420,
           "payload": {
             "payloadKind": "radial",
             "label": "Wheel",
@@ -260,6 +255,8 @@
             "boundaryPolicy": "clockwiseInclusive",
             "actions": [
               {
+                "actionId": "10000000-0000-0000-0000-000000000001",
+                "order": 0,
                 "keys": [
                   {
                     "namespace": "androidKeyCode",
@@ -269,10 +266,16 @@
                 "label": "One"
               },
               {
+                "actionId": "10000000-0000-0000-0000-000000000002",
+                "order": 1,
                 "keys": [
                   {
                     "namespace": "androidKeyCode",
-                    "code": 132
+                    "code": 57
+                  },
+                  {
+                    "namespace": "usbHidKeyboardUsage",
+                    "code": 5
                   }
                 ],
                 "label": "Two"
@@ -295,7 +298,6 @@
           "zOrder": 6,
           "enabled": true,
           "hidden": false,
-          "opacityPermille": 420,
           "payload": {
             "payloadKind": "scroll",
             "direction": "verticalPositive",
@@ -328,17 +330,16 @@
           "zOrder": 7,
           "enabled": true,
           "hidden": false,
-          "opacityPermille": 420,
           "payload": {
             "payloadKind": "combo",
             "keys": [
               {
                 "namespace": "androidKeyCode",
-                "code": 57
+                "code": 8
               },
               {
                 "namespace": "androidKeyCode",
-                "code": 8
+                "code": 57
               }
             ],
             "pressOrder": "listed",
@@ -368,7 +369,6 @@
           "zOrder": 8,
           "enabled": true,
           "hidden": false,
-          "opacityPermille": 420,
           "payload": {
             "payloadKind": "softKeyboard",
             "action": "openSystemIme",
@@ -390,7 +390,6 @@
           "zOrder": 9,
           "enabled": true,
           "hidden": false,
-          "opacityPermille": 420,
           "payload": {
             "payloadKind": "gyro",
             "target": "mouse",
@@ -408,5 +407,5 @@
       ]
     }
   ],
-  "contentHash": "sha256:94657f0cb6f86945fa47b3229cda1242a1a4e891bdacf6cdfa828f13590f2e67"
+  "contentHash": "sha256:c9e69d92cf1b3d9fdc84c85ced4f0f15895f50081a936a8994a2ef95c12f3dd6"
 }

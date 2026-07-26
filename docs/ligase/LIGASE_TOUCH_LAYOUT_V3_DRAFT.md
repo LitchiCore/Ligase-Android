@@ -1,6 +1,10 @@
 # Ligase Touch Layout v3 — adaptive anchored fullscreen review draft
 
-Status: **FROZEN CONTENT CONTRACT / IMPLEMENTATION AUTHORIZED ONLY BY SEPARATE TASK**.
+Status: **REVIEW — proposed global-opacity and combo/radial authority revision**.
+
+The previously frozen v3 baseline remains production authority until this
+entire fixed review snapshot is independently accepted, explicitly authorized,
+and committed. This review does not authorize production implementation.
 
 This document is the proposed replacement for the development-only
 `ligase-touch-layout` schemaVersion 2 contract. It does not authorize Android
@@ -26,6 +30,20 @@ is handled only by the one-time cutover state machine in the Android API review.
   `UNSUPPORTED_SCHEMA` before content materialization.
 - `LayoutDescriptorV1` remains the sole publication, compatibility, portable
   identity, binding, and variant-membership authority.
+
+### 1.1 Layout-wide opacity
+
+Canonical content has exactly one required root `opacityPermille` integer in
+`0..1000`. It applies uniformly to every rendered control in the layout and
+participates in schema validation, JCS, content hash, journal recovery,
+generation save/readback, export, and import. Elements have no opacity field;
+there is no element override, multiplication, fallback, or second opacity
+owner. A typed editor action replaces the root value atomically.
+
+The pre-release v3 bytes that contained element opacity are test data, not a
+compatible prior content revision. They are handled only by the existing
+layout-owned cutover quarantine/re-create boundary and are never migrated,
+dual-read, inferred, or silently assigned a root value.
 
 ## 2. Signed geometry and visibility
 
@@ -137,6 +155,67 @@ The exact center stack is formal-valid and may be saved immediately. Process
 recovery preserves canonical element and stack order; users may drag items
 apart or use typed layer actions later. Visibility and typed payload rules
 remain strict.
+
+### 3.2 Canonical chords, combo, and radial actions
+
+An input chord is a simultaneous set, never a sequential macro. It contains
+`1..16` unique closed `InputCode` values. Canonical byte order is namespace
+order `androidKeyCode`, then `usbHidKeyboardUsage`, then ascending integer
+code. Selection order cannot affect content bytes or hash. Modifiers use the
+same closed `InputCode` representation and have no hidden modifier field.
+Presentation may display modifiers first without changing canonical storage.
+Empty chords, duplicate codes, unknown namespaces, and unknown codes fail
+closed.
+
+`combo` owns exactly one chord. Its typed editor action replaces the complete
+chord atomically and accepts a bounded typed list that preserves caller order.
+Before sorting, the application rejects empty, over-limit, duplicate, or
+unknown codes; only then does it sort the chord canonically. Duplicate input is
+therefore a reachable typed rejection and never silently de-duplicated.
+Duplicate keys in imported/raw artifacts are strict schema rejection. Failure
+writes nothing. `pressOrder=listed` and
+`releaseOrder=reverseListed` describe the canonical stored chord and do not
+turn it into a timed macro.
+
+`radial` contains `2..16` actions. Each action has a canonical UUID D
+`actionId`, a unique contiguous `order` in `0..actions.size-1`, an optional
+safe label, and one canonical chord. Index is not identity. Add, delete,
+reorder, label replacement, and chord replacement are closed typed atomic
+actions; any invalid action ID, stale generation, invalid order, or invalid
+chord leaves the whole payload unchanged. Combo and radial become editable
+content kinds, but this contract does not authorize runtime execution.
+
+For add, the application owner—not UI or caller—obtains canonical UUID D
+candidates from an injected identity source inside the atomic mutation. The
+request does not contain an action ID. It attempts at most three candidates:
+the initial candidate plus two bounded collision retries. Invalid/non-UUID
+candidates or exhaustion without a unique ID return
+`ID_GENERATION_FAILED` and write nothing. `Applied` returns the accepted ID and
+canonical radial payload. No ID is derived from index, label, time, content
+hash, or UI state. Process restart, journal recovery, save/reopen, and reorder
+retain the accepted ID unchanged.
+
+Every combo/radial chord action accepts `List<InputCode>`, including radial
+add and radial chord replacement. Validation order is closed and observable:
+empty, count above 16, unsupported namespace/code, duplicate identity,
+operation-specific label bounds, then canonical sorting. Radial add
+validates its target, chord, and optional label completely before requesting
+an ID candidate. Any earlier rejection consumes zero identity candidates and
+writes neither draft nor journal.
+
+For a request with multiple payload faults, precedence is exactly
+`EMPTY_CHORD -> TOO_MANY_KEYS -> UNSUPPORTED_INPUT_CODE -> DUPLICATE_KEY
+-> INVALID_LABEL -> canonical sort`. Thus count wins over per-item failure,
+unsupported wins over duplicate, and duplicate wins over an invalid label.
+Layout/action existence and stale-generation gates retain their existing
+outer application precedence before payload validation.
+
+The Android readable-key mapper is presentation-only. It may map known closed
+codes to safe names and show a generic unknown label, but it never changes,
+guesses, aliases, or persists namespace/code identity. Keyboard batch picking,
+combo chord picking, and radial-action chord picking may share the same
+multi-select UI projection. Confirming a combo or radial selection updates
+only that target payload and never creates a keyboard element.
 
 ## 4. Adaptive anchored fullscreen mapper
 

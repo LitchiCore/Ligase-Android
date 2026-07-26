@@ -20,6 +20,7 @@ UUID_D = re.compile(
 )
 CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
 INPUT_NAMESPACES = {"androidKeyCode", "usbHidKeyboardUsage"}
+INPUT_NAMESPACE_ORDER = {"androidKeyCode": 0, "usbHidKeyboardUsage": 1}
 DEVICE_ORDER = {"phone": 0, "tablet": 1}
 ORIENTATION_ORDER = {"portrait": 0, "landscape": 1}
 KINDS = {
@@ -187,6 +188,20 @@ def validate_input_code(value, path):
         fail("invalidInputCode", path)
 
 
+def validate_chord(values, path):
+    if not isinstance(values, list) or not 1 <= len(values) <= 16:
+        fail("invalidChord", path)
+    for index, value in enumerate(values):
+        validate_input_code(value, f"{path}/{index}")
+    identities = [(value["namespace"], value["code"]) for value in values]
+    expected = sorted(
+        set(identities),
+        key=lambda item: (INPUT_NAMESPACE_ORDER[item[0]], item[1]),
+    )
+    if identities != expected:
+        fail("nonCanonicalChord", path)
+
+
 def validate_trigger(payload, path):
     trigger = payload.get("trigger")
     if trigger not in {"hold", "toggle", "tap", "timedHold"}:
@@ -227,10 +242,7 @@ def validate_payload(kind, payload, path):
             fail("invalidDiagonalPolicy", path + "/diagonalPolicy")
     elif kind in {"customKeys", "combo"}:
         keys = payload.get("keys")
-        if not isinstance(keys, list) or not 1 <= len(keys) <= 16:
-            fail("invalidChord", path + "/keys")
-        for index, value in enumerate(keys):
-            validate_input_code(value, f"{path}/keys/{index}")
+        validate_chord(keys, path + "/keys")
         if payload.get("pressOrder") != "listed" or payload.get("releaseOrder") != "reverseListed":
             fail("invalidChordOrder", path)
         validate_trigger(payload, path)
@@ -248,13 +260,21 @@ def validate_payload(kind, payload, path):
         actions = payload.get("actions")
         if not isinstance(actions, list) or not 2 <= len(actions) <= 16:
             fail("invalidRadialActions", path + "/actions")
+        action_ids = [action.get("actionId") for action in actions]
+        if any(not UUID_D.fullmatch(value or "") for value in action_ids):
+            fail("invalidRadialActionId", path + "/actions")
+        if len(action_ids) != len(set(action_ids)):
+            fail("duplicateRadialActionId", path + "/actions")
+        if [action.get("order") for action in actions] != list(range(len(actions))):
+            fail("nonCanonicalRadialActionOrder", path + "/actions")
         for ai, action in enumerate(actions):
-            valid_scalar_string(action.get("label"), maximum=32, path=f"{path}/actions/{ai}/label")
-            keys = action.get("keys")
-            if not isinstance(keys, list) or not 1 <= len(keys) <= 16:
-                fail("invalidChord", f"{path}/actions/{ai}/keys")
-            for ki, code in enumerate(keys):
-                validate_input_code(code, f"{path}/actions/{ai}/keys/{ki}")
+            if "label" in action:
+                valid_scalar_string(
+                    action["label"],
+                    maximum=32,
+                    path=f"{path}/actions/{ai}/label",
+                )
+            validate_chord(action.get("keys"), f"{path}/actions/{ai}/keys")
     elif kind == "scroll":
         if payload.get("direction") not in {"verticalPositive", "verticalNegative", "horizontalPositive", "horizontalNegative"}:
             fail("invalidScrollDirection", path)
@@ -461,6 +481,13 @@ def validate(document):
     ):
         fail("invalidNextKeyboardBatchOrdinal")
     valid_scalar_string(document.get("displayName"), maximum=80, path="/displayName")
+    opacity = document.get("opacityPermille")
+    if (
+        isinstance(opacity, bool)
+        or not isinstance(opacity, int)
+        or not 0 <= opacity <= 1000
+    ):
+        fail("invalidLayoutOpacity", "/opacityPermille")
     variants = document.get("variants")
     if not isinstance(variants, list) or not 1 <= len(variants) <= 32:
         fail("invalidVariantCount")
@@ -690,6 +717,150 @@ def run_kind_vectors(path: Path, base, schema_validator):
             fail("kindNegativeAccepted", case["id"])
 
 
+def _editor_chord_error(keys):
+    if not isinstance(keys, list) or len(keys) == 0:
+        return "EMPTY_CHORD"
+    if len(keys) > 16:
+        return "TOO_MANY_KEYS"
+    for index, key in enumerate(keys):
+        try:
+            validate_input_code(key, f"/editorChord/{index}")
+        except ValidationError:
+            return "UNSUPPORTED_INPUT_CODE"
+    identities = [(item["namespace"], item["code"]) for item in keys]
+    if len(identities) != len(set(identities)):
+        return "DUPLICATE_KEY"
+    return None
+
+
+def _canonical_editor_chord(keys):
+    return sorted(
+        keys,
+        key=lambda item: (
+            INPUT_NAMESPACE_ORDER[item["namespace"]],
+            item["code"],
+        ),
+    )
+
+
+def _assert_zero_write(case):
+    if (
+        case["mutationApplied"] is not False
+        or case.get("writes") != 0
+        or case.get("stateBytesUnchanged") is not True
+    ):
+        fail("editorMutationWasNotAtomic", case["id"])
+
+
+def run_editor_mutation_vectors(path: Path):
+    vectors = strict_load_vector(path)
+    common_errors = set(vectors["commonEditorActionErrors"])
+    declared_errors = {
+        operation: set(errors)
+        for operation, errors in vectors["editorActionErrorSets"].items()
+    }
+    observed_errors = {operation: set() for operation in declared_errors}
+    for case in vectors["editorMutationCases"]:
+        operation = case["operation"]
+        if operation not in declared_errors:
+            fail("unknownEditorMutationVector", case["id"], operation)
+        expected_error = case.get("expectedError")
+        if expected_error is not None:
+            if (
+                expected_error not in declared_errors[operation]
+                and expected_error not in common_errors
+            ):
+                fail("undeclaredEditorActionError", case["id"], expected_error)
+            if expected_error in declared_errors[operation]:
+                observed_errors[operation].add(expected_error)
+        if operation == "replaceComboChord":
+            keys = case["inputKeys"]
+            error = _editor_chord_error(keys)
+            if error is not None:
+                if case.get("expectedError") != error:
+                    fail("wrongEditorMutationResult", case["id"], error)
+                _assert_zero_write(case)
+            else:
+                canonical = _canonical_editor_chord(keys)
+                if canonical != case.get("expectedCanonicalKeys"):
+                    fail("editorMutationCanonicalMismatch", case["id"])
+                if case["mutationApplied"] is not True:
+                    fail("editorMutationWasNotApplied", case["id"])
+        elif operation == "addRadialAction":
+            if "inputKeys" in case:
+                error = _editor_chord_error(case["inputKeys"])
+                if error is None and "label" in case:
+                    try:
+                        valid_scalar_string(
+                            case["label"], maximum=32, path="/editorMutation/label"
+                        )
+                    except ValidationError:
+                        error = "INVALID_LABEL"
+                if error is not None:
+                    if case.get("expectedError") != error:
+                        fail("wrongEditorMutationResult", case["id"], error)
+                    if case.get("candidateIdsConsumed") != 0:
+                        fail("radialIdentityConsumedBeforeValidation", case["id"])
+                    _assert_zero_write(case)
+                    continue
+            if case.get("radialActionCount", 0) >= 16:
+                if case.get("expectedError") != "ACTION_LIMIT":
+                    fail("wrongEditorMutationResult", case["id"], "ACTION_LIMIT")
+                if case.get("candidateIdsConsumed") != 0:
+                    fail("radialIdentityConsumedBeforeValidation", case["id"])
+                _assert_zero_write(case)
+                continue
+            existing = set(case["existingActionIds"])
+            accepted = None
+            attempts = 0
+            for candidate in case["generatedCandidates"][:3]:
+                attempts += 1
+                if not UUID_D.fullmatch(candidate):
+                    break
+                if candidate not in existing:
+                    accepted = candidate
+                    break
+            if attempts != case["attempts"]:
+                fail("radialIdentityAttemptMismatch", case["id"])
+            if accepted is None:
+                if (
+                    case.get("expectedError") != "ID_GENERATION_FAILED"
+                ):
+                    fail("radialIdentityFailureMismatch", case["id"])
+                _assert_zero_write(case)
+            elif (
+                accepted != case.get("expectedActionId")
+                or case["mutationApplied"] is not True
+            ):
+                fail("radialIdentitySuccessMismatch", case["id"])
+            if "saveReopenActionId" in case and case["saveReopenActionId"] != accepted:
+                fail("radialIdentityReopenMismatch", case["id"])
+        elif operation == "replaceRadialActionChord":
+            if "inputKeys" in case:
+                error = _editor_chord_error(case["inputKeys"])
+                if case.get("expectedError") != error:
+                    fail("wrongEditorMutationResult", case["id"], str(error))
+                _assert_zero_write(case)
+            elif case.get("expectedError") == "UNKNOWN_ACTION":
+                _assert_zero_write(case)
+            else:
+                fail("radialTargetedFailureMismatch", case["id"])
+        elif operation in {
+            "removeRadialAction",
+            "reorderRadialAction",
+            "replaceRadialActionLabel",
+        }:
+            _assert_zero_write(case)
+    for operation, declared in declared_errors.items():
+        missing = declared - observed_errors[operation]
+        if missing:
+            fail(
+                "unreachableDeclaredEditorActionError",
+                operation,
+                ",".join(sorted(missing)),
+            )
+
+
 def run_negative_vectors(schema_path: Path, base_path: Path, vectors_path: Path):
     try:
         from jsonschema import Draft202012Validator
@@ -703,6 +874,7 @@ def run_negative_vectors(schema_path: Path, base_path: Path, vectors_path: Path)
     run_viewport_vectors(vectors_path)
     run_descriptor_vectors(vectors_path, base)
     run_kind_vectors(vectors_path, base, schema_validator)
+    run_editor_mutation_vectors(vectors_path)
     for case in vectors["documentCases"]:
         candidate = deepcopy(base)
         for mutation in case.get("mutations", []):
