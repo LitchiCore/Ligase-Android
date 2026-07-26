@@ -30,8 +30,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.limelight.R
@@ -54,6 +56,7 @@ fun LayoutV3BlackEditorScreen(
     onCancelGesture: (LayoutV3GestureCommitToken) -> LayoutV3EditResult,
     onNudge: (String, Int, Int) -> Unit,
     onSetZOrder: (String, Int) -> Unit,
+    onSetOpacityPermille: (String, Int) -> Unit,
     onDelete: (String) -> Unit,
     onUpdateProperties: (String, LayoutV3EditableProperties) -> Unit,
     onAdd: (ControlKind) -> Unit,
@@ -67,7 +70,9 @@ fun LayoutV3BlackEditorScreen(
     val state = workspace.editor
     val presentation = presentLayoutV3Editor(state)
     var showLeaveDialog by rememberSaveable { mutableStateOf(false) }
-    var showTools by rememberSaveable { mutableStateOf(false) }
+    var toolsModeName by rememberSaveable { mutableStateOf<String?>(null) }
+    val toolsMode = toolsModeName?.let(LayoutV3EditorToolsMode::valueOf)
+    val showTools = toolsMode != null
     var showKeyboardPicker by rememberSaveable { mutableStateOf(false) }
     var selectedKeyboardCodes by rememberSaveable { mutableStateOf(emptyList<Int>()) }
     var nudgePreview by remember { mutableStateOf<LayoutV3NudgeDelta?>(null) }
@@ -86,7 +91,7 @@ fun LayoutV3BlackEditorScreen(
             LayoutV3BlackEditorBackAction.ABORT -> onAbort()
             LayoutV3BlackEditorBackAction.CLOSE_TOOLS -> {
                 nudgePreview = null
-                showTools = false
+                toolsModeName = null
             }
             LayoutV3BlackEditorBackAction.CONFIRM_LEAVE -> showLeaveDialog = true
             LayoutV3BlackEditorBackAction.FINISH -> onKeepAndFinish()
@@ -122,18 +127,33 @@ fun LayoutV3BlackEditorScreen(
                     onCommitPixelMove = onCommitPixelMove,
                     onCommitPixelResize = onCommitPixelResize,
                     onCancelGesture = onCancelGesture,
-                    onOpenTools = { showTools = true },
+                    onOpenTools = {
+                        toolsModeName = LayoutV3EditorToolsMode.CONTROL_PROPERTIES.name
+                    },
                     nudgePreview = nudgePreview,
                     modifier = Modifier.fillMaxSize(),
                 )
                 if (!showTools) {
-                    FilledTonalButton(
-                        onClick = { showTools = true },
+                    Column(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(18.dp),
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text(stringResource(R.string.ligase_layout_v3_open_tools))
+                        if (state.selectedElementId != null) {
+                            FilledTonalButton(onClick = {
+                                toolsModeName =
+                                    LayoutV3EditorToolsMode.CONTROL_PROPERTIES.name
+                            }) {
+                                Text(stringResource(R.string.ligase_layout_v3_control_properties))
+                            }
+                        }
+                        FilledTonalButton(onClick = {
+                            toolsModeName = LayoutV3EditorToolsMode.LAYOUT_SETTINGS.name
+                        }) {
+                            Text(stringResource(R.string.ligase_layout_v3_layout_settings))
+                        }
                     }
                 } else {
                     val selected = state.draft.elements.firstOrNull {
@@ -159,12 +179,14 @@ fun LayoutV3BlackEditorScreen(
                     BlackEditorPanel(
                         state = state,
                         presentation = presentation,
+                        mode = checkNotNull(toolsMode),
                         onNudgePreview = { preview -> nudgePreview = preview },
                         onNudgeCommit = { elementId, deltaX, deltaY ->
                             nudgePreview = null
                             onNudge(elementId, deltaX, deltaY)
                         },
                         onSetZOrder = onSetZOrder,
+                        onSetOpacityPermille = onSetOpacityPermille,
                         onDelete = onDelete,
                         onUpdateProperties = onUpdateProperties,
                         onAdd = onAdd,
@@ -179,7 +201,7 @@ fun LayoutV3BlackEditorScreen(
                         },
                         onCloseTools = {
                             nudgePreview = null
-                            showTools = false
+                            toolsModeName = null
                         },
                         modifier = Modifier
                             .align(
@@ -250,11 +272,16 @@ fun LayoutV3BlackEditorScreen(
                     onAddKeyboardKeys(selected)
                     selectedKeyboardCodes = emptyList()
                     showKeyboardPicker = false
-                    showTools = false
+                    toolsModeName = null
                 }
             },
         )
     }
+}
+
+private enum class LayoutV3EditorToolsMode {
+    CONTROL_PROPERTIES,
+    LAYOUT_SETTINGS,
 }
 
 @Composable
@@ -355,8 +382,13 @@ private fun BlackTouchElement(
     )
     val label = when (val properties = element.editableProperties) {
         is LayoutV3EditableProperties.Keyboard ->
-            layoutV3KeyboardLabel(properties.inputCode)
-                ?: blackEditorKindLabel(element.kind)
+            properties.appearance.label.ifBlank {
+                layoutV3KeyboardLabel(properties.inputCode).orEmpty()
+            }.ifBlank {
+                blackEditorKindLabel(element.kind)
+            }
+        is LayoutV3EditableProperties.Mouse ->
+            properties.appearance.label.ifBlank { blackEditorKindLabel(element.kind) }
         else -> blackEditorKindLabel(element.kind)
     }
     val semanticsText = stringResource(
@@ -368,6 +400,10 @@ private fun BlackTouchElement(
     )
     val resizeDescription = stringResource(R.string.ligase_layout_v3_resize_handle, label)
     val elementShape = element.editorShape().composeShape()
+    val contentAlpha = layoutV3EditorContentAlpha(element.opacityPermille)
+    val shortEdgeDp = with(density) {
+        minOf(previewRect.width, previewRect.height).toDp().value
+    }
 
     Box(
         Modifier
@@ -392,12 +428,17 @@ private fun BlackTouchElement(
                 onOpenTools()
             }
             .background(
-                if (isSelected) Color(0x6635315C) else Color(0x462A2E39),
+                (if (isSelected) Color(0xFF35315C) else Color(0xFF2A2E39))
+                    .copy(alpha = (if (isSelected) 0.40f else 0.28f) * contentAlpha),
                 elementShape,
             )
             .border(
-                if (isSelected) 3.dp else 1.dp,
-                if (isSelected) Color(0xFFB8B1FF) else Color.White.copy(alpha = 0.52f),
+                if (isSelected) 3.dp else LAYOUT_V3_EDITOR_UNSELECTED_BORDER_DP.dp,
+                if (isSelected) {
+                    Color(0xFFB8B1FF)
+                } else {
+                    Color(0xFFB8C0CE).copy(alpha = 0.72f * contentAlpha)
+                },
                 elementShape,
             )
             .pointerInput(element.elementId, element.resolvedRect, fullOverlay) {
@@ -448,10 +489,11 @@ private fun BlackTouchElement(
     ) {
         Text(
             label,
-            color = Color.White,
+            color = Color.White.copy(alpha = layoutV3EditorTextAlpha(element.opacityPermille)),
             fontWeight = FontWeight.Bold,
-            style = MaterialTheme.typography.labelMedium,
+            fontSize = layoutV3EditorLabelSizeSp(shortEdgeDp).sp,
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
         if (isSelected && element.canResize()) {
             val maximumHitSizePx = with(density) { 20.dp.roundToPx() }
@@ -522,9 +564,11 @@ private fun BlackTouchElement(
 private fun BlackEditorPanel(
     state: LayoutV3EditorState,
     presentation: LayoutV3EditorPresentation,
+    mode: LayoutV3EditorToolsMode,
     onNudgePreview: (LayoutV3NudgeDelta) -> Unit,
     onNudgeCommit: (String, Int, Int) -> Unit,
     onSetZOrder: (String, Int) -> Unit,
+    onSetOpacityPermille: (String, Int) -> Unit,
     onDelete: (String) -> Unit,
     onUpdateProperties: (String, LayoutV3EditableProperties) -> Unit,
     onAdd: (ControlKind) -> Unit,
@@ -547,7 +591,13 @@ private fun BlackEditorPanel(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                state.draft?.displayName.orEmpty(),
+                stringResource(
+                    if (mode == LayoutV3EditorToolsMode.CONTROL_PROPERTIES) {
+                        R.string.ligase_layout_v3_control_properties
+                    } else {
+                        R.string.ligase_layout_v3_layout_settings
+                    },
+                ),
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleMedium,
@@ -569,7 +619,7 @@ private fun BlackEditorPanel(
         state.issue?.let {
             Text(blackEditorIssueText(it), color = Color(0xFFFF7B72))
         }
-        selected?.let { element ->
+        if (mode == LayoutV3EditorToolsMode.CONTROL_PROPERTIES) selected?.let { element ->
             HorizontalDivider(color = Color.White.copy(alpha = 0.2f))
             Text(blackEditorKindLabel(element.kind), color = Color.White)
             Text(
@@ -596,7 +646,11 @@ private fun BlackEditorPanel(
                     color = Color(0xFFF4B860),
                 )
             } else {
-                BlackPropertySummary(element, onUpdateProperties)
+                BlackPropertySummary(
+                    element = element,
+                    onUpdate = onUpdateProperties,
+                    onSetOpacityPermille = onSetOpacityPermille,
+                )
                 EditorNudgePad(element, onNudgePreview, onNudgeCommit)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     EditorTinyButton(stringResource(R.string.ligase_layout_v3_send_backward)) {
@@ -612,9 +666,14 @@ private fun BlackEditorPanel(
                 ) { Text(stringResource(R.string.ligase_layout_v3_delete)) }
             }
         }
-        HorizontalDivider(color = Color.White.copy(alpha = 0.2f))
-        Text(stringResource(R.string.ligase_layout_v3_add_control), color = Color.White)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        if (mode == LayoutV3EditorToolsMode.LAYOUT_SETTINGS) {
+            Text(
+                state.draft?.displayName.orEmpty(),
+                color = Color.White.copy(alpha = 0.8f),
+            )
+            HorizontalDivider(color = Color.White.copy(alpha = 0.2f))
+            Text(stringResource(R.string.ligase_layout_v3_add_control), color = Color.White)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             EditorTinyButton(stringResource(R.string.ligase_layout_v3_add_keyboard_keys)) {
                 onOpenKeyboardPicker()
             }
@@ -626,20 +685,21 @@ private fun BlackEditorPanel(
             ).forEach { kind ->
                 EditorTinyButton(blackEditorKindLabel(kind)) { onAdd(kind) }
             }
-        }
-        Button(
+            }
+            Button(
             onClick = {
                 onValidate()
                 onSaveAndFinish()
             },
             enabled = presentation.canSave,
             modifier = Modifier.fillMaxWidth(),
-        ) { Text(stringResource(R.string.ligase_layout_v3_save)) }
-        Text(
+            ) { Text(stringResource(R.string.ligase_layout_v3_save)) }
+            Text(
             stringResource(R.string.ligase_layout_v3_runtime_unverified),
             color = Color.White.copy(alpha = 0.65f),
             style = MaterialTheme.typography.bodySmall,
-        )
+            )
+        }
     }
 }
 
@@ -1045,7 +1105,32 @@ private fun EditorRepeatButton(
 private fun BlackPropertySummary(
     element: LayoutV3EditorElement,
     onUpdate: (String, LayoutV3EditableProperties) -> Unit,
+    onSetOpacityPermille: (String, Int) -> Unit,
 ) {
+    val opacityDescription = stringResource(R.string.ligase_layout_v3_opacity)
+    var opacityDraft by rememberSaveable(element.elementId, element.opacityPermille) {
+        mutableIntStateOf(element.opacityPermille)
+    }
+    Text(
+        stringResource(
+            R.string.ligase_layout_v3_opacity_value,
+            (opacityDraft / 10f).roundToInt(),
+        ),
+        color = Color.White.copy(alpha = 0.8f),
+    )
+    Slider(
+        value = opacityDraft.toFloat(),
+        onValueChange = { opacityDraft = it.roundToInt() },
+        onValueChangeFinished = {
+            if (opacityDraft != element.opacityPermille) {
+                onSetOpacityPermille(element.elementId, opacityDraft)
+            }
+        },
+        valueRange = 0f..1000f,
+        modifier = Modifier.semantics {
+            contentDescription = opacityDescription
+        },
+    )
     when (val p = element.editableProperties) {
         is LayoutV3EditableProperties.Keyboard -> {
             Text(
@@ -1061,6 +1146,13 @@ private fun BlackPropertySummary(
                 onUpdate(element.elementId, p.copy(trigger = next))
             }
             BlackShapeSelector(element, p, onUpdate)
+            BlackLabelEditor(
+                elementId = element.elementId,
+                label = p.appearance.label,
+                onApply = { label ->
+                    onUpdate(element.elementId, p.withEditorLabel(label))
+                },
+            )
             BlackDescriptionEditor(
                 elementId = element.elementId,
                 description = p.appearance.description,
@@ -1082,6 +1174,13 @@ private fun BlackPropertySummary(
                 onUpdate(element.elementId, p.copy(trigger = next))
             }
             BlackShapeSelector(element, p, onUpdate)
+            BlackLabelEditor(
+                elementId = element.elementId,
+                label = p.appearance.label,
+                onApply = { label ->
+                    onUpdate(element.elementId, p.withEditorLabel(label))
+                },
+            )
             BlackDescriptionEditor(
                 elementId = element.elementId,
                 description = p.appearance.description,
@@ -1103,6 +1202,28 @@ private fun BlackPropertySummary(
                 color = Color.White.copy(alpha = 0.8f),
             )
         null -> Unit
+    }
+}
+
+@Composable
+private fun BlackLabelEditor(
+    elementId: String,
+    label: String,
+    onApply: (String) -> Unit,
+) {
+    var draft by rememberSaveable(elementId, label) { mutableStateOf(label) }
+    OutlinedTextField(
+        value = draft,
+        onValueChange = { draft = it },
+        label = { Text(stringResource(R.string.ligase_layout_v3_label)) },
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    Button(
+        onClick = { onApply(draft) },
+        enabled = draft != label,
+    ) {
+        Text(stringResource(R.string.ligase_layout_v3_apply_label))
     }
 }
 

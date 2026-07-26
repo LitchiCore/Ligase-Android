@@ -15,6 +15,23 @@ import org.junit.Test
 
 class LayoutV3EditorPresentationTest {
     @Test
+    fun `control label scales with short edge and remains bounded`() {
+        assertEquals(10f, layoutV3EditorLabelSizeSp(8f))
+        assertEquals(14f, layoutV3EditorLabelSizeSp(50f))
+        assertEquals(28f, layoutV3EditorLabelSizeSp(500f))
+    }
+
+    @Test
+    fun `opacity composes control content without exceeding typed bounds`() {
+        assertEquals(0f, layoutV3EditorContentAlpha(0))
+        assertEquals(0.375f, layoutV3EditorContentAlpha(375))
+        assertEquals(1f, layoutV3EditorContentAlpha(1000))
+        assertEquals(0f, layoutV3EditorContentAlpha(-1))
+        assertEquals(1f, layoutV3EditorContentAlpha(1001))
+        assertEquals(0.82f, layoutV3EditorTextAlpha(1000))
+    }
+
+    @Test
     fun `blank draft without elements cannot be saved`() {
         val result = presentLayoutV3Editor(LayoutV3EditorState())
 

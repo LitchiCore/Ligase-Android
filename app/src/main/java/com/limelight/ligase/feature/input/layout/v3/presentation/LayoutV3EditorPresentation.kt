@@ -20,6 +20,23 @@ data class LayoutV3EditorPresentation(
     val issue: LayoutV3EditorIssue?,
 )
 
+const val LAYOUT_V3_EDITOR_LABEL_MIN_SP = 10f
+const val LAYOUT_V3_EDITOR_LABEL_MAX_SP = 28f
+const val LAYOUT_V3_EDITOR_UNSELECTED_BORDER_DP = 2f
+const val LAYOUT_V3_EDITOR_TEXT_BASE_ALPHA = 0.82f
+
+fun layoutV3EditorLabelSizeSp(shortEdgeDp: Float): Float =
+    (shortEdgeDp * 0.28f).coerceIn(
+        LAYOUT_V3_EDITOR_LABEL_MIN_SP,
+        LAYOUT_V3_EDITOR_LABEL_MAX_SP,
+    )
+
+fun layoutV3EditorContentAlpha(opacityPermille: Int): Float =
+    opacityPermille.coerceIn(0, 1000) / 1000f
+
+fun layoutV3EditorTextAlpha(opacityPermille: Int): Float =
+    layoutV3EditorContentAlpha(opacityPermille) * LAYOUT_V3_EDITOR_TEXT_BASE_ALPHA
+
 fun presentLayoutV3Editor(state: LayoutV3EditorState): LayoutV3EditorPresentation {
     val hasDraft = state.draft != null
     val hasElements = state.draft?.elements?.isNotEmpty() == true
@@ -79,6 +96,16 @@ fun LayoutV3EditableProperties.withEditorDescription(
         copy(appearance = appearance.copy(description = description))
     is LayoutV3EditableProperties.Mouse ->
         copy(appearance = appearance.copy(description = description))
+    else -> this
+}
+
+fun LayoutV3EditableProperties.withEditorLabel(
+    label: String,
+): LayoutV3EditableProperties = when (this) {
+    is LayoutV3EditableProperties.Keyboard ->
+        copy(appearance = appearance.copy(label = label))
+    is LayoutV3EditableProperties.Mouse ->
+        copy(appearance = appearance.copy(label = label))
     else -> this
 }
 
