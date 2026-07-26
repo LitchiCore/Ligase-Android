@@ -199,19 +199,104 @@ class LayoutV3EditorSessionTest {
         session.close()
     }
 
-    private fun session(): LayoutV3EditorSession {
+    @Test
+    fun freshComboAndRadialCreationIsAtomicAndSurvivesFormalReopen() {
+        val session = session()
+        activate(session)
+        val rect = IntRect(320, 240, 200, 200)
+        val combo = session.addComboElement(
+            rect,
+            listOf(
+                InputCode(InputCodeNamespace.USB_HID_KEYBOARD_USAGE, 4),
+                InputCode(InputCodeNamespace.ANDROID_KEY_CODE, 29),
+            ),
+            label = "Combo",
+            description = "Atomic chord",
+        ) as LayoutV3ElementCreateResult.Created
+        assertEquals(ControlKind.COMBO, combo.element.kind)
+        val comboProperties = combo.element.editableProperties as LayoutV3EditableProperties.Combo
+        assertEquals(listOf(29, 4), comboProperties.keys.map { it.code })
+
+        val radial = session.addRadialElement(
+            rect,
+            listOf(
+                LayoutV3NewRadialActionRequest("Left", listOf(InputCode(InputCodeNamespace.ANDROID_KEY_CODE, 21))),
+                LayoutV3NewRadialActionRequest("Right", listOf(InputCode(InputCodeNamespace.ANDROID_KEY_CODE, 22))),
+            ),
+            label = "Radial",
+        ) as LayoutV3ElementCreateResult.Created
+        assertEquals(2, radial.actionIds.size)
+        assertEquals(2, radial.actionIds.distinct().size)
+
+        assertEquals(LayoutV3JournalWriteResult.SAVED, session.flushJournal())
+        val saved = session.saveDraft() as LayoutV3SaveResult.Saved
+        val reopened = requireNotNull(LayoutV3GenerationRepository(context).read(saved.layoutId, saved.revision))
+        val document = (TouchLayoutV3ContentVerifier.verify(reopened.artifact) as
+            LayoutV3ContentVerificationResult.Verified).content.document
+        val elements = document.variants.single().elements
+        assertTrue(elements.any { it.elementId == combo.elementId && it.kind == ControlKind.COMBO })
+        val reopenedRadial = elements.first { it.elementId == radial.elementId }.payload as RadialPayload
+        assertEquals(radial.actionIds, reopenedRadial.actions.map { it.actionId })
+        session.close()
+    }
+
+    @Test
+    fun invalidOrExhaustedRadialCreationConsumesNoStateMutation() {
+        var candidates = 0
+        val ids = ArrayDeque(listOf(
+            "10000000-0000-0000-0000-000000000001",
+            "10000000-0000-0000-0000-000000000002",
+            "10000000-0000-0000-0000-000000000003",
+            "10000000-0000-0000-0000-000000000004",
+        ))
+        val session = session {
+            candidates++
+            ids.removeFirst()
+        }
+        activate(session)
+        val rect = IntRect(320, 240, 200, 200)
+        val before = session.state.draft
+        val beforeCandidates = candidates
+        val invalid = session.addRadialElement(
+            rect,
+            listOf(
+                LayoutV3NewRadialActionRequest("", emptyList()),
+                LayoutV3NewRadialActionRequest("Right", listOf(InputCode(InputCodeNamespace.ANDROID_KEY_CODE, 22))),
+            ),
+        ) as LayoutV3ElementCreateResult.Rejected
+        assertEquals(LayoutV3EditorIssue.EMPTY_CHORD, invalid.issue)
+        assertEquals(beforeCandidates, candidates)
+        assertEquals(before, session.state.draft)
+
+        val exhausted = session.addRadialElement(
+            rect,
+            listOf(
+                LayoutV3NewRadialActionRequest("Left", listOf(InputCode(InputCodeNamespace.ANDROID_KEY_CODE, 21))),
+                LayoutV3NewRadialActionRequest("Right", listOf(InputCode(InputCodeNamespace.ANDROID_KEY_CODE, 22))),
+            ),
+        ) as LayoutV3ElementCreateResult.Rejected
+        assertEquals(LayoutV3EditorIssue.ID_GENERATION_FAILED, exhausted.issue)
+        assertEquals(before, session.state.draft)
+        session.close()
+    }
+
+    private fun session(idSource: (() -> String)? = null): LayoutV3EditorSession {
         val ids = ArrayDeque(listOf(
             "10000000-0000-0000-0000-000000000001",
             "10000000-0000-0000-0000-000000000002",
             "10000000-0000-0000-0000-000000000003",
             "10000000-0000-0000-0000-000000000004",
             "10000000-0000-0000-0000-000000000005",
+            "10000000-0000-0000-0000-000000000006",
+            "10000000-0000-0000-0000-000000000007",
+            "10000000-0000-0000-0000-000000000008",
+            "10000000-0000-0000-0000-000000000009",
         ))
         return LayoutV3EditorSession(
             LayoutV3DraftJournal(context),
             LayoutV3GenerationRepository(context),
             { true },
-            ids::removeFirst,
+            idSource ?: ids::removeFirst,
         )
     }
 

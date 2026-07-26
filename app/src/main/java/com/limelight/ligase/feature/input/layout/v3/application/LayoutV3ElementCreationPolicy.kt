@@ -19,6 +19,12 @@ sealed interface LayoutV3ElementCreationDecision {
     data object NoSafePlacement : LayoutV3ElementCreationDecision
 }
 
+sealed interface LayoutV3ElementPlacementDecision {
+    data class Ready(val rect: IntRect) : LayoutV3ElementPlacementDecision
+    data object UnsupportedKind : LayoutV3ElementPlacementDecision
+    data object NoSafePlacement : LayoutV3ElementPlacementDecision
+}
+
 /**
  * Owns deterministic initial geometry and payload defaults for editor-created controls.
  */
@@ -27,17 +33,36 @@ class LayoutV3ElementCreationPolicy {
         draft: LayoutV3EditorDraft,
         kind: ControlKind,
     ): LayoutV3ElementCreationDecision {
-        val dimensions = dimensions(kind)
-            ?: return LayoutV3ElementCreationDecision.UnsupportedKind
-        val rect = initialRect(draft, dimensions.first, dimensions.second)
-            ?: return LayoutV3ElementCreationDecision.NoSafePlacement
+        if (kind == ControlKind.COMBO || kind == ControlKind.RADIAL) {
+            return LayoutV3ElementCreationDecision.UnsupportedKind
+        }
+        val rect = when (val placement = place(draft, kind)) {
+            is LayoutV3ElementPlacementDecision.Ready -> placement.rect
+            LayoutV3ElementPlacementDecision.UnsupportedKind ->
+                return LayoutV3ElementCreationDecision.UnsupportedKind
+            LayoutV3ElementPlacementDecision.NoSafePlacement ->
+                return LayoutV3ElementCreationDecision.NoSafePlacement
+        }
         return LayoutV3ElementCreationDecision.Ready(rect, properties(kind))
+    }
+
+    fun place(
+        draft: LayoutV3EditorDraft,
+        kind: ControlKind,
+    ): LayoutV3ElementPlacementDecision {
+        val dimensions = dimensions(kind)
+            ?: return LayoutV3ElementPlacementDecision.UnsupportedKind
+        val rect = initialRect(draft, dimensions.first, dimensions.second)
+            ?: return LayoutV3ElementPlacementDecision.NoSafePlacement
+        return LayoutV3ElementPlacementDecision.Ready(rect)
     }
 
     private fun dimensions(kind: ControlKind): Pair<Int, Int>? = when (kind) {
         ControlKind.KEYBOARD, ControlKind.MOUSE -> 160 to 160
         ControlKind.ANALOG, ControlKind.DPAD -> 240 to 240
         ControlKind.SOFT_KEYBOARD -> 240 to 120
+        ControlKind.COMBO -> 180 to 180
+        ControlKind.RADIAL -> 320 to 320
         else -> null
     }
 

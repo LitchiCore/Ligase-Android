@@ -51,6 +51,11 @@ read only by tests.
   the session owner with bounded retries, and add/remove/reorder/label/chord
   mutations are atomic with typed failure and authoritative readback. Runtime
   execution remains unavailable;
+- fresh COMBO and RADIAL creation accepts only a complete typed configuration.
+  Application policy owns deterministic placement, while the Session validates
+  every chord and label before generating element/action identities and commits
+  the new element once. Callers never supply geometry, z-order, or artifact
+  identity, and any validation or bounded-ID failure leaves the draft unchanged;
 - the atomic keyboard-key batch seam, including canonical key order, bounded
   cardinality, deterministic center stack/IDs/layers, and persisted
   `nextKeyboardBatchOrdinal`.

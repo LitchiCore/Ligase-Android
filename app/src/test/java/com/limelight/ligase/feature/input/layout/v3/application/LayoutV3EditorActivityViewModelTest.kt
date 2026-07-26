@@ -152,6 +152,37 @@ class LayoutV3EditorActivityViewModelTest {
         owner.closeForTest()
     }
 
+    @Test
+    fun configuredComboAndRadialCreationPublishesAuthoritativeElements() {
+        val owner = newOwner()
+        val combo = owner.addComboElement(
+            listOf(InputCode(InputCodeNamespace.ANDROID_KEY_CODE, 29)),
+            label = "Combo",
+        ) as LayoutV3ElementCreateResult.Created
+        val radial = owner.addRadialElement(
+            listOf(
+                LayoutV3NewRadialActionRequest(
+                    "Left",
+                    listOf(InputCode(InputCodeNamespace.ANDROID_KEY_CODE, 21)),
+                ),
+                LayoutV3NewRadialActionRequest(
+                    "Right",
+                    listOf(InputCode(InputCodeNamespace.ANDROID_KEY_CODE, 22)),
+                ),
+            ),
+            label = "Radial",
+        ) as LayoutV3ElementCreateResult.Created
+
+        val elements = owner.state.value.editor.draft!!.elements
+        assertTrue(elements.any { it.elementId == combo.elementId && it.kind == ControlKind.COMBO })
+        assertTrue(elements.any { it.elementId == radial.elementId && it.kind == ControlKind.RADIAL })
+        assertEquals(
+            LayoutV3WorkspaceActionCode.APPLIED,
+            requireNotNull(owner.state.value.lastAction).code,
+        )
+        owner.closeForTest()
+    }
+
     private fun newOwner(): LayoutV3EditorActivityViewModel {
         val owner = LayoutV3EditorActivityViewModel(
             application,

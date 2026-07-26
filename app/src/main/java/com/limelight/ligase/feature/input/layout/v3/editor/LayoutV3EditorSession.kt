@@ -376,6 +376,97 @@ class LayoutV3EditorSession(
         return replaceElements(variant.elements + element)
     }
 
+    fun addComboElement(
+        rect: IntRect,
+        keys: List<InputCode>,
+        label: String? = null,
+        description: String? = null,
+    ): LayoutV3ElementCreateResult {
+        val variant = selectedVariant() ?: return createReject(LayoutV3EditorIssue.NO_ACTIVE_DRAFT)
+        val canonical = validateAndCanonicalizeChord(keys)
+            ?: return createReject(chordIssue(keys))
+        val resolvedLabel = label ?: DEFAULT_COMBO_LABEL
+        val resolvedDescription = description ?: ""
+        if (!validAppearanceText(resolvedLabel, 32) ||
+            !validAppearanceText(resolvedDescription, 80)
+        ) {
+            return createReject(LayoutV3EditorIssue.INVALID_LABEL)
+        }
+        if (runCatching { LayoutV3Geometry.rebase(variant.canvas, rect) }.isFailure) {
+            return createReject(LayoutV3EditorIssue.VALIDATION_FAILED)
+        }
+        val elementId = canonicalUuid()
+            ?: return createReject(LayoutV3EditorIssue.INVALID_IDENTITY)
+        val element = runCatching {
+            newElement(
+                variant,
+                elementId,
+                ControlKind.COMBO,
+                rect,
+                ChordPayload(
+                    ControlKind.COMBO,
+                    canonical,
+                    Trigger.HOLD,
+                    null,
+                    Appearance(resolvedLabel, resolvedDescription, "circle", false),
+                    null,
+                ),
+            )
+        }.getOrNull() ?: return createReject(LayoutV3EditorIssue.VALIDATION_FAILED)
+        return applyCreatedElement(variant, element)
+    }
+
+    fun addRadialElement(
+        rect: IntRect,
+        actions: List<LayoutV3NewRadialActionRequest>,
+        label: String? = null,
+    ): LayoutV3ElementCreateResult {
+        val variant = selectedVariant() ?: return createReject(LayoutV3EditorIssue.NO_ACTIVE_DRAFT)
+        if (actions.size < MIN_RADIAL_ACTIONS) {
+            return createReject(LayoutV3EditorIssue.MINIMUM_ACTIONS)
+        }
+        if (actions.size > MAX_RADIAL_ACTIONS) {
+            return createReject(LayoutV3EditorIssue.ACTION_LIMIT)
+        }
+        val resolvedLabel = label ?: DEFAULT_RADIAL_LABEL
+        if (!validOptionalLabel(resolvedLabel)) {
+            return createReject(LayoutV3EditorIssue.INVALID_LABEL)
+        }
+        val canonicalActions = ArrayList<Pair<String?, List<InputCode>>>(actions.size)
+        for (request in actions) {
+            val canonical = validateAndCanonicalizeChord(request.keys)
+                ?: return createReject(chordIssue(request.keys))
+            if (!validOptionalLabel(request.label)) {
+                return createReject(LayoutV3EditorIssue.INVALID_LABEL)
+            }
+            canonicalActions += request.label to canonical
+        }
+        if (runCatching { LayoutV3Geometry.rebase(variant.canvas, rect) }.isFailure) {
+            return createReject(LayoutV3EditorIssue.VALIDATION_FAILED)
+        }
+
+        val elementId = canonicalUuid()
+            ?: return createReject(LayoutV3EditorIssue.INVALID_IDENTITY)
+        val identities = mutableSetOf(elementId)
+        val createdActions = ArrayList<RadialAction>(canonicalActions.size)
+        canonicalActions.forEachIndexed { order, (actionLabel, chord) ->
+            val actionId = generateRadialActionId(identities)
+                ?: return createReject(LayoutV3EditorIssue.ID_GENERATION_FAILED)
+            identities += actionId
+            createdActions += RadialAction(actionId, order, chord, actionLabel)
+        }
+        val element = runCatching {
+            newElement(
+                variant,
+                elementId,
+                ControlKind.RADIAL,
+                rect,
+                RadialPayload(resolvedLabel, createdActions),
+            )
+        }.getOrNull() ?: return createReject(LayoutV3EditorIssue.VALIDATION_FAILED)
+        return applyCreatedElement(variant, element, createdActions.map { it.actionId })
+    }
+
     /**
      * FROZEN v3 atomic batch seam. The caller supplies a set; canonical ordering,
      * identity, geometry, z-order, and ordinal advancement are all owned here.
@@ -708,6 +799,41 @@ class LayoutV3EditorSession(
         }
     }
 
+    private fun newElement(
+        variant: TouchLayoutV3Variant,
+        elementId: String,
+        kind: ControlKind,
+        rect: IntRect,
+        payload: ControlPayload,
+    ): TouchLayoutV3Element {
+        val nextZ = (variant.elements.maxOfOrNull { it.zOrder } ?: -1) + 1
+        val rebased = LayoutV3Geometry.rebase(variant.canvas, rect)
+        return TouchLayoutV3Element(
+            elementId, kind, rebased.second, rebased.first.first, rebased.first.second, nextZ,
+            enabled = true, hidden = false, payload, null,
+        )
+    }
+
+    private fun applyCreatedElement(
+        variant: TouchLayoutV3Variant,
+        element: TouchLayoutV3Element,
+        actionIds: List<String> = emptyList(),
+    ): LayoutV3ElementCreateResult {
+        return when (replaceElements(variant.elements + element)) {
+            LayoutV3EditResult.Applied -> {
+                val readback = state.draft?.elements?.firstOrNull { it.elementId == element.elementId }
+                    ?: return createReject(LayoutV3EditorIssue.VALIDATION_FAILED)
+                LayoutV3ElementCreateResult.Created(element.elementId, actionIds, readback)
+            }
+            is LayoutV3EditResult.Rejected -> createReject(LayoutV3EditorIssue.VALIDATION_FAILED)
+        }
+    }
+
+    private fun createReject(issue: LayoutV3EditorIssue): LayoutV3ElementCreateResult {
+        publish(state.copy(issue = issue))
+        return LayoutV3ElementCreateResult.Rejected(issue)
+    }
+
     private fun updateRadialAction(
         elementId: String,
         actionId: String,
@@ -930,6 +1056,8 @@ class LayoutV3EditorSession(
         const val MAX_RADIAL_ACTIONS = 16
         const val MAX_ID_ATTEMPTS = 3
         const val MAX_Z_ORDER = 32767L
+        const val DEFAULT_COMBO_LABEL = "Combo"
+        const val DEFAULT_RADIAL_LABEL = "Radial"
         val ELEMENT_ORDER = compareBy<TouchLayoutV3Element>({ it.zOrder }, { it.elementId })
     }
 }
@@ -978,6 +1106,9 @@ private fun chordIssue(keys: List<InputCode>): LayoutV3EditorIssue = when {
 
 private fun validOptionalLabel(label: String?): Boolean =
     label == null || (label.length in 1..32 && label.none { it.code < 0x20 || it.code in 0x7f..0x9f })
+
+private fun validAppearanceText(value: String, maxLength: Int): Boolean =
+    value.length <= maxLength && value.none { it.code < 0x20 || it.code in 0x7f..0x9f }
 
 private fun LayoutV3GenerationWriteCode.toEditorIssue() = when (this) {
     LayoutV3GenerationWriteCode.SAVED -> error("not an error")

@@ -201,6 +201,21 @@ sealed interface LayoutV3RadialEditResult {
     data class Rejected(val issue: LayoutV3EditorIssue) : LayoutV3RadialEditResult
 }
 
+data class LayoutV3NewRadialActionRequest(
+    val label: String?,
+    val keys: List<InputCode>,
+)
+
+sealed interface LayoutV3ElementCreateResult {
+    data class Created(
+        val elementId: String,
+        val actionIds: List<String>,
+        val element: LayoutV3EditorElement,
+    ) : LayoutV3ElementCreateResult
+
+    data class Rejected(val issue: LayoutV3EditorIssue) : LayoutV3ElementCreateResult
+}
+
 sealed interface LayoutV3SaveResult {
     data class Saved(val layoutId: String, val revision: Long, val variantId: String) :
         LayoutV3SaveResult

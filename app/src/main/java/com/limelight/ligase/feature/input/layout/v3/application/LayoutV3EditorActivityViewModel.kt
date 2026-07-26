@@ -226,6 +226,59 @@ class LayoutV3EditorActivityViewModel internal constructor(
         }
     }
 
+    fun addComboElement(
+        keys: List<InputCode>,
+        label: String? = null,
+        description: String? = null,
+    ): LayoutV3ElementCreateResult {
+        val placement = configuredPlacement(ControlKind.COMBO)
+        val rect = placement.first ?: return publishCreateRejected(checkNotNull(placement.second))
+        return publishCreated(session.addComboElement(rect, keys, label, description))
+    }
+
+    fun addRadialElement(
+        actions: List<LayoutV3NewRadialActionRequest>,
+        label: String? = null,
+    ): LayoutV3ElementCreateResult {
+        val placement = configuredPlacement(ControlKind.RADIAL)
+        val rect = placement.first ?: return publishCreateRejected(checkNotNull(placement.second))
+        return publishCreated(session.addRadialElement(rect, actions, label))
+    }
+
+    private fun configuredPlacement(
+        kind: ControlKind,
+    ): Pair<IntRect?, LayoutV3EditorIssue?> {
+        val draft = session.state.draft
+        if (draft == null) {
+            return null to LayoutV3EditorIssue.NO_ACTIVE_DRAFT
+        }
+        return when (val decision = elementCreationPolicy.place(draft, kind)) {
+            is LayoutV3ElementPlacementDecision.Ready -> decision.rect to null
+            LayoutV3ElementPlacementDecision.UnsupportedKind ->
+                null to LayoutV3EditorIssue.READ_ONLY_KIND
+            LayoutV3ElementPlacementDecision.NoSafePlacement ->
+                null to LayoutV3EditorIssue.LIMIT_EXCEEDED
+        }
+    }
+
+    private fun publishCreated(result: LayoutV3ElementCreateResult): LayoutV3ElementCreateResult {
+        mutableState.value = mutableState.value.copy(
+            editor = session.state,
+            lastAction = when (result) {
+                is LayoutV3ElementCreateResult.Created ->
+                    LayoutV3WorkspaceActionResult(LayoutV3WorkspaceActionCode.APPLIED)
+                is LayoutV3ElementCreateResult.Rejected ->
+                    LayoutV3WorkspaceActionResult(LayoutV3WorkspaceActionCode.REJECTED, result.issue)
+            },
+        )
+        return result
+    }
+
+    private fun publishCreateRejected(issue: LayoutV3EditorIssue): LayoutV3ElementCreateResult {
+        publishRejected(issue)
+        return LayoutV3ElementCreateResult.Rejected(issue)
+    }
+
     fun validate() {
         val valid = session.validateDraft()
         mutableState.value = mutableState.value.copy(
