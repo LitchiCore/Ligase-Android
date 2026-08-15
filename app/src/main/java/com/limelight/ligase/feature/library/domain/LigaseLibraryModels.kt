@@ -85,6 +85,9 @@ data class LigaseLibraryItem(
     val updatedAt: String?,
     val lastPlayedAt: String?,
     val launchApp: NvApp?,
+    val portableIdentity: HostPortableIdentity? = null,
+    val layoutBinding: HostLayoutBinding? = null,
+    val coverAuthority: HostCoverAuthority? = null,
 ) {
     val isSystem: Boolean
         get() = kind?.isSystem == true
@@ -126,6 +129,21 @@ object LigaseLibraryAdapter {
                 updatedAt = dto.updatedAt,
                 lastPlayedAt = dto.lastPlayedAt,
                 launchApp = launchApp,
+                portableIdentity = dto.portableIdentity?.let {
+                    HostPortableIdentity(it.provider, it.id)
+                },
+                layoutBinding = dto.layoutBinding?.let {
+                    HostLayoutBinding(it.layoutId, it.revision)
+                },
+                coverAuthority = dto.coverSha256?.let { sha ->
+                    HostCoverAuthority(
+                        appUuid = dto.id,
+                        expectedSha256 = sha,
+                        sourceKind = checkNotNull(dto.coverSourceKind),
+                        sourceId = checkNotNull(dto.coverSourceId),
+                        usageRights = checkNotNull(dto.coverUsageRights),
+                    )
+                },
             )
         }
     }
@@ -223,4 +241,22 @@ object LigaseLibraryAdapter {
 
     private fun String?.normalizedUuidOrNull(): String? =
         this?.trim()?.takeIf(String::isNotEmpty)?.uppercase(Locale.ROOT)
+}
+
+data class HostPortableIdentity(val provider: String, val id: String) {
+    override fun toString(): String = "HostPortableIdentity(identity=redacted)"
+}
+
+data class HostLayoutBinding(val layoutId: String, val revision: Long) {
+    override fun toString(): String = "HostLayoutBinding(identity=redacted)"
+}
+
+data class HostCoverAuthority(
+    val appUuid: String,
+    val expectedSha256: String,
+    val sourceKind: String,
+    val sourceId: String,
+    val usageRights: String,
+) {
+    override fun toString(): String = "HostCoverAuthority(authority=redacted)"
 }

@@ -39,6 +39,12 @@ LigaseActivity（composition / Android lifecycle / legacy ABI bridge）
 | Input | `InputSelectionCoordinator` | UI 展示输入模式、稳定设备选择和布局摘要，不按设备名或易变 deviceId 猜测 |
 | Settings | application owners 的组合投影 | Settings route 不创建第二份偏好或 Host state |
 
+Library 的 Host identity/binding/cover consumer 由 `AndroidSyncV1StrictCodec`、
+`HostLayoutBindingResolver` 与 `HostAppAssetRepository` 分责：codec 在进入 session 前执行
+closed wire 校验；resolver 只把 Host exact binding 与已验证的本机 v3 revision 对齐；
+appasset repository 只产出 current、rejected 或已验证 stale cover。三者都不写 Host 字段、
+不建立本地 identity authority，也不让 presentation 接触 raw JSON、路径或未验证图片字节。
+
 ## Touch Layout v3
 
 ### v1：已退出产品路径

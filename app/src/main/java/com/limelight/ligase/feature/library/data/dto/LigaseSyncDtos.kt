@@ -10,6 +10,22 @@ data class HostLibraryItemDto(
     val lastPlayedAt: String?,
     val system: Boolean,
     val publishedToClients: Boolean? = null,
+    val portableIdentity: HostPortableIdentityDto? = null,
+    val layoutBinding: HostLayoutBindingDto? = null,
+    val coverSha256: String? = null,
+    val coverSourceKind: String? = null,
+    val coverSourceId: String? = null,
+    val coverUsageRights: String? = null,
+)
+
+data class HostPortableIdentityDto(
+    val provider: String,
+    val id: String,
+)
+
+data class HostLayoutBindingDto(
+    val layoutId: String,
+    val revision: Long,
 )
 
 data class LigaseSyncSnapshotDto(

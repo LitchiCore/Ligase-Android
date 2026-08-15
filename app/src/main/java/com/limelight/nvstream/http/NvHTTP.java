@@ -1,6 +1,7 @@
 package com.limelight.nvstream.http;
 
 import java.io.FileNotFoundException;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -649,7 +650,7 @@ public class NvHTTP {
     // on the GFE server. Examples of queries that DO require outside action are launch, resume, and quit.
     // The initial pair query does require outside action (user entering a PIN) but subsequent pairing
     // queries do not.
-    private ResponseBody openHttpConnection(OkHttpClient client, HttpUrl baseUrl, String path, String query, RequestBody requestBody) throws IOException {
+    private Response openHttpResponse(OkHttpClient client, HttpUrl baseUrl, String path, String query, RequestBody requestBody) throws IOException {
         HttpUrl completeUrl = getCompleteUrl(baseUrl, path, query);
         Request.Builder _builder = new Request.Builder().url(completeUrl);
         Request request;
@@ -670,12 +671,11 @@ public class NvHTTP {
             }
         }
 
-        ResponseBody body = response.body();
-        
         if (response.isSuccessful()) {
-            return body;
+            return response;
         }
-        
+
+        ResponseBody body = response.body();
         // Preserve structured error details for callers such as Ligase Sync.
         String errorBody = null;
         if (body != null) {
@@ -688,11 +688,25 @@ public class NvHTTP {
         }
         
         if (response.code() == 404) {
+            response.close();
             throw new FileNotFoundException(completeUrl.toString());
         }
         else {
-            throw new HostHttpResponseException(response.code(), response.message(), errorBody);
+            int code = response.code();
+            String message = response.message();
+            response.close();
+            throw new HostHttpResponseException(code, message, errorBody);
         }
+    }
+
+    private ResponseBody openHttpConnection(OkHttpClient client, HttpUrl baseUrl, String path, String query, RequestBody requestBody) throws IOException {
+        Response response = openHttpResponse(client, baseUrl, path, query, requestBody);
+        ResponseBody body = response.body();
+        if (body == null) {
+            response.close();
+            throw new IOException("Host returned an empty response body");
+        }
+        return body;
     }
 
     private String openHttpConnectionToString(OkHttpClient client, HttpUrl baseUrl, String path) throws IOException {
@@ -1007,6 +1021,47 @@ public class NvHTTP {
     public InputStream getBoxArt(NvApp app) throws IOException {
         ResponseBody resp = openHttpConnection(httpClientLongConnectTimeout, getHttpsUrl(true), "appasset", "appid=" + app.getAppId() + "&AssetType=2&AssetIdx=0", null);
         return resp.byteStream();
+    }
+
+    public static final class AppAssetAuthorityResponse {
+        public final String contentType;
+        public final String contentLength;
+        public final String appUuid;
+        public final String coverSha256;
+        public final byte[] body;
+
+        private AppAssetAuthorityResponse(String contentType, String contentLength,
+                                          String appUuid, String coverSha256, byte[] body) {
+            this.contentType = contentType;
+            this.contentLength = contentLength;
+            this.appUuid = appUuid;
+            this.coverSha256 = coverSha256;
+            this.body = body;
+        }
+    }
+
+    public AppAssetAuthorityResponse getBoxArtAuthority(NvApp app, int maximumBytes) throws IOException {
+        if (maximumBytes <= 0) throw new IllegalArgumentException("maximumBytes");
+        try (Response response = openHttpResponse(httpClientLongConnectTimeout, getHttpsUrl(true),
+                "appasset", "appid=" + app.getAppId() + "&AssetType=2&AssetIdx=0", null)) {
+            ResponseBody responseBody = response.body();
+            if (responseBody == null) throw new IOException("Host returned an empty appasset body");
+            try (InputStream input = responseBody.byteStream(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+                byte[] buffer = new byte[8192];
+                int total = 0;
+                while (true) {
+                    int count = input.read(buffer);
+                    if (count < 0) break;
+                    total += count;
+                    if (total > maximumBytes) throw new IOException("Host appasset exceeds the size contract");
+                    output.write(buffer, 0, count);
+                }
+                return new AppAssetAuthorityResponse(
+                        response.header("Content-Type"), response.header("Content-Length"),
+                        response.header("X-Ligase-App-Uuid"), response.header("X-Ligase-Cover-Sha256"),
+                        output.toByteArray());
+            }
+        }
     }
     
     public int getServerMajorVersion(String serverInfo) throws XmlPullParserException, IOException {

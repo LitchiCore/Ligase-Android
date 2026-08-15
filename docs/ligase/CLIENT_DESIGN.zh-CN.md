@@ -125,6 +125,16 @@
 
 ## 强制 Ligase Sync v1 产品边界
 
+- Host 固定的 Android Sync v1 machine schema 是新增 identity、布局绑定与封面字段的
+  唯一 wire 权威。Android strict codec 拒绝未知字段、替代 identity 形状、非 canonical
+  UUID/整数以及不完整 cover authority；拒绝结果不得覆盖 last-success Host 快照。
+- `portableIdentity` 只投影 Host 已验证的 Steam identity；Android 不从名称、启动 ID、
+  `steamAppId` 或封面路径补猜。`layoutBinding` 只解析精确 `(layoutId, revision)`；未知、
+  retired 或本机未安装分别投影 typed 状态，绝不回退到名称或自动匹配。
+- 封面只有在 Sync app UUID、Sync expected SHA、`/appasset` UUID/SHA/PNG/长度 headers 与
+  1..8 MiB 响应字节 SHA 全部一致后才可标为 current。失败时可保留一份先前独立验证的
+  同 authority 图片并明确标 stale，但不得把旧缓存冒充当前 Host 内容。
+
 - `serverinfo.LigaseSyncVersion == 1` 且存在 `LigaseSyncPath` 才能进入产品游戏库。
   缺失能力时展示“需要升级 Ligase Host”和“重试”，禁止用旧 applist 回退构建库。
 - `GET /ligase/v1/sync` 是游戏集合、类型、名称、UUID、排序、时间、全局分辨率、

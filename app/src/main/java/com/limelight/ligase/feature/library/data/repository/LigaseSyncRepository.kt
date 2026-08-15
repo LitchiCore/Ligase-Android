@@ -21,10 +21,10 @@ class LigaseSyncRepository(
     private val gson: Gson = GsonBuilder().serializeNulls().create(),
 ) {
     fun fetch(http: NvHTTP, advertisedPath: String): LigaseSyncSnapshotDto {
-        val snapshot = gson.fromJson(
+        val snapshot = AndroidSyncV1StrictCodec.parse(
             http.getLigaseJson(advertisedPath),
-            LigaseSyncSnapshotDto::class.java,
-        ) ?: throw IOException("Ligase sync returned an empty snapshot")
+            gson,
+        )
         validateSnapshot(snapshot)
         return snapshot
     }
@@ -89,6 +89,9 @@ class LigaseSyncRepository(
 
     internal fun encodeManualOrderWrite(request: ManualLibrarySortRequest): String =
         ManualLibrarySortCodec.encodeRequest(request, gson)
+
+    internal fun parseSnapshot(json: String): LigaseSyncSnapshotDto =
+        AndroidSyncV1StrictCodec.parse(json, gson).also(::validateSnapshot)
 
     internal fun encodeAppResolutionWrite(
         baseRevision: Long,
