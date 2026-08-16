@@ -4,6 +4,7 @@ import androidx.fragment.app.FragmentActivity
 import com.limelight.ligase.LigaseThemeMode
 import com.limelight.ligase.feature.library.data.dto.LigaseResolutionDto
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
@@ -13,6 +14,17 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])
 class StreamingResolutionDialogFragmentTest {
+    @Test
+    fun `missing restored arguments fail closed without crashing`() {
+        val activity = Robolectric.buildActivity(FragmentActivity::class.java).setup().get()
+        val fragment = StreamingResolutionDialogFragment()
+
+        activity.supportFragmentManager.beginTransaction().add(fragment, "invalid").commitNow()
+        activity.supportFragmentManager.executePendingTransactions()
+
+        assertFalse(fragment.isAdded)
+    }
+
     @Test
     fun `back or outside cancel emits no action result`() {
         val activity = Robolectric.buildActivity(FragmentActivity::class.java).setup().get()

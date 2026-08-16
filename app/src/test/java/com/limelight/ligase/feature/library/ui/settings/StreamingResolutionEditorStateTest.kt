@@ -121,6 +121,18 @@ class StreamingResolutionEditorStateTest {
     }
 
     @Test
+    fun `dialog request round trip accepts initial Host revision zero`() {
+        val request = request(StreamingResolutionTarget.APP).copy(baseRevision = 0)
+
+        assertEquals(
+            request,
+            StreamingResolutionDialogFragment.resultFrom(
+                StreamingResolutionDialogFragment.resultBundle(request, null),
+            )?.request,
+        )
+    }
+
+    @Test
     fun `result gate emits at most once and restores sent state`() {
         val gate = StreamingResolutionResultGate()
         assertTrue(gate.trySend())

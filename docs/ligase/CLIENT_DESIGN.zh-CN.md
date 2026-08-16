@@ -143,6 +143,9 @@
   TLS 行为；不能从 HTTP 端口推导 HTTPS 端口。
 - Android 只写串流分辨率。应用的新增、删除与 Host canonical order 只由 Host 管理；
   Android 的排序菜单属于按 Host 元数据生成的本机显示偏好。
+- Host 串流设置初始 revision `0` 是合法的 safe integer。分辨率编辑 Dialog 必须把
+  request 连同 revision 原样保存和恢复；缺失或损坏的 Fragment 参数只能安全关闭，
+  不得猜默认 request 或在 Compose composition 中抛异常。
 - 写入遇到 revision 冲突时重新拉取完整快照，提示用户重新操作，不自动重放旧写入。
 - NvHTTP 对非成功响应保留结构化错误体，便于 Sync 写入诊断；日志只能记录契约错误
   JSON 和不含 query/response body 的安全路径摘要。`/launch` 的 `rikey` 等 query

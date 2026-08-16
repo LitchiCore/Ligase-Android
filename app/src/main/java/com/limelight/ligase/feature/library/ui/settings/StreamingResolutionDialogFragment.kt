@@ -23,8 +23,7 @@ import com.limelight.ligase.LigaseThemeMode
 import com.limelight.ligase.feature.library.data.dto.LigaseResolutionDto
 
 internal class StreamingResolutionDialogFragment : DialogFragment() {
-    private val request: StreamingResolutionEditorRequest
-        get() = requireNotNull(requestFrom(requireArguments()))
+    private var request: StreamingResolutionEditorRequest? = null
 
     private var resultGate = StreamingResolutionResultGate()
     private var currentDraft: StreamingResolutionDraft? = null
@@ -32,6 +31,7 @@ internal class StreamingResolutionDialogFragment : DialogFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        request = arguments?.let(::requestFrom)
         resultGate = StreamingResolutionResultGate(
             savedInstanceState?.getBoolean(STATE_RESULT_SENT) ?: false,
         )
@@ -45,12 +45,13 @@ internal class StreamingResolutionDialogFragment : DialogFragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View = ComposeView(requireContext()).apply {
+        val editorRequest = request ?: return@apply
         setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
         setContent {
             val initialDraft = currentDraft ?: StreamingResolutionDraft(
-                widthText = request.initialResolution.width.toString(),
-                heightText = request.initialResolution.height.toString(),
-                useGlobal = request.useGlobal,
+                widthText = editorRequest.initialResolution.width.toString(),
+                heightText = editorRequest.initialResolution.height.toString(),
+                useGlobal = editorRequest.useGlobal,
             ).also { currentDraft = it }
             var widthText by remember { mutableStateOf(initialDraft.widthText) }
             var heightText by remember {
@@ -69,7 +70,7 @@ internal class StreamingResolutionDialogFragment : DialogFragment() {
                     contentAlignment = Alignment.Center,
                 ) {
                     StreamingResolutionEditor(
-                        request = request,
+                        request = editorRequest,
                         draft = draft,
                         invalid = invalid,
                         onDraftChanged = { updated ->
@@ -81,7 +82,7 @@ internal class StreamingResolutionDialogFragment : DialogFragment() {
                             currentInvalid = false
                         },
                         onSave = {
-                            when (val parsed = parseStreamingResolutionDraft(request, draft)) {
+                            when (val parsed = parseStreamingResolutionDraft(editorRequest, draft)) {
                                 StreamingResolutionDraftResult.Invalid -> {
                                     invalid = true
                                     currentInvalid = true
@@ -100,6 +101,10 @@ internal class StreamingResolutionDialogFragment : DialogFragment() {
 
     override fun onStart() {
         super.onStart()
+        if (request == null) {
+            dismissAllowingStateLoss()
+            return
+        }
         dialog?.window?.apply {
             setBackgroundDrawableResource(android.R.color.transparent)
             setLayout(
@@ -118,9 +123,10 @@ internal class StreamingResolutionDialogFragment : DialogFragment() {
 
     private fun publishResult(resolution: LigaseResolutionDto?) {
         if (!resultGate.trySend()) return
+        val editorRequest = request ?: return
         parentFragmentManager.setFragmentResult(
             RESULT_KEY,
-            resultBundle(request, resolution),
+            resultBundle(editorRequest, resolution),
         )
         dismiss()
     }
@@ -165,7 +171,7 @@ internal class StreamingResolutionDialogFragment : DialogFragment() {
             val height = bundle.getInt(ARG_HEIGHT, -1)
             val baseRevision = bundle.getLong(ARG_BASE_REVISION, -1)
             val resolution = LigaseResolutionDto(width, height)
-            if (!resolution.isValid() || baseRevision < 1) return null
+            if (!resolution.isValid() || baseRevision < 0) return null
             val appUuid = bundle.getString(ARG_APP_UUID)
             if (target == StreamingResolutionTarget.APP && appUuid.isNullOrBlank()) return null
             return StreamingResolutionEditorRequest(
