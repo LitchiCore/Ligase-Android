@@ -44,6 +44,9 @@ Library 的 Host identity/binding/cover consumer 由 `AndroidSyncV1StrictCodec`�
 closed wire 校验；resolver 只把 Host exact binding 与已验证的本机 v3 revision 对齐；
 appasset repository 只产出 current、rejected 或已验证 stale cover。三者都不写 Host 字段、
 不建立本地 identity authority，也不让 presentation 接触 raw JSON、路径或未验证图片字节。
+Library 卡片只消费这条链路产生的安全 immutable projection：Steam 身份仅显示
+Host 已验证的 provider 与 canonical 十进制 App ID；布局只显示 closed binding state。
+`RESOLVED` 仅表示“本机布局已就绪”，UI 不从 UUID、文件、名称或 revision 反推额外详情。
 
 ## Touch Layout v3
 

@@ -947,6 +947,12 @@
     <string name="ligase_library_kind_virtual_desktop">Virtual display</string>
     <string name="ligase_library_kind_steam">Steam</string>
     <string name="ligase_library_kind_executable">Desktop app</string>
+    <string name="ligase_library_steam_app_id">Steam · App ID %1$s</string>
+    <string name="ligase_library_layout_unbound">Layout not bound</string>
+    <string name="ligase_library_layout_ready">Local layout ready</string>
+    <string name="ligase_library_layout_not_found">Bound layout not found</string>
+    <string name="ligase_library_layout_retired">Bound layout retired</string>
+    <string name="ligase_library_layout_draft_not_installed">Layout draft not installed</string>
     <string name="ligase_sort_name_ascending">Name A–Z</string>
     <string name="ligase_sort_name_descending">Name Z–A</string>
     <string name="ligase_sort_added_newest">Recently added</string>

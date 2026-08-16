@@ -6,6 +6,7 @@ import com.limelight.ligase.feature.library.domain.LigaseLibraryItem
 import com.limelight.ligase.feature.library.domain.LigaseLibraryStatus
 import com.limelight.ligase.library.LibraryConnectivity
 import com.limelight.ligase.library.ManualLibraryOrderDraft
+import com.limelight.ligase.feature.input.layout.v3.application.LayoutV3CommittedLayoutSummary
 import com.limelight.nvstream.http.ComputerDetails
 
 data class LibraryManualEditorUiState(
@@ -19,6 +20,7 @@ data class LibraryRouteUiState(
     val hosts: List<ComputerDetails>,
     val selectedHost: ComputerDetails?,
     val items: List<LigaseLibraryItem>,
+    val committedLayouts: List<LayoutV3CommittedLayoutSummary> = emptyList(),
     val loading: Boolean,
     val refreshing: Boolean,
     val status: LigaseLibraryStatus,

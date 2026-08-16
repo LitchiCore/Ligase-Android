@@ -4,6 +4,8 @@ import com.limelight.ligase.feature.library.domain.HostSortMode
 import com.limelight.ligase.feature.library.domain.LibraryLayoutMode
 import com.limelight.ligase.feature.library.domain.LigaseLibraryItem
 import com.limelight.ligase.feature.library.domain.LigaseLibraryStatus
+import com.limelight.ligase.feature.library.domain.HostLayoutBindingResolver
+import com.limelight.ligase.feature.library.presentation.presentHostLibraryAuthority
 import com.limelight.ligase.feature.library.ui.LibraryRouteActions
 import com.limelight.ligase.feature.library.ui.LibraryRouteUiState
 import com.limelight.ligase.feature.library.ui.libraryRoutePresentation
@@ -286,6 +288,14 @@ fun LibraryRoute(
                             items = visibleItems,
                             key = { it.key.stableValue },
                         ) { item ->
+                            val authority = presentHostLibraryAuthority(
+                                item = item,
+                                resolution = HostLayoutBindingResolver.resolve(
+                                    binding = item.layoutBinding,
+                                    committed = state.committedLayouts,
+                                ),
+                                verifiedCoverCurrent = false,
+                            )
                             val reorderModifier = manualLibraryReorderModifier(
                                 item = item,
                                 draft = manualOrderDraft,
@@ -296,6 +306,7 @@ fun LibraryRoute(
                                 LibraryGameRowCard(
                                     modifier = reorderModifier,
                                     item = item,
+                                    authority = authority,
                                     running = item.appId != null && item.appId == runningAppId,
                                     assetLoader = assetLoader,
                                     canOperate = actionsEnabled && manualOrderDraft == null,
@@ -307,6 +318,7 @@ fun LibraryRoute(
                                 LibraryGamePosterCard(
                                     modifier = reorderModifier,
                                     item = item,
+                                    authority = authority,
                                     running = item.appId != null && item.appId == runningAppId,
                                     assetLoader = assetLoader,
                                     canOperate = actionsEnabled && manualOrderDraft == null,

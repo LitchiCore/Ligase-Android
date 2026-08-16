@@ -131,6 +131,10 @@
 - `portableIdentity` 只投影 Host 已验证的 Steam identity；Android 不从名称、启动 ID、
   `steamAppId` 或封面路径补猜。`layoutBinding` 只解析精确 `(layoutId, revision)`；未知、
   retired 或本机未安装分别投影 typed 状态，绝不回退到名称或自动匹配。
+- 游戏卡对 canonical Steam identity 显示 `Steam · App ID <id>`；非 Steam、字段缺失或
+  非 canonical 值不显示伪身份。布局绑定用自然语言区分未绑定、不存在、已停用、
+  草稿未安装与本机已就绪。本阶段的已就绪状态不展示 raw layout UUID、路径、hash、
+  title 或 revision，也不表示布局 runtime 已可用。
 - 封面只有在 Sync app UUID、Sync expected SHA、`/appasset` UUID/SHA/PNG/长度 headers 与
   1..8 MiB 响应字节 SHA 全部一致后才可标为 current。失败时可保留一份先前独立验证的
   同 authority 图片并明确标 stale，但不得把旧缓存冒充当前 Host 内容。

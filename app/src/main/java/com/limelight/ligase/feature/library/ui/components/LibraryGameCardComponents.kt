@@ -37,11 +37,14 @@ import com.limelight.grid.assets.CachedAppAssetLoader
 import com.limelight.ligase.LigaseSemanticTheme
 import com.limelight.ligase.feature.library.domain.HostLibraryKind
 import com.limelight.ligase.feature.library.domain.LigaseLibraryItem
+import com.limelight.ligase.feature.library.domain.HostLayoutBindingState
+import com.limelight.ligase.feature.library.presentation.HostLibraryAuthorityPresentation
 
 @Composable
 fun LibraryGameRowCard(
     modifier: Modifier = Modifier,
     item: LigaseLibraryItem,
+    authority: HostLibraryAuthorityPresentation,
     running: Boolean,
     assetLoader: CachedAppAssetLoader?,
     canOperate: Boolean,
@@ -56,6 +59,7 @@ fun LibraryGameRowCard(
         canOperate = canOperate,
         manualEditing = manualEditing,
     )
+    val authorityMetadata = libraryCardAuthorityMetadata(authority)
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -130,7 +134,15 @@ fun LibraryGameRowCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    item.kind?.let { kind ->
+                    authorityMetadata.steamAppId?.let { appId ->
+                        Text(
+                            text = stringResource(R.string.ligase_library_steam_app_id, appId),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    } ?: item.kind?.let { kind ->
                         Text(
                             text = kindLabel(kind),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -148,6 +160,14 @@ fun LibraryGameRowCard(
                         )
                     }
                 }
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = layoutStateLabel(authorityMetadata.layoutState),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
             IconButton(
                 onClick = onConfigure,
@@ -191,6 +211,7 @@ fun LibraryGameRowCard(
 fun LibraryGamePosterCard(
     modifier: Modifier = Modifier,
     item: LigaseLibraryItem,
+    authority: HostLibraryAuthorityPresentation,
     running: Boolean,
     assetLoader: CachedAppAssetLoader?,
     canOperate: Boolean,
@@ -205,6 +226,7 @@ fun LibraryGamePosterCard(
         canOperate = canOperate,
         manualEditing = manualEditing,
     )
+    val authorityMetadata = libraryCardAuthorityMetadata(authority)
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -278,6 +300,24 @@ fun LibraryGamePosterCard(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                authorityMetadata.steamAppId?.let { appId ->
+                    Spacer(Modifier.height(3.dp))
+                    Text(
+                        text = stringResource(R.string.ligase_library_steam_app_id, appId),
+                        color = Color.White.copy(alpha = 0.9f),
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = layoutStateLabel(authorityMetadata.layoutState),
+                    color = Color.White.copy(alpha = 0.9f),
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
@@ -373,3 +413,15 @@ private fun kindLabel(kind: HostLibraryKind): String = when (kind) {
     HostLibraryKind.STEAM -> stringResource(R.string.ligase_library_kind_steam)
     HostLibraryKind.EXECUTABLE -> stringResource(R.string.ligase_library_kind_executable)
 }
+
+@Composable
+private fun layoutStateLabel(state: HostLayoutBindingState): String = stringResource(
+    when (state) {
+        HostLayoutBindingState.NO_EXPLICIT_BINDING -> R.string.ligase_library_layout_unbound
+        HostLayoutBindingState.RESOLVED -> R.string.ligase_library_layout_ready
+        HostLayoutBindingState.BINDING_NOT_FOUND -> R.string.ligase_library_layout_not_found
+        HostLayoutBindingState.BINDING_RETIRED -> R.string.ligase_library_layout_retired
+        HostLayoutBindingState.BINDING_DRAFT_NOT_INSTALLED ->
+            R.string.ligase_library_layout_draft_not_installed
+    },
+)

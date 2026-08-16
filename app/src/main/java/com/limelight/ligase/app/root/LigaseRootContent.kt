@@ -230,6 +230,8 @@ internal fun LigaseRootContent(
                                     hosts = hosts,
                                     selectedHost = libraryHost,
                                     items = libraryItems,
+                                    committedLayouts =
+                                        layoutV3EditorWorkspaceState.committedLayouts,
                                     loading = libraryLoading,
                                     refreshing = libraryRefreshing,
                                     status = libraryStatus,

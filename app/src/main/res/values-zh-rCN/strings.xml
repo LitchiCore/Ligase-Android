@@ -933,6 +933,12 @@
     <string name="ligase_library_kind_virtual_desktop">虚拟显示器</string>
     <string name="ligase_library_kind_steam">Steam</string>
     <string name="ligase_library_kind_executable">桌面应用</string>
+    <string name="ligase_library_steam_app_id">Steam · App ID %1$s</string>
+    <string name="ligase_library_layout_unbound">布局未绑定</string>
+    <string name="ligase_library_layout_ready">本机布局已就绪</string>
+    <string name="ligase_library_layout_not_found">绑定的布局不存在</string>
+    <string name="ligase_library_layout_retired">绑定的布局已停用</string>
+    <string name="ligase_library_layout_draft_not_installed">布局草稿未安装</string>
     <string name="ligase_sort_name_ascending">名称 A–Z</string>
     <string name="ligase_sort_name_descending">名称 Z–A</string>
     <string name="ligase_sort_added_newest">最近添加</string>

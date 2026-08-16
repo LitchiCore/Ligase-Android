@@ -1,5 +1,8 @@
 package com.limelight.ligase.feature.library.ui.components
 
+import com.limelight.ligase.feature.library.domain.HostLayoutBindingState
+import com.limelight.ligase.feature.library.presentation.HostLibraryAuthorityPresentation
+
 internal enum class LibraryCardDisabledReason {
     MANUAL_EDITING,
     OPERATIONS_DISABLED,
@@ -13,6 +16,24 @@ internal data class LibraryCardActionPolicy(
     val launchDisabledReason: LibraryCardDisabledReason?,
     val configureDisabledReason: LibraryCardDisabledReason?,
 )
+
+internal data class LibraryCardAuthorityMetadata(
+    val steamAppId: String?,
+    val layoutState: HostLayoutBindingState,
+)
+
+internal fun libraryCardAuthorityMetadata(
+    authority: HostLibraryAuthorityPresentation,
+): LibraryCardAuthorityMetadata {
+    val steamAppId = authority.portableIdentityId?.takeIf { id ->
+        authority.portableIdentityProvider == "steam" &&
+            id.matches(Regex("[1-9][0-9]*"))
+    }
+    return LibraryCardAuthorityMetadata(
+        steamAppId = steamAppId,
+        layoutState = authority.layoutState,
+    )
+}
 
 internal fun libraryCardActionPolicy(
     isLaunchable: Boolean,
