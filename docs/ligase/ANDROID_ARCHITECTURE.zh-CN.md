@@ -44,6 +44,10 @@ Library 的 Host identity/binding/cover consumer 由 `AndroidSyncV1StrictCodec`�
 closed wire 校验；resolver 只把 Host exact binding 与已验证的本机 v3 revision 对齐；
 appasset repository 只产出 current、rejected 或已验证 stale cover。三者都不写 Host 字段、
 不建立本地 identity authority，也不让 presentation 接触 raw JSON、路径或未验证图片字节。
+`HostVerifiedCoverLoader` 由选中 Host 的 coordinator 唯一创建和关闭，以 canonical app UUID
+与 expected SHA 作为 generation/cache key，合并同 key 请求，并在进程重启读缓存时重新计算
+实际 SHA 与 PNG 边界。有 cover authority 的卡片只能走该 loader；legacy
+`CachedAppAssetLoader/getBoxArt` 不得并行或回退。
 Library 卡片只消费这条链路产生的安全 immutable projection：Steam 身份仅显示
 Host 已验证的 provider 与 canonical 十进制 App ID；布局只显示 closed binding state。
 `RESOLVED` 仅表示“本机布局已就绪”，UI 不从 UUID、文件、名称或 revision 反推额外详情。

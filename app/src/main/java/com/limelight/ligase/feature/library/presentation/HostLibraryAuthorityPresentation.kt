@@ -3,6 +3,7 @@ package com.limelight.ligase.feature.library.presentation
 import com.limelight.ligase.feature.library.domain.HostLayoutBindingResolution
 import com.limelight.ligase.feature.library.domain.HostLayoutBindingState
 import com.limelight.ligase.feature.library.domain.LigaseLibraryItem
+import com.limelight.ligase.feature.library.application.HostVerifiedCoverState
 
 data class HostLibraryAuthorityPresentation(
     val hasPortableIdentity: Boolean,
@@ -17,7 +18,6 @@ data class HostLibraryAuthorityPresentation(
 fun presentHostLibraryAuthority(
     item: LigaseLibraryItem,
     resolution: HostLayoutBindingResolution,
-    verifiedCoverCurrent: Boolean,
 ): HostLibraryAuthorityPresentation = HostLibraryAuthorityPresentation(
     hasPortableIdentity = item.portableIdentity != null,
     portableIdentityProvider = item.portableIdentity?.provider,
@@ -25,5 +25,11 @@ fun presentHostLibraryAuthority(
     hasCoverAuthority = item.coverAuthority != null,
     layoutState = resolution.state,
     layoutReadyLocally = resolution.state == HostLayoutBindingState.RESOLVED,
-    coverCurrent = item.coverAuthority != null && verifiedCoverCurrent,
+    coverCurrent = false,
+)
+
+fun HostLibraryAuthorityPresentation.withCoverState(
+    state: HostVerifiedCoverState?,
+): HostLibraryAuthorityPresentation = copy(
+    coverCurrent = hasCoverAuthority && state is HostVerifiedCoverState.Current,
 )

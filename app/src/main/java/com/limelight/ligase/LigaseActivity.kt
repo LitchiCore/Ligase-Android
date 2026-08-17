@@ -29,6 +29,7 @@ import com.limelight.R
 import com.limelight.binding.PlatformBinding
 import com.limelight.computers.ComputerManagerService
 import com.limelight.grid.assets.CachedAppAssetLoader
+import com.limelight.ligase.feature.library.application.HostVerifiedCoverLoader
 import com.limelight.ligase.feature.host.application.HostAddResult
 import com.limelight.ligase.feature.host.application.HostClickAction
 import com.limelight.ligase.feature.host.application.HostEndpointCoordinator
@@ -107,6 +108,7 @@ class LigaseActivity : AppCompatActivity() {
     private var librarySortMode by mutableStateOf(HostSortMode.NAME_ASCENDING)
     private var libraryLayoutMode by mutableStateOf(LibraryLayoutMode.LIST)
     private var libraryAssetLoader by mutableStateOf<CachedAppAssetLoader?>(null)
+    private var libraryVerifiedCoverLoader by mutableStateOf<HostVerifiedCoverLoader?>(null)
     private var pendingLibraryHostUuid: String? = null
     private val syncRepository = LigaseSyncRepository()
     private lateinit var inputSelectionCoordinator: InputSelectionCoordinator
@@ -211,6 +213,8 @@ class LigaseActivity : AppCompatActivity() {
             hdrState = ::currentHdrState,
             postToMain = { action -> runOnUiThread(action) },
             onAssetLoaderChanged = { loader -> libraryAssetLoader = loader },
+            verifiedCoverCacheRoot = cacheDir,
+            onVerifiedCoverLoaderChanged = { loader -> libraryVerifiedCoverLoader = loader },
             onRefreshAccepted = { preservedContent ->
                 startAppListUpdates()
                 if (preservedContent) toast(R.string.ligase_refresh_success)
@@ -315,6 +319,7 @@ class LigaseActivity : AppCompatActivity() {
                 librarySortMode = librarySortMode,
                 libraryLayoutMode = libraryLayoutMode,
                 libraryAssetLoader = libraryAssetLoader,
+                libraryVerifiedCoverLoader = libraryVerifiedCoverLoader,
                 libraryCanOperate = LibraryOperationGate.canOperate(
                     libraryState.connectivity,
                     libraryAccessMode,

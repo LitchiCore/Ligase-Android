@@ -45,6 +45,12 @@ class HostAppAssetRepositoryTest {
         }
     }
 
+    @Test fun `stored cache is reverified against exact authority and bytes`() {
+        assertEquals(UUID, repository.verifyStored(authority, PNG)?.appUuid)
+        assertNull(repository.verifyStored(authority.copy(expectedSha256 = "a".repeat(64)), PNG))
+        assertNull(repository.verifyStored(authority, PNG.copyOf().also { it[it.lastIndex] = (it.last() + 1).toByte() }))
+    }
+
     private fun transport(
         contentType: String = "image/png",
         length: String = PNG.size.toString(),

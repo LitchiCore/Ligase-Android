@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import com.limelight.R
 import com.limelight.grid.assets.CachedAppAssetLoader
+import com.limelight.ligase.feature.library.application.HostVerifiedCoverLoader
 import com.limelight.ligase.InputDeviceMode
 import com.limelight.ligase.LigaseComposeTheme
 import com.limelight.ligase.LigaseLanguageMode
@@ -101,6 +102,7 @@ internal fun LigaseRootContent(
     librarySortMode: HostSortMode,
     libraryLayoutMode: LibraryLayoutMode,
     libraryAssetLoader: CachedAppAssetLoader?,
+    libraryVerifiedCoverLoader: HostVerifiedCoverLoader? = null,
     libraryCanOperate: Boolean,
     libraryCanConfigureInput: Boolean,
     manualSortState: ManualLibrarySortActionState,
@@ -295,6 +297,7 @@ internal fun LigaseRootContent(
                                 ),
                                 gridState = libraryGridState,
                                 assetLoader = libraryAssetLoader,
+                                verifiedCoverLoader = libraryVerifiedCoverLoader,
                             )
                             LigasePage.INPUT -> LigaseInputPage(
                                 selectedInput = selectedInput,

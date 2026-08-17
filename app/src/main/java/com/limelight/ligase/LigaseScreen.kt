@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.limelight.R
 import com.limelight.grid.assets.CachedAppAssetLoader
+import com.limelight.ligase.feature.library.application.HostVerifiedCoverLoader
 import com.limelight.ligase.app.root.LigaseRootContent
 import com.limelight.ligase.feature.input.layout.v3.application.LayoutV3EditorWorkspaceUiState
 import com.limelight.ligase.feature.library.data.dto.LigaseResolutionDto
@@ -65,6 +66,7 @@ fun LigaseRoot(
     librarySortMode: HostSortMode,
     libraryLayoutMode: LibraryLayoutMode,
     libraryAssetLoader: CachedAppAssetLoader?,
+    libraryVerifiedCoverLoader: HostVerifiedCoverLoader? = null,
     libraryCanOperate: Boolean,
     libraryCanConfigureInput: Boolean,
     manualSortState: ManualLibrarySortActionState,
@@ -123,6 +125,7 @@ fun LigaseRoot(
     librarySortMode = librarySortMode,
     libraryLayoutMode = libraryLayoutMode,
     libraryAssetLoader = libraryAssetLoader,
+    libraryVerifiedCoverLoader = libraryVerifiedCoverLoader,
     libraryCanOperate = libraryCanOperate,
     libraryCanConfigureInput = libraryCanConfigureInput,
     manualSortState = manualSortState,

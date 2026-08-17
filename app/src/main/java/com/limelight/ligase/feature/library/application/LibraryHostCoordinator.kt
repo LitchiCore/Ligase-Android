@@ -13,6 +13,7 @@ import com.limelight.nvstream.http.HostHttpResponseException
 import com.limelight.nvstream.http.NvHTTP
 import org.xmlpull.v1.XmlPullParserException
 import java.io.IOException
+import java.io.File
 import java.util.concurrent.Executor
 
 /**
@@ -30,10 +31,13 @@ class LibraryHostCoordinator(
     },
     private val postToMain: ((() -> Unit) -> Unit),
     private val onAssetLoaderChanged: (CachedAppAssetLoader?) -> Unit = {},
+    private val verifiedCoverCacheRoot: File? = null,
+    private val onVerifiedCoverLoaderChanged: (HostVerifiedCoverLoader?) -> Unit = {},
     private val onRefreshAccepted: (preservedContent: Boolean) -> Unit = {},
     private val onRefreshFailed: (preservedContent: Boolean, error: Exception) -> Unit = { _, _ -> },
 ) {
     private var assetLoader: CachedAppAssetLoader? = null
+    private var verifiedCoverLoader: HostVerifiedCoverLoader? = null
     private var appListPoller: com.limelight.computers.ComputerManagerService.ApplistPoller? = null
 
     fun selectHost(host: ComputerDetails): Boolean {
@@ -47,6 +51,13 @@ class LibraryHostCoordinator(
             } catch (_: IOException) {
                 // Service reconnect will call selectHost again and retry without clearing content.
             }
+        }
+        if (verifiedCoverLoader == null && verifiedCoverCacheRoot != null) {
+            verifiedCoverLoader = HostVerifiedCoverLoader(
+                cacheRoot = verifiedCoverCacheRoot,
+                http = { transport.createHttp(host) },
+                postToMain = postToMain,
+            ).also(onVerifiedCoverLoaderChanged)
         }
         return changed
     }
@@ -140,6 +151,9 @@ class LibraryHostCoordinator(
         assetLoader?.freeCacheMemory()
         assetLoader = null
         onAssetLoaderChanged(null)
+        verifiedCoverLoader?.close()
+        verifiedCoverLoader = null
+        onVerifiedCoverLoaderChanged(null)
     }
 
     private fun ComputerDetails.connectivity(): LibraryConnectivity = when (state) {

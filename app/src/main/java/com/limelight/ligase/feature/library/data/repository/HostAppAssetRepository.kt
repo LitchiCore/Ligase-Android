@@ -42,6 +42,17 @@ fun interface HostAppAssetTransport {
 }
 
 class HostAppAssetRepository {
+    fun verifyStored(
+        authority: HostCoverAuthority,
+        bytes: ByteArray,
+    ): VerifiedHostCover? {
+        if (!UUID.matches(authority.appUuid) || !SHA.matches(authority.expectedSha256)) return null
+        if (bytes.isEmpty() || bytes.size > MAX_BYTES) return null
+        if (sha256(bytes) != authority.expectedSha256) return null
+        if (!bytes.copyOfRange(0, minOf(PNG.size, bytes.size)).contentEquals(PNG)) return null
+        return VerifiedHostCover(authority.appUuid, authority.expectedSha256, bytes.copyOf())
+    }
+
     fun fetch(
         http: NvHTTP,
         app: NvApp,

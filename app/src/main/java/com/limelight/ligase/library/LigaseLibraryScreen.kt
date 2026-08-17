@@ -69,6 +69,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.limelight.R
 import com.limelight.grid.assets.CachedAppAssetLoader
+import com.limelight.ligase.feature.library.application.HostVerifiedCoverLoader
 import com.limelight.ligase.ligaseNavigationContentBottomPadding
 import com.limelight.nvstream.http.PairingManager
 
@@ -79,6 +80,7 @@ fun LibraryRoute(
     actions: LibraryRouteActions,
     gridState: LazyGridState,
     assetLoader: CachedAppAssetLoader?,
+    verifiedCoverLoader: HostVerifiedCoverLoader? = null,
 ) {
     val hosts = state.hosts
     val selectedHost = state.selectedHost
@@ -294,7 +296,6 @@ fun LibraryRoute(
                                     binding = item.layoutBinding,
                                     committed = state.committedLayouts,
                                 ),
-                                verifiedCoverCurrent = false,
                             )
                             val reorderModifier = manualLibraryReorderModifier(
                                 item = item,
@@ -309,6 +310,7 @@ fun LibraryRoute(
                                     authority = authority,
                                     running = item.appId != null && item.appId == runningAppId,
                                     assetLoader = assetLoader,
+                                    verifiedCoverLoader = verifiedCoverLoader,
                                     canOperate = actionsEnabled && manualOrderDraft == null,
                                     manualEditing = manualOrderDraft != null,
                                     onClick = { actions.onLaunch(item) },
@@ -321,6 +323,7 @@ fun LibraryRoute(
                                     authority = authority,
                                     running = item.appId != null && item.appId == runningAppId,
                                     assetLoader = assetLoader,
+                                    verifiedCoverLoader = verifiedCoverLoader,
                                     canOperate = actionsEnabled && manualOrderDraft == null,
                                     manualEditing = manualOrderDraft != null,
                                     onClick = { actions.onLaunch(item) },

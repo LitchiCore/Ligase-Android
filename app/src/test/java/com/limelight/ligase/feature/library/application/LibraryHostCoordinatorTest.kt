@@ -26,11 +26,37 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.Rule
+import org.junit.rules.TemporaryFolder
 import org.mockito.Mockito.mock
 import java.util.ArrayDeque
 import java.util.concurrent.Executor
 
 class LibraryHostCoordinatorTest {
+    @get:Rule val temporary = TemporaryFolder()
+
+    @Test
+    fun `selected Host owns one verified loader and clear closes projection`() {
+        val projected = mutableListOf<HostVerifiedCoverLoader?>()
+        val coordinator = LibraryHostCoordinator(
+            session = LibrarySessionViewModel(),
+            repository = LigaseSyncRepository(),
+            transport = FakeTransport(content(HOST_A)),
+            hdrState = { HDR },
+            background = DirectExecutor,
+            postToMain = { it() },
+            verifiedCoverCacheRoot = temporary.root,
+            onVerifiedCoverLoaderChanged = projected::add,
+        )
+
+        coordinator.selectHost(host(HOST_A))
+        coordinator.selectHost(host(HOST_A))
+        coordinator.clearHost()
+
+        assertEquals(1, projected.count { it != null })
+        assertNull(projected.last())
+    }
+
     @Test
     fun `refresh accepts content and keeps transport outside activity`() {
         val session = LibrarySessionViewModel()

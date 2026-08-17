@@ -138,6 +138,9 @@
 - 封面只有在 Sync app UUID、Sync expected SHA、`/appasset` UUID/SHA/PNG/长度 headers 与
   1..8 MiB 响应字节 SHA 全部一致后才可标为 current。失败时可保留一份先前独立验证的
   同 authority 图片并明确标 stale，但不得把旧缓存冒充当前 Host 内容。
+- 有 cover authority 的卡片禁止调用 legacy `getBoxArt` 或读取其 disk cache；loader 不可用、
+  authority 改变或三方校验失败时显示 placeholder（或同 UUID、同 authority 且重新验真的
+  stale cover）。无 authority 的系统/legacy 项也不得把旧图片标为 verified/current。
 
 - `serverinfo.LigaseSyncVersion == 1` 且存在 `LigaseSyncPath` 才能进入产品游戏库。
   缺失能力时展示“需要升级 Ligase Host”和“重试”，禁止用旧 applist 回退构建库。

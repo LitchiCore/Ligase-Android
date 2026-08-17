@@ -23,6 +23,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -39,6 +43,9 @@ import com.limelight.ligase.feature.library.domain.HostLibraryKind
 import com.limelight.ligase.feature.library.domain.LigaseLibraryItem
 import com.limelight.ligase.feature.library.domain.HostLayoutBindingState
 import com.limelight.ligase.feature.library.presentation.HostLibraryAuthorityPresentation
+import com.limelight.ligase.feature.library.application.HostVerifiedCoverLoader
+import com.limelight.ligase.feature.library.application.HostVerifiedCoverState
+import com.limelight.ligase.feature.library.presentation.withCoverState
 
 @Composable
 fun LibraryGameRowCard(
@@ -47,6 +54,7 @@ fun LibraryGameRowCard(
     authority: HostLibraryAuthorityPresentation,
     running: Boolean,
     assetLoader: CachedAppAssetLoader?,
+    verifiedCoverLoader: HostVerifiedCoverLoader? = null,
     canOperate: Boolean,
     manualEditing: Boolean,
     onClick: () -> Unit,
@@ -59,7 +67,12 @@ fun LibraryGameRowCard(
         canOperate = canOperate,
         manualEditing = manualEditing,
     )
-    val authorityMetadata = libraryCardAuthorityMetadata(authority)
+    var verifiedCoverState by remember(item.key.stableValue, item.coverAuthority?.expectedSha256) {
+        mutableStateOf<HostVerifiedCoverState?>(null)
+    }
+    val authorityMetadata = libraryCardAuthorityMetadata(
+        authority.withCoverState(verifiedCoverState),
+    )
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -94,10 +107,14 @@ fun LibraryGameRowCard(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
                 ) {
-                    if (assetLoader != null && item.launchApp != null) {
+                    if (item.launchApp != null &&
+                        (item.coverAuthority != null || assetLoader != null)
+                    ) {
                         LibraryArtworkHost(
                             item = item,
                             assetLoader = assetLoader,
+                            verifiedCoverLoader = verifiedCoverLoader,
+                            onVerifiedStateChanged = { verifiedCoverState = it },
                             modifier = Modifier.fillMaxSize(),
                         )
                     } else {
@@ -214,6 +231,7 @@ fun LibraryGamePosterCard(
     authority: HostLibraryAuthorityPresentation,
     running: Boolean,
     assetLoader: CachedAppAssetLoader?,
+    verifiedCoverLoader: HostVerifiedCoverLoader? = null,
     canOperate: Boolean,
     manualEditing: Boolean,
     onClick: () -> Unit,
@@ -226,7 +244,12 @@ fun LibraryGamePosterCard(
         canOperate = canOperate,
         manualEditing = manualEditing,
     )
-    val authorityMetadata = libraryCardAuthorityMetadata(authority)
+    var verifiedCoverState by remember(item.key.stableValue, item.coverAuthority?.expectedSha256) {
+        mutableStateOf<HostVerifiedCoverState?>(null)
+    }
+    val authorityMetadata = libraryCardAuthorityMetadata(
+        authority.withCoverState(verifiedCoverState),
+    )
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -247,10 +270,14 @@ fun LibraryGamePosterCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            if (assetLoader != null && item.launchApp != null) {
+            if (item.launchApp != null &&
+                (item.coverAuthority != null || assetLoader != null)
+            ) {
                 LibraryArtworkHost(
                     item = item,
                     assetLoader = assetLoader,
+                    verifiedCoverLoader = verifiedCoverLoader,
+                    onVerifiedStateChanged = { verifiedCoverState = it },
                     modifier = Modifier.fillMaxSize(),
                 )
             }
