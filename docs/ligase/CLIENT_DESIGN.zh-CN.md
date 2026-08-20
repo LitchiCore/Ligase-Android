@@ -267,8 +267,13 @@ IPv4、IPv6 或 `link-local%接口`；协议、路径、query、fragment 和 use
 - 手机横屏不能沿用底部导航。导航位置由当前 Compose `LocalConfiguration`
   实时决定：任何横屏或宽度至少 600dp 使用左侧 navigation rail，其余手机竖屏
   使用底部 navigation bar。旋转不重建产品状态源，不改变当前页面或当前电脑。
-- Ligase 启动的串流必须始终显示可拖动的“串流控制”按钮，不能依赖系统返回键、
-  Home、多指手势或高级设置。
+- Ligase 启动的串流默认不常驻左上浮动按钮；进入串流时以短时提示说明返回键或五指
+  轻点可打开控制菜单。两种入口均保留，退出动作始终可达；legacy 非Ligase串流仍按
+  自身浮动按钮偏好显示。
+- 主菜单只保留继续、断开、显式上传/获取剪贴板、键盘、更多与结束会话；缩放、server
+  command等低频功能进入“更多”。剪贴板双向操作均需用户逐次确认，只接受单条
+  `text/plain` 且UTF-8不超过64KiB；Ligase串流禁用焦点变化自动同步，拒绝URI、Intent、
+  HTML、多项或超限内容，不把本机剪贴板静默覆盖。
 - 快捷菜单明确区分：
   - “返回游戏库（保持游戏运行）”：只断开 Android 串流；
   - “结束串流并关闭游戏”：确认一次后调用现有 GameStream `quitApp()`，结束 Host
@@ -280,7 +285,7 @@ IPv4、IPv6 或 `link-local%接口`；协议、路径、query、fragment 和 use
   - V2353A 竖屏底栏 → 横屏左栏 → 竖屏底栏，同一 Activity、当前电脑与首页状态
     保持，无重叠或裁切；
   - AGS2-AL00 横屏仍为左栏且只有一个 `LigaseActivity`；
-  - V2353A 从监控桌面进入串流后可见“串流控制”，确认结束后返回原游戏库，
+  - V2353A 从监控桌面进入串流后通过当时版本的“串流控制”入口确认结束并返回原游戏库，
     `Game` Activity 清除，Host 回到 `currentgame=0 / SUNSHINE_SERVER_FREE`，
     随后可再次启动并再次正常结束。
 

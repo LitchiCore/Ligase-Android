@@ -30,6 +30,10 @@ import com.limelight.binding.video.MediaCodecDecoderRenderer;
 import com.limelight.binding.video.MediaCodecHelper;
 import com.limelight.binding.video.PerfOverlayListener;
 import com.limelight.ligase.stream.StreamSessionExitCoordinator;
+import com.limelight.ligase.stream.clipboard.StreamClipboardDecision;
+import com.limelight.ligase.stream.clipboard.StreamClipboardDecisionCode;
+import com.limelight.ligase.stream.clipboard.StreamClipboardPolicy;
+import com.limelight.ligase.stream.menu.StreamMenuEntryPolicy;
 import com.limelight.ligase.input.LigaseInputLaunchPolicy;
 import com.limelight.nvstream.NvConnection;
 import com.limelight.nvstream.NvConnectionListener;
@@ -121,6 +125,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 
 import java.io.ByteArrayInputStream;
 import java.lang.reflect.InvocationTargetException;
@@ -296,6 +301,7 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
     private ViewParent rootView;
     private ClipboardManager clipboardManager;
     private boolean clipboardSyncRunning = false;
+    private boolean ligaseSessionControls = false;
 
     private NvHTTP httpConn;
 
@@ -944,14 +950,16 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
         gameMenuCallbacks = new GameMenu(this);
 
         floatingMenuButton = findViewById(R.id.floatingMenuButton);
-        boolean ligaseSessionControls =
-                getIntent().getBooleanExtra(EXTRA_LIGASE_SESSION_CONTROLS, false);
+        ligaseSessionControls = getIntent().getBooleanExtra(EXTRA_LIGASE_SESSION_CONTROLS, false);
         updateFloatingButtonVisibility(
-                ligaseSessionControls ||
-                        (prefConfig.enableBackMenu && prefConfig.enableFloatingButton));
+                StreamMenuEntryPolicy.showPersistentButton(
+                        ligaseSessionControls,
+                        prefConfig.enableBackMenu,
+                        prefConfig.enableFloatingButton));
         if (ligaseSessionControls) {
             floatingMenuButton.setContentDescription(
                     getString(R.string.ligase_stream_session_controls));
+            Toast.makeText(this, R.string.ligase_stream_menu_discovery_hint, Toast.LENGTH_LONG).show();
         }
         initFloatingButton();
 
@@ -2277,7 +2285,10 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
     }
 
     public boolean handleFocusChange(boolean hasFocus) {
-        if (connected && prefConfig.smartClipboardSync) {
+        if (StreamMenuEntryPolicy.allowAutomaticClipboardSync(
+                ligaseSessionControls,
+                connected,
+                prefConfig.smartClipboardSync)) {
             if (hasFocus) {
                 return sendClipboard(false);
             } else {
@@ -2314,22 +2325,32 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
             if (clipData != null && clipData.getItemCount() > 0) {
                 // Get the first item from the clipboard data
                 ClipData.Item item = clipData.getItemAt(0);
+                CharSequence clipText = item.getText();
+                ArrayList<String> mimeTypes = new ArrayList<>();
+                if (clipDescription != null) {
+                    for (int index = 0; index < clipDescription.getMimeTypeCount(); index++) {
+                        mimeTypes.add(clipDescription.getMimeType(index));
+                    }
+                }
+                StreamClipboardDecision decision = StreamClipboardPolicy.validateLocal(
+                        mimeTypes,
+                        clipData.getItemCount(),
+                        clipText == null ? null : clipText.toString());
+                if (decision.getCode() != StreamClipboardDecisionCode.ACCEPTED) {
+                    if (force) showClipboardDecision(decision.getCode());
+                    return null;
+                }
 
-                // Mark the clip as visited
+                // Mark only accepted plain text as visited.
                 if (clipDescription != null) {
                     ClipData clonedClip = cloneClipData(clipDescription, item);
                     clipboardManager.setPrimaryClip(clonedClip);
                 }
-
-                // Get the text data from the clipboard item
-                CharSequence clipText = item.getText();
-                if (clipText == null) {
-                    return  null;
-                }
-                return clipText.toString();
+                return decision.getText();
             }
         }
 
+        if (force) showClipboardDecision(StreamClipboardDecisionCode.EMPTY);
         return null;
     }
 
@@ -2359,17 +2380,17 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
                 public void run() {
                     try {
                         if (!httpConn.sendClipboard(clipboardText)) {
-                            if (prefConfig.smartClipboardSyncToast) {
+                            if (force || prefConfig.smartClipboardSyncToast) {
                                 Game.this.runOnUiThread(() -> Toast.makeText(Game.this, getString(R.string.clipboard_sync_unsupported), Toast.LENGTH_SHORT).show());
                             }
                         } else {
-                            if (prefConfig.smartClipboardSyncToast) {
+                            if (force || prefConfig.smartClipboardSyncToast) {
                                 Game.this.runOnUiThread(() -> Toast.makeText(Game.this, getString(R.string.send_clipboard_success), Toast.LENGTH_SHORT).show());
                             }
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
-                        if (prefConfig.smartClipboardSyncToast) {
+                        if (force || prefConfig.smartClipboardSyncToast) {
                             Game.this.runOnUiThread(() -> Toast.makeText(Game.this, getString(R.string.send_clipboard_failed) + e.getMessage(), Toast.LENGTH_SHORT).show());
                         }
                     }
@@ -2383,6 +2404,14 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
     }
 
     public boolean getClipboard(int delay) {
+        return getClipboard(delay, false);
+    }
+
+    public boolean getClipboardExplicit() {
+        return getClipboard(0, true);
+    }
+
+    private boolean getClipboard(int delay, boolean explicit) {
         if (httpConn == null) {
             LimeLog.warning("httpConn not ready, cannot get clipboard!");
             return false;
@@ -2404,7 +2433,14 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
                         sleep(delay);
                     }
                     String clipboardContent = httpConn.getClipboard();
-                    ClipData clipData = ClipData.newPlainText(CLIPBOARD_IDENTIFIER, clipboardContent);
+                    StreamClipboardDecision decision =
+                            StreamClipboardPolicy.validateRemote(clipboardContent);
+                    if (decision.getCode() != StreamClipboardDecisionCode.ACCEPTED) {
+                        if (explicit) showClipboardDecision(decision.getCode());
+                        clipboardSyncRunning = false;
+                        return;
+                    }
+                    ClipData clipData = ClipData.newPlainText(CLIPBOARD_IDENTIFIER, decision.getText());
 
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                         ClipDescription clipDescription = clipData.getDescription();
@@ -2418,12 +2454,12 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
                     }
 
                     clipboardManager.setPrimaryClip(clipData);
-                    if (prefConfig.smartClipboardSyncToast) {
+                    if (explicit || prefConfig.smartClipboardSyncToast) {
                         Game.this.runOnUiThread(() -> Toast.makeText(Game.this, getString(R.string.get_clipboard_success), Toast.LENGTH_SHORT).show());
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
-                    if (prefConfig.smartClipboardSyncToast) {
+                    if (explicit || prefConfig.smartClipboardSyncToast) {
                         Game.this.runOnUiThread(() -> Toast.makeText(Game.this, getString(R.string.get_clipboard_failed) + e.getMessage(), Toast.LENGTH_SHORT).show());
                     }
                 }
@@ -2432,6 +2468,24 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
         }.start();
 
         return true;
+    }
+
+    private void showClipboardDecision(StreamClipboardDecisionCode code) {
+        int message;
+        switch (code) {
+            case UNSUPPORTED_TYPE:
+                message = R.string.ligase_clipboard_plain_text_only;
+                break;
+            case TOO_LARGE:
+                message = R.string.ligase_clipboard_too_large;
+                break;
+            case EMPTY:
+                message = R.string.ligase_clipboard_empty;
+                break;
+            default:
+                return;
+        }
+        runOnUiThread(() -> Toast.makeText(Game.this, message, Toast.LENGTH_SHORT).show());
     }
 
     private TouchContext getTouchContext(int actionIndex, TouchContext[] inputContextMap)

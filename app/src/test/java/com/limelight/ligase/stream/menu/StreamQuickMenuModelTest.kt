@@ -16,9 +16,7 @@ class StreamQuickMenuModelTest {
                 "disconnect",
                 "upload_clipboard",
                 "fetch_clipboard",
-                "server_commands",
                 "keyboard",
-                "zoom",
                 "advanced",
                 "quit",
             ),
@@ -36,18 +34,24 @@ class StreamQuickMenuModelTest {
     }
 
     @Test
-    fun `focus requirements preserve clipboard command keyboard zoom and advanced behavior`() {
+    fun `focus requirements keep explicit clipboard confirmation outside game focus`() {
         val byId = StreamQuickMenuContract.requiredMainActions.associateBy { it.id }
         listOf(
-            "upload_clipboard",
-            "fetch_clipboard",
-            "server_commands",
             "keyboard",
-            "zoom",
             "advanced",
         ).forEach { assertTrue("$it should wait for game focus", byId.getValue(it).requiresGameFocus) }
+        assertFalse(byId.getValue("upload_clipboard").requiresGameFocus)
+        assertFalse(byId.getValue("fetch_clipboard").requiresGameFocus)
         assertFalse(byId.getValue("continue").requiresGameFocus)
         assertFalse(byId.getValue("disconnect").requiresGameFocus)
         assertFalse(byId.getValue("quit").requiresGameFocus)
+    }
+
+    @Test
+    fun `Ligase sessions hide persistent entry and disable automatic clipboard`() {
+        assertFalse(StreamMenuEntryPolicy.showPersistentButton(true, true, true))
+        assertTrue(StreamMenuEntryPolicy.showPersistentButton(false, true, true))
+        assertFalse(StreamMenuEntryPolicy.allowAutomaticClipboardSync(true, true, true))
+        assertTrue(StreamMenuEntryPolicy.allowAutomaticClipboardSync(false, true, true))
     }
 }

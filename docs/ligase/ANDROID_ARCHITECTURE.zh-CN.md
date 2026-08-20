@@ -166,6 +166,9 @@ handoff、exclusive lease、adaptive mapper与全屏浮层Activity已进入生�
 - `HostEndpointCoordinator` 继续唯一消费 `ComputerManagerService` 的LAN discovery更新；
   首页配对候选只是ONLINE+NOT_PAIRED canonical UUID的安全投影，按UUID/已验证证书去重，
   不按名称或地址建立身份，也不绕过 `HostPairingCoordinator` 的确认与Host审批。
+- `StreamMenuEntryPolicy` 冻结Ligase会话的非持久菜单入口与legacy隔离；
+  `StreamClipboardPolicy` 是双向剪贴板类型/UTF-8 64KiB边界的唯一Android owner。
+  `GameMenu`仅发起显式确认，`Game`只在policy接受后调用既有NvHTTP剪贴板ABI。
 
 ## 开发环境与提交纪律
 

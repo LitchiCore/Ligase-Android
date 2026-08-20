@@ -1348,4 +1348,11 @@
     <string name="ligase_resolution_2160p">2160p</string>
     <string name="ligase_lan_host_pairing_summary">Found on your local network · Pairing requires your confirmation and Host approval.</string>
     <string name="ligase_pair_computer">Pair</string>
+    <string name="ligase_stream_menu_discovery_hint">Press Back or use a five-finger tap to open stream controls.</string>
+    <string name="ligase_clipboard_upload_confirmation">Send the current single plain-text clipboard item to this computer? Maximum size: 64 KiB.</string>
+    <string name="ligase_clipboard_download_confirmation">Replace this device\'s clipboard with plain text from this computer? Maximum size: 64 KiB.</string>
+    <string name="ligase_clipboard_confirm">Continue</string>
+    <string name="ligase_clipboard_plain_text_only">Only a single plain-text clipboard item is supported.</string>
+    <string name="ligase_clipboard_too_large">Clipboard text exceeds the 64 KiB limit.</string>
+    <string name="ligase_clipboard_empty">There is no non-empty plain text to transfer.</string>
 </resources>

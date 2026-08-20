@@ -28,12 +28,26 @@ object StreamQuickMenuContract {
     val requiredMainActions = listOf(
         StreamMenuActionSpec("continue", StreamMenuSection.SESSION, StreamMenuActionStyle.CANCEL),
         StreamMenuActionSpec("disconnect", StreamMenuSection.SESSION),
-        StreamMenuActionSpec("upload_clipboard", StreamMenuSection.CONTROLS, requiresGameFocus = true),
-        StreamMenuActionSpec("fetch_clipboard", StreamMenuSection.CONTROLS, requiresGameFocus = true),
-        StreamMenuActionSpec("server_commands", StreamMenuSection.CONTROLS, requiresGameFocus = true),
+        StreamMenuActionSpec("upload_clipboard", StreamMenuSection.CONTROLS),
+        StreamMenuActionSpec("fetch_clipboard", StreamMenuSection.CONTROLS),
         StreamMenuActionSpec("keyboard", StreamMenuSection.CONTROLS, requiresGameFocus = true),
-        StreamMenuActionSpec("zoom", StreamMenuSection.CONTROLS, requiresGameFocus = true),
         StreamMenuActionSpec("advanced", StreamMenuSection.MORE, requiresGameFocus = true),
         StreamMenuActionSpec("quit", StreamMenuSection.DANGER, StreamMenuActionStyle.DANGER),
     )
+}
+
+object StreamMenuEntryPolicy {
+    @JvmStatic
+    fun showPersistentButton(
+        ligaseSessionControls: Boolean,
+        backMenuEnabled: Boolean,
+        floatingButtonEnabled: Boolean,
+    ): Boolean = !ligaseSessionControls && backMenuEnabled && floatingButtonEnabled
+
+    @JvmStatic
+    fun allowAutomaticClipboardSync(
+        ligaseSessionControls: Boolean,
+        connected: Boolean,
+        legacySmartSyncEnabled: Boolean,
+    ): Boolean = !ligaseSessionControls && connected && legacySmartSyncEnabled
 }

@@ -306,6 +306,11 @@ class GameMenu @JvmOverloads constructor(
             options += MenuOption(getString(R.string.game_menu_select_mouse_mode), true, Runnable { game.selectMouseMode(dialogScreenContext) })
         }
         options += MenuOption(getString(R.string.game_menu_toggle_hud), true, Runnable(game::toggleHUD))
+        options += MenuOption(
+            getString(if (game.isZoomModeEnabled) R.string.game_menu_disable_zoom_mode else R.string.game_menu_enable_zoom_mode),
+            true,
+            Runnable(game::toggleZoomMode),
+        )
         options += MenuOption(getString(R.string.game_menu_toggle_floating_button), true, Runnable(game::toggleFloatingButtonVisibility))
         options += MenuOption(getString(R.string.game_menu_toggle_keyboard_model), true, Runnable(game::toggleKeyboardController))
         if (!game.isOnExternalDisplay) {
@@ -316,6 +321,22 @@ class GameMenu @JvmOverloads constructor(
             sendKeys(keyCodes(KeyboardTranslator.VK_LCONTROL, KeyboardTranslator.VK_LSHIFT, KeyboardTranslator.VK_ESCAPE))
         })
         options += MenuOption(getString(R.string.game_menu_send_keys), runnable = Runnable { showSpecialKeysMenu() })
+        options += MenuOption(
+            getString(R.string.game_menu_server_cmd),
+            true,
+            Runnable {
+                val serverCmds = game.serverCmds
+                if (serverCmds.isEmpty()) {
+                    AlertDialog.Builder(ContextThemeWrapper(dialogScreenContext, R.style.LigaseTheme))
+                        .setTitle(R.string.game_dialog_title_server_cmd_empty)
+                        .setMessage(R.string.game_dialog_message_server_cmd_empty)
+                        .setPositiveButton(android.R.string.ok, null)
+                        .show()
+                } else {
+                    showServerCmd(serverCmds)
+                }
+            },
+        )
         options += MenuOption(getString(R.string.game_menu_switch_touch_sensitivity_model), true, Runnable(game::switchTouchSensitivity))
         if (device != null) options += device.gameMenuOptions
         options += cancelOption()
@@ -349,40 +370,15 @@ class GameMenu @JvmOverloads constructor(
             ),
             MenuOption(
                 getString(R.string.game_menu_upload_clipboard),
-                true,
-                Runnable { game.sendClipboard(true) },
-                StreamMenuSection.CONTROLS,
+                runnable = Runnable { confirmClipboard(upload = true) },
+                section = StreamMenuSection.CONTROLS,
             ),
             MenuOption(
                 getString(R.string.game_menu_fetch_clipboard),
-                true,
-                Runnable { game.getClipboard(0) },
-                StreamMenuSection.CONTROLS,
-            ),
-            MenuOption(
-                getString(R.string.game_menu_server_cmd),
-                true,
-                Runnable {
-                    val serverCmds = game.serverCmds
-                    if (serverCmds.isEmpty()) {
-                        AlertDialog.Builder(ContextThemeWrapper(dialogScreenContext, R.style.LigaseTheme))
-                            .setTitle(R.string.game_dialog_title_server_cmd_empty)
-                            .setMessage(R.string.game_dialog_message_server_cmd_empty)
-                            .setPositiveButton(android.R.string.ok, null)
-                            .show()
-                    } else {
-                        showServerCmd(serverCmds)
-                    }
-                },
-                StreamMenuSection.CONTROLS,
+                runnable = Runnable { confirmClipboard(upload = false) },
+                section = StreamMenuSection.CONTROLS,
             ),
             MenuOption(getString(R.string.game_menu_toggle_keyboard), true, Runnable(game::toggleKeyboard), StreamMenuSection.CONTROLS),
-            MenuOption(
-                getString(if (game.isZoomModeEnabled) R.string.game_menu_disable_zoom_mode else R.string.game_menu_enable_zoom_mode),
-                true,
-                Runnable(game::toggleZoomMode),
-                StreamMenuSection.CONTROLS,
-            ),
         )
         if (dialogScreenContext === game) {
             options += MenuOption(getString(R.string.game_menu_rotate_screen), true, Runnable(game::rotateScreen), StreamMenuSection.CONTROLS)
@@ -396,6 +392,23 @@ class GameMenu @JvmOverloads constructor(
             supportingText = getString(R.string.ligase_stream_quit_summary),
         )
         showMenuDialog(getString(R.string.quick_menu_title), options.toTypedArray())
+    }
+
+    private fun confirmClipboard(upload: Boolean) {
+        AlertDialog.Builder(ContextThemeWrapper(dialogScreenContext, R.style.LigaseTheme))
+            .setTitle(
+                if (upload) R.string.game_menu_upload_clipboard
+                else R.string.game_menu_fetch_clipboard,
+            )
+            .setMessage(
+                if (upload) R.string.ligase_clipboard_upload_confirmation
+                else R.string.ligase_clipboard_download_confirmation,
+            )
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.ligase_clipboard_confirm) { _, _ ->
+                if (upload) game.sendClipboard(true) else game.getClipboardExplicit()
+            }
+            .show()
     }
 
     private fun cancelOption() = MenuOption(
