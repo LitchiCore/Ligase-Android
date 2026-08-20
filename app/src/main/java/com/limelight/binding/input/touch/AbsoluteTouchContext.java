@@ -4,6 +4,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
 
+import androidx.core.os.HandlerCompat;
+
 import com.limelight.nvstream.NvConnection;
 import com.limelight.nvstream.input.MouseButtonPacket;
 
@@ -74,7 +76,10 @@ public class AbsoluteTouchContext implements TouchContext {
         this.conn = conn;
         this.actionIndex = actionIndex;
         this.targetView = view;
-        this.handler = new Handler(Looper.getMainLooper());
+        // Input edge callbacks must not sit behind UI frame synchronization barriers.
+        // A delayed tap release that is starved on the main looper leaves the Host with
+        // only a button-down edge, while drag releases happen synchronously on ACTION_UP.
+        this.handler = HandlerCompat.createAsync(Looper.getMainLooper());
 
         if (swapped) {
             buttonPrimary = MouseButtonPacket.BUTTON_RIGHT;

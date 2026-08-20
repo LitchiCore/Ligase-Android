@@ -39,6 +39,13 @@ LigaseActivity（composition / Android lifecycle / legacy ABI bridge）
 | Input | `InputSelectionCoordinator` | UI 展示输入模式、稳定设备选择和布局摘要，不按设备名或易变 deviceId 猜测 |
 | Settings | application owners 的组合投影 | Settings route 不创建第二份偏好或 Host state |
 
+串流触摸路径由 application 层投影为 closed `EffectiveStreamingTouchMode`：
+`DIRECT_TOUCH`、`ABSOLUTE_POINTER` 或 `TRACKPAD`。该投影用于验收时同时记录用户公开选择
+与实际生效链路，不把 `mouse_mode_list` 或内部布尔偏好泄漏给 UI。direct touch 的 Android
+pointer edge 逐字映射为 Host touch DOWN/UP/MOVE/CANCEL；pointer 模式的 tap release 使用
+async main handler，避免释放边被串流帧同步屏障延迟。viewport mapper 以实际视频 View 的
+平移、缩放和尺寸归一化并裁剪黑边输入；旋转只消费旋转后 View 尺寸，不按 DPI 猜坐标。
+
 Library 的 Host identity/binding/cover consumer 由 `AndroidSyncV1StrictCodec`、
 `HostLayoutBindingResolver` 与 `HostAppAssetRepository` 分责：codec 在进入 session 前执行
 closed wire 校验；resolver 只把 Host exact binding 与已验证的本机 v3 revision 对齐；

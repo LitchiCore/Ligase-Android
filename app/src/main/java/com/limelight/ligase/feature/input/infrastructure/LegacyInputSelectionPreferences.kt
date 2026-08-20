@@ -5,6 +5,9 @@ import com.limelight.ligase.InputDeviceMode
 import com.limelight.ligase.LigasePreferences
 import com.limelight.ligase.input.LigaseInputCategory
 import com.limelight.ligase.input.LigaseTouchOverlayMode
+import com.limelight.ligase.input.EffectiveStreamingTouchMode
+import com.limelight.ligase.input.EffectiveStreamingTouchModePolicy
+import com.limelight.preferences.PreferenceConfiguration
 
 /**
  * Concrete adapter for the existing product preference keys.
@@ -35,5 +38,13 @@ class LegacyInputSelectionPreferences(
 
     fun setOverlayMode(mode: LigaseTouchOverlayMode) {
         LigasePreferences.setTouchOverlayMode(context, mode)
+    }
+
+    fun effectiveStreamingTouchMode(): EffectiveStreamingTouchMode {
+        val config = PreferenceConfiguration.readPreferences(context)
+        return EffectiveStreamingTouchModePolicy.resolve(
+            enableMultiTouchScreen = config.enableMultiTouchScreen,
+            touchscreenTrackpad = config.touchscreenTrackpad,
+        )
     }
 }

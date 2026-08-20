@@ -21,6 +21,8 @@ import com.limelight.binding.input.driver.UsbDriverService;
 import com.limelight.binding.input.evdev.EvdevListener;
 import com.limelight.binding.input.touch.TouchContext;
 import com.limelight.binding.input.touch.TrackpadContext;
+import com.limelight.binding.input.touch.StreamTouchViewportMapper;
+import com.limelight.binding.input.touch.StreamTouchEventPolicy;
 import com.limelight.binding.input.virtual_controller.VirtualController;
 import com.limelight.binding.input.virtual_controller.keyboard.KeyBoardLayoutController;
 import com.limelight.binding.video.CrashListener;
@@ -2435,44 +2437,9 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
     }
 
     private byte getLiTouchTypeFromEvent(MotionEvent event) {
-        switch (event.getActionMasked()) {
-            case MotionEvent.ACTION_DOWN:
-            case MotionEvent.ACTION_POINTER_DOWN:
-                return MoonBridge.LI_TOUCH_EVENT_DOWN;
-
-            case MotionEvent.ACTION_UP:
-            case MotionEvent.ACTION_POINTER_UP:
-                if ((event.getFlags() & MotionEvent.FLAG_CANCELED) != 0) {
-                    return MoonBridge.LI_TOUCH_EVENT_CANCEL;
-                }
-                else {
-                    return MoonBridge.LI_TOUCH_EVENT_UP;
-                }
-
-            case MotionEvent.ACTION_MOVE:
-                return MoonBridge.LI_TOUCH_EVENT_MOVE;
-
-            case MotionEvent.ACTION_CANCEL:
-                // ACTION_CANCEL applies to *all* pointers in the gesture, so it maps to CANCEL_ALL
-                // rather than CANCEL. For a single pointer cancellation, that's indicated via
-                // FLAG_CANCELED on a ACTION_POINTER_UP.
-                // https://developer.android.com/develop/ui/views/touch-and-input/gestures/multi
-                return MoonBridge.LI_TOUCH_EVENT_CANCEL_ALL;
-
-            case MotionEvent.ACTION_HOVER_ENTER:
-            case MotionEvent.ACTION_HOVER_MOVE:
-                return MoonBridge.LI_TOUCH_EVENT_HOVER;
-
-            case MotionEvent.ACTION_HOVER_EXIT:
-                return MoonBridge.LI_TOUCH_EVENT_HOVER_LEAVE;
-
-            case MotionEvent.ACTION_BUTTON_PRESS:
-            case MotionEvent.ACTION_BUTTON_RELEASE:
-                return MoonBridge.LI_TOUCH_EVENT_BUTTON_ONLY;
-
-            default:
-                return -1;
-        }
+        return StreamTouchEventPolicy.eventType(
+                event.getActionMasked(),
+                (event.getFlags() & MotionEvent.FLAG_CANCELED) != 0);
     }
 
     //灵敏度保存到集合 适配多个手指
@@ -2542,16 +2509,15 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
             normalizedY = normalized[1];
         }
 
-        normalizedX = Math.max(normalizedX, 0.0f);
-        normalizedY = Math.max(normalizedY, 0.0f);
-
-        normalizedX = Math.min(normalizedX, streamContainer.getWidth());
-        normalizedY = Math.min(normalizedY, streamContainer.getHeight());
-
-        normalizedX /= streamContainer.getWidth();
-        normalizedY /= streamContainer.getHeight();
-
-        return new float[] { normalizedX, normalizedY };
+        return StreamTouchViewportMapper.normalized(
+                normalizedX,
+                normalizedY,
+                0.0f,
+                0.0f,
+                1.0f,
+                1.0f,
+                streamContainer.getWidth(),
+                streamContainer.getHeight());
     }
 
     private float[] getNormalizedCoordinates(View streamView, float rawX, float rawY) {

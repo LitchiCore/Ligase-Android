@@ -32,6 +32,24 @@ enum class LigaseTouchOverlayMode(val storedValue: String) {
     }
 }
 
+/** Safe projection of the touch transport that will actually handle stream gestures. */
+enum class EffectiveStreamingTouchMode {
+    DIRECT_TOUCH,
+    ABSOLUTE_POINTER,
+    TRACKPAD,
+}
+
+object EffectiveStreamingTouchModePolicy {
+    fun resolve(
+        enableMultiTouchScreen: Boolean,
+        touchscreenTrackpad: Boolean,
+    ): EffectiveStreamingTouchMode = when {
+        touchscreenTrackpad -> EffectiveStreamingTouchMode.TRACKPAD
+        enableMultiTouchScreen -> EffectiveStreamingTouchMode.DIRECT_TOUCH
+        else -> EffectiveStreamingTouchMode.ABSOLUTE_POINTER
+    }
+}
+
 enum class LigaseInputSelectionStatus {
     UNSELECTED,
     CONNECTED,

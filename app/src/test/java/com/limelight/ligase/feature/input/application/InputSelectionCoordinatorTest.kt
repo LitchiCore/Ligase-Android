@@ -7,6 +7,7 @@ import com.limelight.ligase.input.LigaseInputDevice
 import com.limelight.ligase.input.LigaseInputSelection
 import com.limelight.ligase.input.LigaseInputSelectionStatus
 import com.limelight.ligase.input.LigaseTouchOverlayMode
+import com.limelight.ligase.input.EffectiveStreamingTouchMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -116,6 +117,18 @@ class InputSelectionCoordinatorTest {
         )
     }
 
+    @Test
+    fun `state exposes safe effective stream touch transport`() {
+        val harness = Harness(
+            effectiveStreamingTouchMode = EffectiveStreamingTouchMode.TRACKPAD,
+        )
+
+        assertEquals(
+            EffectiveStreamingTouchMode.TRACKPAD,
+            harness.coordinator.state.effectiveStreamingTouchMode,
+        )
+    }
+
     private fun status(
         coordinator: InputSelectionCoordinator,
         category: LigaseInputCategory,
@@ -145,6 +158,8 @@ class InputSelectionCoordinatorTest {
         hasMode: Boolean = true,
         inputMode: InputDeviceMode = InputDeviceMode.TOUCH,
         selectedDevices: MutableMap<LigaseInputCategory, String?> = mutableMapOf(),
+        effectiveStreamingTouchMode: EffectiveStreamingTouchMode =
+            EffectiveStreamingTouchMode.ABSOLUTE_POINTER,
     ) {
         val modeWrites = mutableListOf<InputDeviceMode>()
         val deviceWrites = mutableListOf<Pair<LigaseInputCategory, String>>()
@@ -164,6 +179,7 @@ class InputSelectionCoordinatorTest {
             },
             readOverlayMode = { LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD },
             writeOverlayMode = overlayWrites::add,
+            readEffectiveStreamingTouchMode = { effectiveStreamingTouchMode },
             createDeviceSession = { callback ->
                 deviceCallbacks += callback
                 InputDeviceSession(

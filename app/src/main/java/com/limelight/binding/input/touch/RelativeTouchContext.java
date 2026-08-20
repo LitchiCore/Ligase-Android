@@ -4,6 +4,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
 
+import androidx.core.os.HandlerCompat;
+
 import com.limelight.nvstream.NvConnection;
 import com.limelight.nvstream.input.MouseButtonPacket;
 import com.limelight.preferences.PreferenceConfiguration;
@@ -101,7 +103,8 @@ public class RelativeTouchContext implements TouchContext {
         this.referenceHeight = referenceHeight;
         this.targetView = view;
         this.prefConfig = prefConfig;
-        this.handler = new Handler(Looper.getMainLooper());
+        // Tap releases are input protocol edges, not frame-synchronized UI work.
+        this.handler = HandlerCompat.createAsync(Looper.getMainLooper());
     }
 
     @Override

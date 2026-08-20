@@ -3,6 +3,8 @@ package com.limelight.binding.input.touch;
 import android.os.Handler;
 import android.os.Looper;
 
+import androidx.core.os.HandlerCompat;
+
 import com.limelight.LimeLog;
 import com.limelight.nvstream.NvConnection;
 import com.limelight.nvstream.input.MouseButtonPacket;
@@ -62,7 +64,9 @@ public class TrackpadContext implements TouchContext {
     public TrackpadContext(NvConnection conn, int actionIndex) {
         this.conn = conn;
         this.actionIndex = actionIndex;
-        this.handler = new Handler(Looper.getMainLooper());
+        // Keep click release/double-click timers outside UI frame barriers so a normal
+        // tap always produces its matching Host button-up edge under stream rendering.
+        this.handler = HandlerCompat.createAsync(Looper.getMainLooper());
     }
 
     public TrackpadContext(NvConnection conn, int actionIndex, boolean swapAxis, int sensitivityX, int sensitivityY) {

@@ -7,6 +7,7 @@ import com.limelight.ligase.input.LigaseInputCategory
 import com.limelight.ligase.input.LigaseInputDevice
 import com.limelight.ligase.input.LigaseInputDeviceRepository
 import com.limelight.ligase.input.LigaseTouchOverlayMode
+import com.limelight.ligase.input.EffectiveStreamingTouchMode
 
 data class InputSelectionState(
     val onboarding: Boolean,
@@ -16,6 +17,7 @@ data class InputSelectionState(
     val selectedKeyboardKey: String?,
     val selectedMouseKey: String?,
     val overlayMode: LigaseTouchOverlayMode,
+    val effectiveStreamingTouchMode: EffectiveStreamingTouchMode,
 )
 
 internal class InputDeviceSession(
@@ -35,6 +37,7 @@ class InputSelectionCoordinator private constructor(
     private val writeSelectedDevice: (LigaseInputCategory, String) -> Unit,
     private val readOverlayMode: () -> LigaseTouchOverlayMode,
     private val writeOverlayMode: (LigaseTouchOverlayMode) -> Unit,
+    private val readEffectiveStreamingTouchMode: () -> EffectiveStreamingTouchMode,
     private val createDeviceSession: ((List<LigaseInputDevice>) -> Unit) -> InputDeviceSession,
     private val onStateChanged: (InputSelectionState) -> Unit,
 ) {
@@ -62,6 +65,7 @@ class InputSelectionCoordinator private constructor(
         writeSelectedDevice = preferences::setSelectedDevice,
         readOverlayMode = preferences::overlayMode,
         writeOverlayMode = preferences::setOverlayMode,
+        readEffectiveStreamingTouchMode = preferences::effectiveStreamingTouchMode,
         createDeviceSession = createDeviceSession,
         onStateChanged = onStateChanged,
     )
@@ -74,6 +78,9 @@ class InputSelectionCoordinator private constructor(
         writeSelectedDevice: (LigaseInputCategory, String) -> Unit,
         readOverlayMode: () -> LigaseTouchOverlayMode,
         writeOverlayMode: (LigaseTouchOverlayMode) -> Unit,
+        readEffectiveStreamingTouchMode: () -> EffectiveStreamingTouchMode = {
+            EffectiveStreamingTouchMode.ABSOLUTE_POINTER
+        },
         createDeviceSession: ((List<LigaseInputDevice>) -> Unit) -> InputDeviceSession,
         onStateChanged: (InputSelectionState) -> Unit,
         @Suppress("UNUSED_PARAMETER") testing: Unit = Unit,
@@ -85,6 +92,7 @@ class InputSelectionCoordinator private constructor(
         writeSelectedDevice,
         readOverlayMode,
         writeOverlayMode,
+        readEffectiveStreamingTouchMode,
         createDeviceSession,
         onStateChanged,
     )
@@ -156,6 +164,7 @@ class InputSelectionCoordinator private constructor(
             selectedKeyboardKey = readSelectedDevice(LigaseInputCategory.KEYBOARD),
             selectedMouseKey = readSelectedDevice(LigaseInputCategory.MOUSE),
             overlayMode = readOverlayMode(),
+            effectiveStreamingTouchMode = readEffectiveStreamingTouchMode(),
         )
     }
 
