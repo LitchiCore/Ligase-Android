@@ -1355,4 +1355,15 @@
     <string name="ligase_clipboard_plain_text_only">Only a single plain-text clipboard item is supported.</string>
     <string name="ligase_clipboard_too_large">Clipboard text exceeds the 64 KiB limit.</string>
     <string name="ligase_clipboard_empty">There is no non-empty plain text to transfer.</string>
+    <string name="ligase_network_test_title">Network test and bitrate suggestion</string>
+    <string name="ligase_network_test_unavailable">Testing is unavailable until the Host quality contract is ready. No network or bitrate setting has been changed.</string>
+    <string name="ligase_network_test_running">Testing network quality…</string>
+    <string name="ligase_network_test_failed">The test did not produce a verified result.</string>
+    <string name="ligase_network_test_rtt">RTT: %1$d ms</string>
+    <string name="ligase_network_test_jitter">Jitter: %1$d ms</string>
+    <string name="ligase_network_test_loss">Packet loss: %1$.1f%%</string>
+    <string name="ligase_network_test_estimated_bitrate">Estimated bitrate: %1$.1f Mbps</string>
+    <string name="ligase_network_test_recommended_bitrate">Suggested bitrate: %1$.1f Mbps</string>
+    <string name="ligase_network_test_disclaimer">The suggestion is an estimate, not a guarantee. It never changes bitrate, public-network, or firewall settings automatically.</string>
+    <string name="ligase_network_test_action">Start network test</string>
 </resources>

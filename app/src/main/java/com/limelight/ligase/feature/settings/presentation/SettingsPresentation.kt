@@ -8,6 +8,7 @@ import com.limelight.ligase.LigaseThemeMode
 import com.limelight.ligase.feature.library.data.dto.LigaseResolutionDto
 import com.limelight.ligase.feature.library.domain.LibraryHdrState
 import com.limelight.ligase.feature.stream.application.StreamBitrateUiState
+import com.limelight.ligase.feature.stream.application.StreamNetworkTestUiState
 import com.limelight.ligase.feature.stream.domain.CustomBitrateParseResult
 import com.limelight.ligase.feature.stream.domain.StreamBitratePolicy
 import com.limelight.ligase.feature.stream.domain.StreamBitratePresetId
@@ -27,6 +28,8 @@ data class SettingsUiState(
     val deviceStreamCapabilities: DeviceStreamCapabilities =
         DeviceStreamCapabilities(1920, 1080, 60f, false),
     val streamFrameRateMode: StreamFrameRateMode = StreamFrameRateMode.FOLLOW_DISPLAY,
+    val streamNetworkTest: StreamNetworkTestUiState =
+        StreamNetworkTestUiState.productionDefault,
 ) {
     val inputEnabled: Boolean
         get() = canOperate

@@ -40,6 +40,7 @@ import com.limelight.ligase.feature.settings.presentation.SettingsUiState
 import com.limelight.ligase.feature.stream.domain.StreamBitratePresetId
 import com.limelight.ligase.feature.stream.domain.StreamCapabilityReason
 import com.limelight.ligase.feature.stream.domain.StreamFrameRateMode
+import com.limelight.ligase.feature.stream.application.StreamNetworkTestUiState
 import com.limelight.ligase.inputTitle
 import com.limelight.ligase.library.messageResource
 import com.limelight.ligase.ligaseNavigationContentBottomPadding
@@ -275,6 +276,8 @@ fun SettingsScreen(
                         }
                     }
                 }
+                Spacer(Modifier.height(12.dp))
+                StreamNetworkTestCard(state.streamNetworkTest)
             }
             item {
                 Spacer(Modifier.height(8.dp))
@@ -349,6 +352,78 @@ fun SettingsScreen(
                 ) {
                     Text(stringResource(R.string.ligase_advanced_action))
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StreamNetworkTestCard(state: StreamNetworkTestUiState) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.ligase_network_test_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            when (state) {
+                is StreamNetworkTestUiState.Unavailable -> Text(
+                    text = stringResource(R.string.ligase_network_test_unavailable),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                StreamNetworkTestUiState.Running -> Text(
+                    text = stringResource(R.string.ligase_network_test_running),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                StreamNetworkTestUiState.Failed -> Text(
+                    text = stringResource(R.string.ligase_network_test_failed),
+                    color = MaterialTheme.colorScheme.error,
+                )
+                is StreamNetworkTestUiState.Completed -> {
+                    val metrics = state.metrics
+                    Text(stringResource(R.string.ligase_network_test_rtt, metrics.rttMs))
+                    Text(stringResource(R.string.ligase_network_test_jitter, metrics.jitterMs))
+                    Text(
+                        stringResource(
+                            R.string.ligase_network_test_loss,
+                            metrics.lossPermille / 10f,
+                        ),
+                    )
+                    Text(
+                        stringResource(
+                            R.string.ligase_network_test_estimated_bitrate,
+                            metrics.estimatedBitrateKbps / 1000f,
+                        ),
+                    )
+                    Text(
+                        stringResource(
+                            R.string.ligase_network_test_recommended_bitrate,
+                            metrics.recommendedBitrateKbps / 1000f,
+                        ),
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = stringResource(R.string.ligase_network_test_disclaimer),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+            }
+            Button(
+                onClick = {},
+                enabled = false,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.ligase_network_test_action))
             }
         }
     }

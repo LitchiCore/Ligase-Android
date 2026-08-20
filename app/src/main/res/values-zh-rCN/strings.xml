@@ -1341,4 +1341,15 @@
     <string name="ligase_clipboard_plain_text_only">仅支持单条纯文本剪贴板内容。</string>
     <string name="ligase_clipboard_too_large">剪贴板文本超过 64 KiB 上限。</string>
     <string name="ligase_clipboard_empty">没有可传输的非空纯文本。</string>
+    <string name="ligase_network_test_title">网络测试与码率建议</string>
+    <string name="ligase_network_test_unavailable">Host 网络质量契约尚未就绪，当前无法测试；不会修改网络或码率设置。</string>
+    <string name="ligase_network_test_running">正在测试网络质量…</string>
+    <string name="ligase_network_test_failed">本次测试未产生经过验证的结果。</string>
+    <string name="ligase_network_test_rtt">往返时延：%1$d 毫秒</string>
+    <string name="ligase_network_test_jitter">抖动：%1$d 毫秒</string>
+    <string name="ligase_network_test_loss">丢包率：%1$.1f%%</string>
+    <string name="ligase_network_test_estimated_bitrate">估算码率：%1$.1f Mbps</string>
+    <string name="ligase_network_test_recommended_bitrate">建议码率：%1$.1f Mbps</string>
+    <string name="ligase_network_test_disclaimer">建议仅为估算，不是质量保证；不会自动修改码率、公网或防火墙设置。</string>
+    <string name="ligase_network_test_action">开始网络测试</string>
 </resources>

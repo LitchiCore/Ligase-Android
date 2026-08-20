@@ -170,6 +170,8 @@ handoff、exclusive lease、adaptive mapper与全屏浮层Activity已进入生�
   `StreamClipboardPolicy` 是双向剪贴板类型/UTF-8 64KiB边界的唯一Android owner。
   `GameMenu`仅发起显式确认，`Game`只在policy接受后调用既有NvHTTP剪贴板ABI。
 - Library pull-to-refresh indicator只消费Material theme token，不持有独立明暗色或刷新状态。
+- 网络测试与码率建议通过closed typed UI state投影。Host path/quality machine contract未冻结时，
+  production固定为`HOST_CONTRACT_NOT_READY`，不发网络请求、不选择路径，也不写码率或网络设置。
 
 ## 开发环境与提交纪律
 
