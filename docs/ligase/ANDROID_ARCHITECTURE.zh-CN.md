@@ -188,6 +188,9 @@ handoff、exclusive lease、adaptive mapper与全屏浮层Activity已进入生�
   `application/json`；不得使用会追加charset参数的String request body，也不得放宽Host envelope。
 - Resolution Dialog使用受window、safe drawing与IME约束的全高容器；标题和底部actions固定，
   preset、能力原因、自定义字段与错误信息位于单一可滚动内容区。响应式布局不改变A2 policy。
+- Host access mode与library connectivity/content由同一`LibrarySessionViewModel`保留；配置变更恢复
+  同一Host时不得因Activity局部state重置而丢失已验证权限。后续真实Host update仍可清空权限并
+  fail closed，UI不得把保留投影写回Host或推断新权限。
 
 ## 开发环境与提交纪律
 

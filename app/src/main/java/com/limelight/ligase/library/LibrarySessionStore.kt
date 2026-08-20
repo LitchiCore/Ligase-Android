@@ -37,6 +37,7 @@ data class LibraryContentSnapshot(
 data class LibrarySessionState(
     val hostKey: String? = null,
     val hostDisplayName: String? = null,
+    val accessMode: String? = null,
     val content: LibraryContentSnapshot? = null,
     val connectivity: LibraryConnectivity = LibraryConnectivity.UNKNOWN,
     val initialLoading: Boolean = false,
@@ -69,12 +70,18 @@ class LibrarySessionStore(
     fun selectHost(
         hostUniqueId: String,
         displayName: String = hostUniqueId,
+        accessMode: String? = null,
     ): Boolean {
         val normalized = hostUniqueId.normalizedHostKey()
         if (normalized == state.hostKey) {
             refreshCoordinator.selectHost(hostUniqueId)
-            if (state.hostDisplayName != displayName) {
-                state = state.copy(hostDisplayName = displayName)
+            if (state.hostDisplayName != displayName ||
+                (accessMode != null && state.accessMode != accessMode)
+            ) {
+                state = state.copy(
+                    hostDisplayName = displayName,
+                    accessMode = accessMode ?: state.accessMode,
+                )
             }
             return false
         }
@@ -82,6 +89,7 @@ class LibrarySessionStore(
         state = LibrarySessionState(
             hostKey = normalized,
             hostDisplayName = displayName,
+            accessMode = accessMode,
             initialLoading = true,
         )
         return true
@@ -103,6 +111,18 @@ class LibrarySessionStore(
             } else {
                 initialLoading
             },
+        )
+    }
+
+    fun updateHostAuthority(
+        hostUniqueId: String,
+        connectivity: LibraryConnectivity,
+        accessMode: String?,
+    ): Boolean = mutateCurrent(hostUniqueId) {
+        copy(
+            connectivity = connectivity,
+            accessMode = accessMode,
+            initialLoading = if (connectivity == LibraryConnectivity.OFFLINE) false else initialLoading,
         )
     }
 

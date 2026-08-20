@@ -41,7 +41,7 @@ class LibraryHostCoordinator(
     private var appListPoller: com.limelight.computers.ComputerManagerService.ApplistPoller? = null
 
     fun selectHost(host: ComputerDetails): Boolean {
-        val changed = session.selectHost(host.uuid, host.name)
+        val changed = session.selectHost(host.uuid, host.name, host.ligaseClientAccessMode)
         if (changed) disposeAssets()
         session.updateConnectivity(host.uuid, host.connectivity())
         if (assetLoader == null) {
@@ -69,7 +69,11 @@ class LibraryHostCoordinator(
     }
 
     fun updateConnectivity(host: ComputerDetails) {
-        session.updateConnectivity(host.uuid, host.connectivity())
+        session.updateHostAuthority(
+            host.uuid,
+            host.connectivity(),
+            host.ligaseClientAccessMode,
+        )
     }
 
     fun fetch(host: ComputerDetails, force: Boolean): Boolean {

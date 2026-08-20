@@ -115,7 +115,6 @@ class LigaseActivity : AppCompatActivity() {
     private var languageMode by mutableStateOf(LigaseLanguageMode.SYSTEM)
     private val hosts = mutableStateListOf<ComputerDetails>()
     private var libraryHost by mutableStateOf<ComputerDetails?>(null)
-    private var libraryAccessMode by mutableStateOf<String?>(null)
     private var localHdrCapabilities = AndroidHdrCapabilities(null, null, null)
     private var libraryRunningAppId by mutableStateOf(0)
     private var librarySortMode by mutableStateOf(HostSortMode.NAME_ASCENDING)
@@ -354,12 +353,12 @@ class LigaseActivity : AppCompatActivity() {
                 libraryVerifiedCoverLoader = libraryVerifiedCoverLoader,
                 libraryCanOperate = LibraryOperationGate.canOperate(
                     libraryState.connectivity,
-                    libraryAccessMode,
+                    libraryState.accessMode,
                 ),
                 libraryCanConfigureInput = LigaseAccessUiPolicy.canConfigureInput(
                     hasSelectedHost = libraryHost != null,
                     paired = libraryHost?.pairState == PairState.PAIRED,
-                    accessMode = libraryAccessMode,
+                    accessMode = libraryState.accessMode,
                 ),
                 manualSortState = librarySessionViewModel.manualSortState,
                 layoutV3EditorWorkspaceState = layoutV3EditorWorkspaceState,
@@ -521,7 +520,6 @@ class LigaseActivity : AppCompatActivity() {
         if (libraryHost?.uuid?.equals(details.uuid, ignoreCase = true) == true) {
             val previousConnectivity = librarySessionViewModel.state.connectivity
             libraryHost = details
-            libraryAccessMode = details.ligaseClientAccessMode
             libraryRunningAppId = details.runningGameId
             libraryHostCoordinator.updateConnectivity(details)
             if (details.state != ComputerDetails.State.ONLINE) {
@@ -655,7 +653,6 @@ class LigaseActivity : AppCompatActivity() {
         stopAppListUpdates()
         libraryHostCoordinator.selectHost(host)
         libraryHost = host
-        libraryAccessMode = host.ligaseClientAccessMode
         pendingLibraryHostUuid = host.uuid
         libraryRunningAppId = host.runningGameId
         librarySortMode = LigasePreferences.getLibrarySortMode(this, host.uuid)
@@ -667,7 +664,6 @@ class LigaseActivity : AppCompatActivity() {
     private fun clearLibraryState() {
         stopAppListUpdates()
         libraryHost = null
-        libraryAccessMode = null
         libraryHostCoordinator.clearHost()
         pendingLibraryHostUuid = null
         devicePresenceCoordinator.onInactive()
@@ -989,7 +985,7 @@ class LigaseActivity : AppCompatActivity() {
             exact,
             LibraryOperationGate.canOperate(
                 librarySessionViewModel.state.connectivity,
-                libraryAccessMode,
+                librarySessionViewModel.state.accessMode,
             ),
         ) ?: return
         GameInputOverrideDialogFragment.show(supportFragmentManager, state, themeMode)
@@ -1017,7 +1013,7 @@ class LigaseActivity : AppCompatActivity() {
             targetStillExists = targetExists,
             canOperate = LibraryOperationGate.canOperate(
                 librarySessionViewModel.state.connectivity,
-                libraryAccessMode,
+                librarySessionViewModel.state.accessMode,
             ),
         )
         toast(

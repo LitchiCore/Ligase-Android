@@ -23,10 +23,11 @@ class LibrarySessionViewModel : ViewModel() {
     fun selectHost(
         hostUniqueId: String,
         displayName: String = hostUniqueId,
+        accessMode: String? = null,
     ): Boolean {
         manualSortCoordinator.selectHost(hostUniqueId)
         publishManualSort()
-        return store.selectHost(hostUniqueId, displayName).also { publish() }
+        return store.selectHost(hostUniqueId, displayName, accessMode).also { publish() }
     }
 
     fun clearHost() {
@@ -38,6 +39,12 @@ class LibrarySessionViewModel : ViewModel() {
 
     fun updateConnectivity(hostUniqueId: String, connectivity: LibraryConnectivity): Boolean =
         store.updateConnectivity(hostUniqueId, connectivity).also { publish() }
+
+    fun updateHostAuthority(
+        hostUniqueId: String,
+        connectivity: LibraryConnectivity,
+        accessMode: String?,
+    ): Boolean = store.updateHostAuthority(hostUniqueId, connectivity, accessMode).also { publish() }
 
     fun markIncompatible(hostUniqueId: String): Boolean =
         store.markIncompatible(hostUniqueId).also { publish() }

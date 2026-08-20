@@ -13,6 +13,25 @@ import org.junit.Test
 
 class LibrarySessionStoreTest {
     @Test
+    fun `same host configuration restore keeps verified access until authoritative update`() {
+        val store = LibrarySessionStore()
+        store.selectHost(HOST_A, "Host", "operate")
+        store.updateConnectivity(HOST_A, LibraryConnectivity.ONLINE)
+
+        assertFalse(store.selectHost(HOST_A, "Host", accessMode = null))
+        assertEquals("operate", store.state.accessMode)
+        assertEquals(LibraryConnectivity.ONLINE, store.state.connectivity)
+
+        assertTrue(
+            store.updateHostAuthority(
+                HOST_A,
+                LibraryConnectivity.ONLINE,
+                accessMode = null,
+            ),
+        )
+        assertNull(store.state.accessMode)
+    }
+    @Test
     fun `same host page reentry preserves last successful content`() {
         val store = readyStore(HOST_A)
         val content = store.state.content
