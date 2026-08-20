@@ -9,6 +9,9 @@ import androidx.preference.PreferenceManager
 import com.limelight.ligase.feature.library.domain.HostSortMode
 import com.limelight.ligase.feature.library.domain.LibraryLayoutMode
 import com.limelight.ligase.input.LigaseTouchOverlayMode
+import com.limelight.ligase.input.LigaseCloudTouchMode
+import com.limelight.ligase.input.LigaseCanonicalGameUuid
+import com.limelight.ligase.input.LigaseInputProfile
 
 enum class InputDeviceMode(val storedValue: String) {
     GAMEPAD("gamepad"),
@@ -53,6 +56,8 @@ object LigasePreferences {
     private const val KEY_TOUCH_VIRTUAL_GAMEPAD = "touch_virtual_gamepad"
     private const val KEY_TOUCHKIT_KEYBOARD = "touch_touchkit_keyboard"
     private const val KEY_TOUCH_OVERLAY_MODE = "touch_overlay_mode"
+    private const val KEY_CLOUD_TOUCH_MODE = "cloud_touch_mode"
+    private const val KEY_GAME_INPUT_PREFIX = "game_input:"
     private const val KEY_GAMEPAD_DEVICE = "input_device:gamepad"
     private const val KEY_KEYBOARD_DEVICE = "input_device:keyboard"
     private const val KEY_MOUSE_DEVICE = "input_device:mouse"
@@ -85,11 +90,71 @@ object LigasePreferences {
         // ambiguous state to TouchKit keyboard so no update can stack them.
         return when {
             prefs.getBoolean(KEY_TOUCHKIT_KEYBOARD, true) ->
-                LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD
+                LigaseTouchOverlayMode.CLOUD_CONTROLS
             prefs.getBoolean(KEY_TOUCH_VIRTUAL_GAMEPAD, true) ->
                 LigaseTouchOverlayMode.VIRTUAL_GAMEPAD
-            else -> LigaseTouchOverlayMode.GESTURES_ONLY
+            else -> LigaseTouchOverlayMode.HIDDEN
         }
+    }
+
+    @JvmStatic
+    fun getCloudTouchMode(context: Context): LigaseCloudTouchMode =
+        LigaseCloudTouchMode.fromStoredValue(
+            preferences(context).getString(KEY_CLOUD_TOUCH_MODE, null),
+        ) ?: LigaseCloudTouchMode.SINGLE_TOUCH
+
+    @JvmStatic
+    fun setCloudTouchMode(context: Context, mode: LigaseCloudTouchMode) {
+        preferences(context).edit().putString(KEY_CLOUD_TOUCH_MODE, mode.storedValue).apply()
+    }
+
+    @JvmStatic
+    fun globalInputProfile(context: Context): LigaseInputProfile = LigaseInputProfile(
+        mode = getInputDeviceMode(context),
+        overlayMode = getTouchOverlayMode(context),
+        cloudTouchMode = getCloudTouchMode(context),
+    )
+
+    @JvmStatic
+    fun gameInputOverride(context: Context, canonicalGameUuid: String): LigaseInputProfile? {
+        val uuid = LigaseCanonicalGameUuid.parse(canonicalGameUuid) ?: return null
+        val prefs = preferences(context)
+        val prefix = KEY_GAME_INPUT_PREFIX + uuid + ":"
+        val mode = InputDeviceMode.fromStoredValue(prefs.getString(prefix + "mode", null))
+            ?: return null
+        val overlay = LigaseTouchOverlayMode.fromStoredValue(
+            prefs.getString(prefix + "overlay", null),
+        ) ?: return null
+        val cloud = LigaseCloudTouchMode.fromStoredValue(
+            prefs.getString(prefix + "cloud", null),
+        ) ?: return null
+        return LigaseInputProfile(mode, overlay, cloud)
+    }
+
+    @JvmStatic
+    fun setGameInputOverride(
+        context: Context,
+        canonicalGameUuid: String,
+        profile: LigaseInputProfile,
+    ): Boolean {
+        val uuid = LigaseCanonicalGameUuid.parse(canonicalGameUuid) ?: return false
+        val prefix = KEY_GAME_INPUT_PREFIX + uuid + ":"
+        return preferences(context).edit()
+            .putString(prefix + "mode", profile.mode.storedValue)
+            .putString(prefix + "overlay", profile.overlayMode.storedValue)
+            .putString(prefix + "cloud", profile.cloudTouchMode.storedValue)
+            .commit()
+    }
+
+    @JvmStatic
+    fun clearGameInputOverride(context: Context, canonicalGameUuid: String): Boolean {
+        val uuid = LigaseCanonicalGameUuid.parse(canonicalGameUuid) ?: return false
+        val prefix = KEY_GAME_INPUT_PREFIX + uuid + ":"
+        return preferences(context).edit()
+            .remove(prefix + "mode")
+            .remove(prefix + "overlay")
+            .remove(prefix + "cloud")
+            .commit()
     }
 
     @JvmStatic

@@ -9,6 +9,7 @@ import com.limelight.ligase.input.LigaseInputDevice
 import com.limelight.ligase.input.LigaseInputLaunchDecision
 import com.limelight.ligase.input.LigaseInputLaunchPolicy
 import com.limelight.ligase.input.LigaseTouchOverlayMode
+import com.limelight.ligase.input.LigaseCloudTouchMode
 import com.limelight.ligase.library.LibraryConnectivity
 import com.limelight.ligase.library.LibraryOperationGate
 import com.limelight.nvstream.http.ComputerDetails
@@ -56,6 +57,7 @@ data class StreamLaunchRequest(
     val selectedMouseKey: String?,
     val connectedInputDevices: List<LigaseInputDevice>,
     val overlayMode: LigaseTouchOverlayMode,
+    val cloudTouchMode: LigaseCloudTouchMode = LigaseCloudTouchMode.SINGLE_TOUCH,
     val preferVirtualDisplay: Boolean,
 )
 
@@ -148,6 +150,7 @@ class StreamLaunchCoordinator(
         val input = LigaseInputLaunchPolicy.resolve(
             mode = request.inputMode,
             overlayMode = request.overlayMode,
+            cloudTouchMode = request.cloudTouchMode,
         ) ?: return StreamLaunchPlanningResult.Blocked(
             StreamLaunchBlockReason.V3_LAYOUT_RUNTIME_UNAVAILABLE,
         )

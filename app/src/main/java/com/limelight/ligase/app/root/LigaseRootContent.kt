@@ -72,6 +72,8 @@ import com.limelight.ligase.input.LigaseInputCategory
 import com.limelight.ligase.input.LigaseInputDevice
 import com.limelight.ligase.input.LigaseInputPage
 import com.limelight.ligase.input.LigaseTouchOverlayMode
+import com.limelight.ligase.input.LigaseCloudTouchMode
+import com.limelight.ligase.input.EffectiveStreamingTouchMode
 import com.limelight.ligase.feature.pairing.ui.AttendedPairingDialog
 import com.limelight.ligase.pairing.AttendedPairingUiState
 import com.limelight.nvstream.http.ComputerDetails
@@ -87,6 +89,9 @@ internal fun LigaseRootContent(
     selectedKeyboardKey: String?,
     selectedMouseKey: String?,
     touchOverlayMode: LigaseTouchOverlayMode,
+    cloudTouchMode: LigaseCloudTouchMode = LigaseCloudTouchMode.SINGLE_TOUCH,
+    effectiveStreamingTouchMode: EffectiveStreamingTouchMode =
+        EffectiveStreamingTouchMode.ABSOLUTE_POINTER,
     languageMode: LigaseLanguageMode,
     hosts: List<ComputerDetails>,
     libraryHost: ComputerDetails?,
@@ -115,6 +120,7 @@ internal fun LigaseRootContent(
     onInputConfirmed: () -> Unit,
     onInputDeviceSelected: (LigaseInputCategory, String) -> Unit,
     onTouchOverlayModeChanged: (LigaseTouchOverlayMode) -> Unit,
+    onCloudTouchModeChanged: (LigaseCloudTouchMode) -> Unit = {},
     onThemeSelected: (LigaseThemeMode) -> Unit,
     onLanguageSelected: (LigaseLanguageMode) -> Unit,
     onHostClick: (ComputerDetails) -> Unit,
@@ -153,10 +159,14 @@ internal fun LigaseRootContent(
                     selectedKeyboardKey = selectedKeyboardKey,
                     selectedMouseKey = selectedMouseKey,
                     touchOverlayMode = touchOverlayMode,
+                    cloudTouchMode = cloudTouchMode,
+                    inputSettingsWritable = true,
+                    effectiveStreamingTouchMode = effectiveStreamingTouchMode,
                     onInputSelected = onInputSelected,
                     onInputConfirmed = onInputConfirmed,
                     onDeviceSelected = onInputDeviceSelected,
                     onTouchOverlayModeChanged = onTouchOverlayModeChanged,
+                    onCloudTouchModeChanged = onCloudTouchModeChanged,
                 )
             } else {
                 val navigationPlacement = currentLigaseNavigationPlacement()
@@ -306,11 +316,19 @@ internal fun LigaseRootContent(
                                 selectedGamepadKey = selectedGamepadKey,
                                 selectedKeyboardKey = selectedKeyboardKey,
                                 selectedMouseKey = selectedMouseKey,
-                                touchOverlayMode = touchOverlayMode,
+                                touchOverlayMode = if (libraryCanConfigureInput) {
+                                    touchOverlayMode
+                                } else {
+                                    LigaseTouchOverlayMode.HIDDEN
+                                },
+                                cloudTouchMode = cloudTouchMode,
+                                inputSettingsWritable = libraryCanConfigureInput,
+                                effectiveStreamingTouchMode = effectiveStreamingTouchMode,
                                 onInputSelected = onInputSelected,
                                 onInputConfirmed = onInputConfirmed,
                                 onDeviceSelected = onInputDeviceSelected,
                                 onTouchOverlayModeChanged = onTouchOverlayModeChanged,
+                                onCloudTouchModeChanged = onCloudTouchModeChanged,
                                 listState = inputListState,
                             )
                             LigasePage.SETTINGS -> SettingsScreen(

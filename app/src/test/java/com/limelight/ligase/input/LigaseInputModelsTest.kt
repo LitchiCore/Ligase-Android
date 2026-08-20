@@ -122,13 +122,14 @@ class LigaseInputModelsTest {
     }
 
     @Test
-    fun `v3 layout runtime fails closed while not implemented`() {
-        assertNull(
-            LigaseInputLaunchPolicy.resolve(
-                com.limelight.ligase.InputDeviceMode.TOUCH,
-                LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD,
-            ),
-        )
+    fun `cloud controls carry the selected touch transport without virtual gamepad`() {
+        val decision = LigaseInputLaunchPolicy.resolve(
+            com.limelight.ligase.InputDeviceMode.TOUCH,
+            LigaseTouchOverlayMode.CLOUD_CONTROLS,
+            LigaseCloudTouchMode.TRACKPAD,
+        )!!
+        assertFalse(decision.showVirtualGamepad)
+        assertEquals(LigaseCloudTouchMode.TRACKPAD, decision.cloudTouchMode)
     }
 
     @Test
@@ -137,27 +138,30 @@ class LigaseInputModelsTest {
             mode = com.limelight.ligase.InputDeviceMode.TOUCH,
             overlayMode = LigaseTouchOverlayMode.VIRTUAL_GAMEPAD,
         )!!
-        val keyboardOnly = LigaseInputLaunchPolicy.resolve(
+        val cloudControls = LigaseInputLaunchPolicy.resolve(
             mode = com.limelight.ligase.InputDeviceMode.TOUCH,
-            overlayMode = LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD,
+            overlayMode = LigaseTouchOverlayMode.CLOUD_CONTROLS,
         )
         val gesturesOnly = LigaseInputLaunchPolicy.resolve(
             mode = com.limelight.ligase.InputDeviceMode.TOUCH,
-            overlayMode = LigaseTouchOverlayMode.GESTURES_ONLY,
+            overlayMode = LigaseTouchOverlayMode.HIDDEN,
         )!!
 
         assertTrue(gamepadOnly.showVirtualGamepad)
-        assertNull(keyboardOnly)
+        assertFalse(cloudControls!!.showVirtualGamepad)
         assertFalse(gesturesOnly.showTouchControls)
     }
 
     @Test
-    fun `keyboard overlay cannot use legacy layout availability`() {
-        assertNull(
-            LigaseInputLaunchPolicy.resolve(
-                mode = com.limelight.ligase.InputDeviceMode.TOUCH,
-                overlayMode = LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD,
-            ),
+    fun `observe projection hides controls without changing stored profile`() {
+        val stored = LigaseInputProfile(
+            com.limelight.ligase.InputDeviceMode.TOUCH,
+            LigaseTouchOverlayMode.CLOUD_CONTROLS,
+            LigaseCloudTouchMode.MULTI_TOUCH,
         )
+        val projected = LigaseInputProfilePolicy.resolve(stored, null, canOperate = false)
+        assertEquals(LigaseTouchOverlayMode.HIDDEN, projected.profile.overlayMode)
+        assertFalse(projected.writable)
+        assertEquals(LigaseTouchOverlayMode.CLOUD_CONTROLS, stored.overlayMode)
     }
 }

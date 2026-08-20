@@ -19,6 +19,7 @@ import com.limelight.binding.PlatformBinding;
 import com.limelight.computers.ComputerManagerService;
 import com.limelight.ligase.LigasePreferences;
 import com.limelight.ligase.InputDeviceMode;
+import com.limelight.ligase.input.LigaseInputLaunchDecision;
 import com.limelight.nvstream.http.ComputerDetails;
 import com.limelight.nvstream.http.HostHttpResponseException;
 import com.limelight.nvstream.http.NvApp;
@@ -161,6 +162,26 @@ public class ServerHelper {
         return gameIntent;
     }
 
+    public static Intent createLigaseStartIntent(
+            Activity parent,
+            NvApp app,
+            ComputerDetails computer,
+            ComputerManagerService.ComputerManagerBinder managerBinder,
+            boolean withVDisplay,
+            int ligaseWidth,
+            int ligaseHeight,
+            boolean ligaseHostHdrSupported,
+            LigaseInputLaunchDecision input
+    ) {
+        Intent intent = createStartIntent(parent, app, computer, managerBinder, withVDisplay,
+                ligaseWidth, ligaseHeight, ligaseHostHdrSupported, true);
+        intent.putExtra(Game.EXTRA_LIGASE_INPUT_MODE, input.getModeValue());
+        intent.putExtra(Game.EXTRA_LIGASE_VIRTUAL_GAMEPAD, input.getShowVirtualGamepad());
+        intent.putExtra(Game.EXTRA_LIGASE_CLOUD_TOUCH_MODE,
+                input.getCloudTouchMode().getStoredValue());
+        return intent;
+    }
+
     @RequiresApi(api = Build.VERSION_CODES.O)
     public static void doStart(
             Activity parent,
@@ -170,6 +191,27 @@ public class ServerHelper {
             boolean withVDisplay
     ) {
         doStart(parent, app, computer, managerBinder, withVDisplay, 0, 0, false, false);
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    public static void doStart(
+            Activity parent,
+            NvApp app,
+            ComputerDetails computer,
+            ComputerManagerService.ComputerManagerBinder managerBinder,
+            boolean withVDisplay,
+            int ligaseWidth,
+            int ligaseHeight,
+            boolean ligaseHostHdrSupported,
+            LigaseInputLaunchDecision input
+    ) {
+        if (computer.state == ComputerDetails.State.OFFLINE || computer.activeAddress == null) {
+            Toast.makeText(parent, parent.getString(R.string.pair_pc_offline), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Intent intent = createLigaseStartIntent(parent, app, computer, managerBinder, withVDisplay,
+                ligaseWidth, ligaseHeight, ligaseHostHdrSupported, input);
+        parent.startActivity(intent);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)

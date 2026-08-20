@@ -31,7 +31,7 @@ public class LigaseInputLaunchIntentTest {
         Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
         LigasePreferences.setInputDeviceMode(activity, InputDeviceMode.TOUCH);
         LigasePreferences.setTouchOverlayMode(activity,
-                LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD);
+                LigaseTouchOverlayMode.CLOUD_CONTROLS);
         ComputerManagerService.ComputerManagerBinder binder =
                 mock(ComputerManagerService.ComputerManagerBinder.class);
         when(binder.getUniqueId()).thenReturn("android-client-id");
@@ -72,6 +72,27 @@ public class LigaseInputLaunchIntentTest {
     }
 
     @Test
+    public void typedLaunchDecisionOverridesLegacyGlobalForCanonicalGamePlan() {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        LigasePreferences.setInputDeviceMode(activity, InputDeviceMode.GAMEPAD);
+        ComputerManagerService.ComputerManagerBinder binder =
+                mock(ComputerManagerService.ComputerManagerBinder.class);
+        when(binder.getUniqueId()).thenReturn("android-client-id");
+        LigaseInputLaunchDecision decision = new LigaseInputLaunchDecision(
+                InputDeviceMode.TOUCH.getStoredValue(),
+                false,
+                LigaseCloudTouchMode.TRACKPAD);
+
+        Intent intent = ServerHelper.createLigaseStartIntent(
+                activity, new NvApp("Game", "app-uuid", 42, false), computer(), binder,
+                true, 1920, 1080, true, decision);
+
+        assertEquals("touch", intent.getStringExtra(Game.EXTRA_LIGASE_INPUT_MODE));
+        assertEquals("trackpad", intent.getStringExtra(Game.EXTRA_LIGASE_CLOUD_TOUCH_MODE));
+        assertFalse(intent.getBooleanExtra(Game.EXTRA_LIGASE_VIRTUAL_GAMEPAD, true));
+    }
+
+    @Test
     public void legacyStackedLayersMigrateToSingleKeyboardChoice() {
         Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
         activity.getSharedPreferences("ligase_product_preferences", Activity.MODE_PRIVATE)
@@ -81,7 +102,7 @@ public class LigaseInputLaunchIntentTest {
                 .apply();
 
         assertEquals(
-                LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD,
+                LigaseTouchOverlayMode.CLOUD_CONTROLS,
                 LigasePreferences.getTouchOverlayMode(activity));
         LigasePreferences.setTouchOverlayMode(
                 activity,

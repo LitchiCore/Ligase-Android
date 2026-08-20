@@ -46,6 +46,12 @@ pointer edge 逐字映射为 Host touch DOWN/UP/MOVE/CANCEL；pointer 模式的 
 async main handler，避免释放边被串流帧同步屏障延迟。viewport mapper 以实际视频 View 的
 平移、缩放和尺寸归一化并裁剪黑边输入；旋转只消费旋转后 View 尺寸，不按 DPI 猜坐标。
 
+`InputSelectionCoordinator` 与 `LigasePreferences` 是本机输入配置的唯一 owner。全局 profile
+只使用 closed 的 overlay 与 cloud-touch mode；单游戏覆盖只按 Host Sync 提供的 canonical
+lowercase app UUID 读写，不按名称、Steam App ID 或 launch ID 猜测。launch plan 携带已解析的
+typed profile，`Game` 不再重新读取另一份全局触控选择。observe 权限只投影 `HIDDEN` 且只读，
+不会清除或改写用户原有全局/单游戏偏好；离线本机全局设置仍可编辑。
+
 Library 的 Host identity/binding/cover consumer 由 `AndroidSyncV1StrictCodec`、
 `HostLayoutBindingResolver` 与 `HostAppAssetRepository` 分责：codec 在进入 session 前执行
 closed wire 校验；resolver 只把 Host exact binding 与已验证的本机 v3 revision 对齐；

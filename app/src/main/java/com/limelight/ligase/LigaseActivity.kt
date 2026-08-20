@@ -304,6 +304,9 @@ class LigaseActivity : AppCompatActivity() {
                 selectedKeyboardKey = checkNotNull(inputSelectionState).selectedKeyboardKey,
                 selectedMouseKey = checkNotNull(inputSelectionState).selectedMouseKey,
                 touchOverlayMode = checkNotNull(inputSelectionState).overlayMode,
+                cloudTouchMode = checkNotNull(inputSelectionState).cloudTouchMode,
+                effectiveStreamingTouchMode =
+                    checkNotNull(inputSelectionState).effectiveStreamingTouchMode,
                 languageMode = languageMode,
                 hosts = hosts,
                 libraryHost = libraryHost,
@@ -324,22 +327,11 @@ class LigaseActivity : AppCompatActivity() {
                     libraryState.connectivity,
                     libraryAccessMode,
                 ),
-                libraryCanConfigureInput =
-                    if (
-                        libraryHost != null &&
-                        libraryHost?.pairState == PairState.PAIRED
-                    ) {
-                        LibraryOperationGate.canOperate(
-                            libraryState.connectivity,
-                            libraryAccessMode,
-                        )
-                    } else {
-                        LigaseAccessUiPolicy.canConfigureInput(
-                            hasSelectedHost = libraryHost != null,
-                            paired = false,
-                            accessMode = libraryAccessMode,
-                        )
-                    },
+                libraryCanConfigureInput = LigaseAccessUiPolicy.canConfigureInput(
+                    hasSelectedHost = libraryHost != null,
+                    paired = libraryHost?.pairState == PairState.PAIRED,
+                    accessMode = libraryAccessMode,
+                ),
                 manualSortState = librarySessionViewModel.manualSortState,
                 layoutV3EditorWorkspaceState = layoutV3EditorWorkspaceState,
                 pairingState = pairingViewModel.state,
@@ -348,6 +340,7 @@ class LigaseActivity : AppCompatActivity() {
                 onInputConfirmed = ::confirmInput,
                 onInputDeviceSelected = ::selectInputDevice,
                 onTouchOverlayModeChanged = ::selectTouchOverlayMode,
+                onCloudTouchModeChanged = ::selectCloudTouchMode,
                 onThemeSelected = ::selectTheme,
                 onLanguageSelected = ::selectLanguage,
                 onHostClick = ::onHostClicked,
@@ -386,15 +379,35 @@ class LigaseActivity : AppCompatActivity() {
     }
 
     private fun selectInput(mode: InputDeviceMode) {
+        if (libraryHost?.ligaseClientAccessMode == "observe") {
+            toast(R.string.ligase_observe_mode_action_blocked)
+            return
+        }
         inputSelectionCoordinator.selectMode(mode)
     }
 
     private fun selectInputDevice(category: LigaseInputCategory, stableKey: String) {
+        if (libraryHost?.ligaseClientAccessMode == "observe") {
+            toast(R.string.ligase_observe_mode_action_blocked)
+            return
+        }
         inputSelectionCoordinator.selectDevice(category, stableKey)
     }
 
     private fun selectTouchOverlayMode(mode: LigaseTouchOverlayMode) {
+        if (libraryHost?.ligaseClientAccessMode == "observe") {
+            toast(R.string.ligase_observe_mode_action_blocked)
+            return
+        }
         inputSelectionCoordinator.selectOverlayMode(mode)
+    }
+
+    private fun selectCloudTouchMode(mode: com.limelight.ligase.input.LigaseCloudTouchMode) {
+        if (libraryHost?.ligaseClientAccessMode == "observe") {
+            toast(R.string.ligase_observe_mode_action_blocked)
+            return
+        }
+        inputSelectionCoordinator.selectCloudTouchMode(mode)
     }
 
     private fun selectTheme(mode: LigaseThemeMode) {
@@ -760,18 +773,26 @@ class LigaseActivity : AppCompatActivity() {
         val host = libraryHost ?: return
         val snapshot = librarySessionViewModel.state.content?.sync ?: return
         val inputState = checkNotNull(inputSelectionState)
-        val inputMode = inputSelectionCoordinator.effectiveMode()
+        val canonicalAppUuid = item.hostAppUuid ?: return
+        val inputProfile = inputSelectionCoordinator.launchProfile(
+            canonicalGameUuid = canonicalAppUuid,
+            canOperate = LibraryOperationGate.canOperate(
+                librarySessionViewModel.state.connectivity,
+                host.ligaseClientAccessMode,
+            ),
+        ).profile
         val result = streamLaunchCoordinator.plan(
             StreamLaunchRequest(
                 item = item,
                 snapshot = snapshot,
                 connectivity = librarySessionViewModel.state.connectivity,
-                inputMode = inputMode,
+                inputMode = inputProfile.mode,
                 selectedGamepadKey = inputState.selectedGamepadKey,
                 selectedKeyboardKey = inputState.selectedKeyboardKey,
                 selectedMouseKey = inputState.selectedMouseKey,
                 connectedInputDevices = inputState.devices,
-                overlayMode = inputState.overlayMode,
+                overlayMode = inputProfile.overlayMode,
+                cloudTouchMode = inputProfile.cloudTouchMode,
                 preferVirtualDisplay =
                     PreferenceConfiguration.readPreferences(this).useVirtualDisplay,
             ),

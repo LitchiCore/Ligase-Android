@@ -33,6 +33,7 @@ import com.limelight.ligase.input.LigaseInputSelectionStatus
 fun LazyListScope.inputDeviceItems(
     selection: InputDeviceSelectionPresentation,
     @StringRes emptyText: Int,
+    enabled: Boolean = true,
     onDeviceSelected: (LigaseInputCategory, String) -> Unit,
 ) {
     if (selection.devices.isEmpty()) {
@@ -45,6 +46,7 @@ fun LazyListScope.inputDeviceItems(
             InputDeviceCard(
                 device = device,
                 selected = device.stableKey == selection.selectedKey,
+                enabled = enabled,
                 onClick = {
                     onDeviceSelected(device.category, device.stableKey)
                 },
@@ -65,12 +67,13 @@ fun LazyListScope.inputDeviceItems(
 private fun InputDeviceCard(
     device: LigaseInputDevice,
     selected: Boolean,
+    enabled: Boolean,
     onClick: () -> Unit,
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(enabled = enabled, onClick = onClick),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (selected) LigaseSemanticTheme.colors.selected
@@ -97,7 +100,7 @@ private fun InputDeviceCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            RadioButton(selected = selected, onClick = onClick)
+            RadioButton(selected = selected, onClick = onClick, enabled = enabled)
         }
     }
 }

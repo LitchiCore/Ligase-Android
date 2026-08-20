@@ -5,9 +5,10 @@ import com.limelight.ligase.InputDeviceMode
 import com.limelight.ligase.LigasePreferences
 import com.limelight.ligase.input.LigaseInputCategory
 import com.limelight.ligase.input.LigaseTouchOverlayMode
+import com.limelight.ligase.input.LigaseCloudTouchMode
+import com.limelight.ligase.input.LigaseInputProfile
 import com.limelight.ligase.input.EffectiveStreamingTouchMode
 import com.limelight.ligase.input.EffectiveStreamingTouchModePolicy
-import com.limelight.preferences.PreferenceConfiguration
 
 /**
  * Concrete adapter for the existing product preference keys.
@@ -40,11 +41,24 @@ class LegacyInputSelectionPreferences(
         LigasePreferences.setTouchOverlayMode(context, mode)
     }
 
+    fun cloudTouchMode(): LigaseCloudTouchMode = LigasePreferences.getCloudTouchMode(context)
+
+    fun setCloudTouchMode(mode: LigaseCloudTouchMode) {
+        LigasePreferences.setCloudTouchMode(context, mode)
+    }
+
+    fun globalProfile(): LigaseInputProfile = LigasePreferences.globalInputProfile(context)
+
+    fun gameOverride(canonicalGameUuid: String): LigaseInputProfile? =
+        LigasePreferences.gameInputOverride(context, canonicalGameUuid)
+
+    fun setGameOverride(canonicalGameUuid: String, profile: LigaseInputProfile): Boolean =
+        LigasePreferences.setGameInputOverride(context, canonicalGameUuid, profile)
+
+    fun clearGameOverride(canonicalGameUuid: String): Boolean =
+        LigasePreferences.clearGameInputOverride(context, canonicalGameUuid)
+
     fun effectiveStreamingTouchMode(): EffectiveStreamingTouchMode {
-        val config = PreferenceConfiguration.readPreferences(context)
-        return EffectiveStreamingTouchModePolicy.resolve(
-            enableMultiTouchScreen = config.enableMultiTouchScreen,
-            touchscreenTrackpad = config.touchscreenTrackpad,
-        )
+        return EffectiveStreamingTouchModePolicy.resolve(cloudTouchMode())
     }
 }

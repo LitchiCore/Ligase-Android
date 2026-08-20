@@ -23,17 +23,56 @@ import androidx.compose.ui.unit.dp
 import com.limelight.R
 import com.limelight.ligase.LigaseSemanticTheme
 import com.limelight.ligase.input.LigaseTouchOverlayMode
+import com.limelight.ligase.input.LigaseCloudTouchMode
+import com.limelight.ligase.input.EffectiveStreamingTouchMode
 
 fun LazyListScope.touchInputItems(
     touchOverlayMode: LigaseTouchOverlayMode,
+    cloudTouchMode: LigaseCloudTouchMode,
+    writable: Boolean,
+    effectiveStreamingTouchMode: EffectiveStreamingTouchMode,
     onTouchOverlayModeChanged: (LigaseTouchOverlayMode) -> Unit,
+    onCloudTouchModeChanged: (LigaseCloudTouchMode) -> Unit,
 ) {
     item { InputSectionTitle(R.string.ligase_touch_overlays) }
+    item {
+        InputNoticeCard(
+            text = stringResource(
+                when (effectiveStreamingTouchMode) {
+                    EffectiveStreamingTouchMode.DIRECT_TOUCH -> R.string.ligase_effective_touch_direct
+                    EffectiveStreamingTouchMode.ABSOLUTE_POINTER -> R.string.ligase_effective_touch_absolute
+                    EffectiveStreamingTouchMode.TRACKPAD -> R.string.ligase_effective_touch_trackpad
+                },
+            ),
+            error = false,
+        )
+    }
     item {
         TouchOverlaySelector(
             mode = touchOverlayMode,
             onChanged = onTouchOverlayModeChanged,
+            writable = writable,
         )
+    }
+    if (touchOverlayMode == LigaseTouchOverlayMode.CLOUD_CONTROLS) {
+        item { InputSectionTitle(R.string.ligase_cloud_touch_mode) }
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                LigaseCloudTouchMode.entries.forEach { option ->
+                    TouchOverlayOptionCard(
+                        title = when (option) {
+                            LigaseCloudTouchMode.SINGLE_TOUCH -> R.string.mouse_mode_absolute_touch
+                            LigaseCloudTouchMode.MULTI_TOUCH -> R.string.mouse_mode_multi_touch
+                            LigaseCloudTouchMode.TRACKPAD -> R.string.title_checkbox_touchscreen_trackpad
+                        },
+                        summary = R.string.ligase_cloud_touch_mode_summary,
+                        selected = cloudTouchMode == option,
+                        enabled = writable,
+                        onClick = { onCloudTouchModeChanged(option) },
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -41,6 +80,7 @@ fun LazyListScope.touchInputItems(
 private fun TouchOverlaySelector(
     mode: LigaseTouchOverlayMode,
     onChanged: (LigaseTouchOverlayMode) -> Unit,
+    writable: Boolean,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
@@ -53,12 +93,21 @@ private fun TouchOverlaySelector(
             summary = R.string.ligase_virtual_gamepad_option_summary,
             selected = mode == LigaseTouchOverlayMode.VIRTUAL_GAMEPAD,
             onClick = { onChanged(LigaseTouchOverlayMode.VIRTUAL_GAMEPAD) },
+            enabled = writable,
+        )
+        TouchOverlayOptionCard(
+            title = R.string.ligase_cloud_controls,
+            summary = R.string.ligase_cloud_controls_summary,
+            selected = mode == LigaseTouchOverlayMode.CLOUD_CONTROLS,
+            onClick = { onChanged(LigaseTouchOverlayMode.CLOUD_CONTROLS) },
+            enabled = writable,
         )
         TouchOverlayOptionCard(
             title = R.string.ligase_no_screen_controls,
             summary = R.string.ligase_no_screen_controls_summary,
-            selected = mode == LigaseTouchOverlayMode.GESTURES_ONLY,
-            onClick = { onChanged(LigaseTouchOverlayMode.GESTURES_ONLY) },
+            selected = mode == LigaseTouchOverlayMode.HIDDEN,
+            onClick = { onChanged(LigaseTouchOverlayMode.HIDDEN) },
+            enabled = writable,
         )
     }
 }
@@ -68,12 +117,13 @@ private fun TouchOverlayOptionCard(
     @StringRes title: Int,
     @StringRes summary: Int,
     selected: Boolean,
+    enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(enabled = enabled, onClick = onClick),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (selected) {
@@ -99,7 +149,7 @@ private fun TouchOverlayOptionCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            RadioButton(selected = selected, onClick = null)
+            RadioButton(selected = selected, onClick = null, enabled = enabled)
         }
     }
 }

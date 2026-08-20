@@ -273,6 +273,7 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
     public static final String EXTRA_SERVER_COMMANDS = "ServerCommands";
     public static final String EXTRA_DISPLAY_ID = "DisplayID";
     public static final String EXTRA_LIGASE_INPUT_MODE = "LigaseInputMode";
+    public static final String EXTRA_LIGASE_CLOUD_TOUCH_MODE = "LigaseCloudTouchMode";
     public static final String EXTRA_LIGASE_VIRTUAL_GAMEPAD = "LigaseVirtualGamepad";
     public static final String EXTRA_LIGASE_WIDTH = "LigaseWidth";
     public static final String EXTRA_LIGASE_HEIGHT = "LigaseHeight";
@@ -391,6 +392,19 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
         if (ligaseShowTouchControls != null) {
             prefConfig.onscreenController = ligaseVirtualGamepad;
             prefConfig.touchkitAdjustableOverlay = false;
+            String cloudTouchMode = getIntent().getStringExtra(EXTRA_LIGASE_CLOUD_TOUCH_MODE);
+            if ("multiTouch".equals(cloudTouchMode)) {
+                prefConfig.enableMultiTouchScreen = true;
+                prefConfig.touchscreenTrackpad = false;
+            }
+            else if ("trackpad".equals(cloudTouchMode)) {
+                prefConfig.enableMultiTouchScreen = false;
+                prefConfig.touchscreenTrackpad = true;
+            }
+            else if ("singleTouch".equals(cloudTouchMode)) {
+                prefConfig.enableMultiTouchScreen = false;
+                prefConfig.touchscreenTrackpad = false;
+            }
         }
         tombstonePrefs = Game.this.getSharedPreferences("DecoderTombstone", 0);
 

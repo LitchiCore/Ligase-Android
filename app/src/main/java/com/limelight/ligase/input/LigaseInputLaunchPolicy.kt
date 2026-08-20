@@ -1,12 +1,10 @@
 package com.limelight.ligase.input
 
 import com.limelight.ligase.InputDeviceMode
-import com.limelight.ligase.feature.input.layout.v3.application.LayoutV3RuntimeDecision
-import com.limelight.ligase.feature.input.layout.v3.application.LayoutV3RuntimeGate
-
 data class LigaseInputLaunchDecision(
     val modeValue: String,
     val showVirtualGamepad: Boolean,
+    val cloudTouchMode: LigaseCloudTouchMode,
 ) {
     val showTouchControls: Boolean
         get() = showVirtualGamepad
@@ -24,28 +22,25 @@ object LigaseInputLaunchPolicy {
 
     fun resolve(
         mode: InputDeviceMode,
-        overlayMode: LigaseTouchOverlayMode = LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD,
+        overlayMode: LigaseTouchOverlayMode = LigaseTouchOverlayMode.CLOUD_CONTROLS,
+        cloudTouchMode: LigaseCloudTouchMode = LigaseCloudTouchMode.SINGLE_TOUCH,
     ): LigaseInputLaunchDecision? = when (mode) {
         InputDeviceMode.GAMEPAD -> LigaseInputLaunchDecision(
             modeValue = mode.storedValue,
             showVirtualGamepad = false,
+            cloudTouchMode = cloudTouchMode,
         )
         InputDeviceMode.KEYBOARD_MOUSE -> LigaseInputLaunchDecision(
             modeValue = mode.storedValue,
             showVirtualGamepad = false,
+            cloudTouchMode = cloudTouchMode,
         )
         InputDeviceMode.TOUCH -> {
-            if (overlayMode == LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD &&
-                LayoutV3RuntimeGate.current() is LayoutV3RuntimeDecision.Unavailable
-            ) {
-                null
-            } else {
-                LigaseInputLaunchDecision(
-                    modeValue = mode.storedValue,
-                    showVirtualGamepad =
-                        overlayMode == LigaseTouchOverlayMode.VIRTUAL_GAMEPAD,
-                )
-            }
+            LigaseInputLaunchDecision(
+                modeValue = mode.storedValue,
+                showVirtualGamepad = overlayMode == LigaseTouchOverlayMode.VIRTUAL_GAMEPAD,
+                cloudTouchMode = cloudTouchMode,
+            )
         }
     }
 }

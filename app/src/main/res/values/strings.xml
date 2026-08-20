@@ -1326,4 +1326,11 @@
     <string name="ligase_layout_v3_radial_action_number">Action %1$d</string>
     <string name="ligase_layout_v3_no_keys_selected">No keys selected</string>
     <string name="ligase_layout_v3_create">Create</string>
+    <string name="ligase_cloud_controls">Cloud gaming controls</string>
+    <string name="ligase_cloud_controls_summary">Use single-touch, multi-touch, or trackpad input without a virtual gamepad.</string>
+    <string name="ligase_cloud_touch_mode">Global touch behavior</string>
+    <string name="ligase_cloud_touch_mode_summary">This global choice is used unless a game has a canonical UUID override.</string>
+    <string name="ligase_effective_touch_direct">Effective stream mode: direct multi-touch</string>
+    <string name="ligase_effective_touch_absolute">Effective stream mode: single-touch absolute pointer</string>
+    <string name="ligase_effective_touch_trackpad">Effective stream mode: trackpad</string>
 </resources>

@@ -22,14 +22,84 @@ data class LigaseInputDevice(
 )
 
 enum class LigaseTouchOverlayMode(val storedValue: String) {
-    TOUCHKIT_KEYBOARD("touchkitKeyboard"),
     VIRTUAL_GAMEPAD("virtualGamepad"),
-    GESTURES_ONLY("gesturesOnly");
+    CLOUD_CONTROLS("cloudControls"),
+    HIDDEN("hidden");
 
     companion object {
         fun fromStoredValue(value: String?): LigaseTouchOverlayMode? =
+            entries.firstOrNull { it.storedValue == value } ?: when (value) {
+                "touchkitKeyboard" -> CLOUD_CONTROLS
+                "gesturesOnly" -> HIDDEN
+                else -> null
+            }
+    }
+}
+
+enum class LigaseCloudTouchMode(val storedValue: String) {
+    SINGLE_TOUCH("singleTouch"),
+    MULTI_TOUCH("multiTouch"),
+    TRACKPAD("trackpad");
+
+    companion object {
+        fun fromStoredValue(value: String?): LigaseCloudTouchMode? =
             entries.firstOrNull { it.storedValue == value }
     }
+}
+
+data class LigaseInputProfile(
+    val mode: com.limelight.ligase.InputDeviceMode,
+    val overlayMode: LigaseTouchOverlayMode,
+    val cloudTouchMode: LigaseCloudTouchMode,
+)
+
+data class LigaseEffectiveInputProfile(
+    val profile: LigaseInputProfile,
+    val source: Source,
+    val writable: Boolean,
+) {
+    enum class Source { GLOBAL, GAME_OVERRIDE, OBSERVE_FORCED_HIDDEN }
+}
+
+object LigaseCanonicalGameUuid {
+    private val pattern =
+        Regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+
+    fun parse(value: String?): String? = value?.takeIf(pattern::matches)
+}
+
+object LigaseInputProfilePolicy {
+    fun resolve(
+        global: LigaseInputProfile,
+        gameOverride: LigaseInputProfile?,
+        canOperate: Boolean,
+    ): LigaseEffectiveInputProfile {
+        val selected = gameOverride ?: global
+        if (!canOperate) {
+            return LigaseEffectiveInputProfile(
+                profile = selected.copy(overlayMode = LigaseTouchOverlayMode.HIDDEN),
+                source = LigaseEffectiveInputProfile.Source.OBSERVE_FORCED_HIDDEN,
+                writable = false,
+            )
+        }
+        return LigaseEffectiveInputProfile(
+            profile = selected,
+            source = if (gameOverride == null) {
+                LigaseEffectiveInputProfile.Source.GLOBAL
+            } else {
+                LigaseEffectiveInputProfile.Source.GAME_OVERRIDE
+            },
+            writable = true,
+        )
+    }
+}
+
+enum class LigaseInputOverrideWriteResult {
+    SAVED,
+    CLEARED,
+    INVALID_GAME_UUID,
+    READ_ONLY,
+    WRITE_FAILED,
 }
 
 /** Safe projection of the touch transport that will actually handle stream gestures. */
@@ -47,6 +117,12 @@ object EffectiveStreamingTouchModePolicy {
         touchscreenTrackpad -> EffectiveStreamingTouchMode.TRACKPAD
         enableMultiTouchScreen -> EffectiveStreamingTouchMode.DIRECT_TOUCH
         else -> EffectiveStreamingTouchMode.ABSOLUTE_POINTER
+    }
+
+    fun resolve(mode: LigaseCloudTouchMode): EffectiveStreamingTouchMode = when (mode) {
+        LigaseCloudTouchMode.SINGLE_TOUCH -> EffectiveStreamingTouchMode.ABSOLUTE_POINTER
+        LigaseCloudTouchMode.MULTI_TOUCH -> EffectiveStreamingTouchMode.DIRECT_TOUCH
+        LigaseCloudTouchMode.TRACKPAD -> EffectiveStreamingTouchMode.TRACKPAD
     }
 }
 

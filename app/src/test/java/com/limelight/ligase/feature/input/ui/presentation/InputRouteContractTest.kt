@@ -23,6 +23,6 @@ class InputRouteContractTest {
         selectedGamepadKey = null,
         selectedKeyboardKey = null,
         selectedMouseKey = null,
-        touchOverlayMode = LigaseTouchOverlayMode.GESTURES_ONLY,
+        touchOverlayMode = LigaseTouchOverlayMode.HIDDEN,
     )
 }

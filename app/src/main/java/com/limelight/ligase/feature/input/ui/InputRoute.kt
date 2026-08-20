@@ -63,6 +63,7 @@ fun InputRoute(
                 CurrentInputSummaryCard(
                     presentation = presentation,
                     touchOverlayMode = state.touchOverlayMode,
+                    writable = state.inputSettingsWritable,
                     onChange = { showModePicker = true },
                 )
             }
@@ -72,6 +73,7 @@ fun InputRoute(
                     inputDeviceItems(
                         selection = presentation.gamepads,
                         emptyText = R.string.ligase_no_controller_detected,
+                        enabled = state.inputSettingsWritable,
                         onDeviceSelected = actions.onDeviceSelected,
                     )
                 }
@@ -80,19 +82,25 @@ fun InputRoute(
                     inputDeviceItems(
                         selection = presentation.keyboards,
                         emptyText = R.string.ligase_no_keyboard_detected,
+                        enabled = state.inputSettingsWritable,
                         onDeviceSelected = actions.onDeviceSelected,
                     )
                     item { InputSectionTitle(R.string.ligase_detected_mice) }
                     inputDeviceItems(
                         selection = presentation.mice,
                         emptyText = R.string.ligase_no_mouse_detected,
+                        enabled = state.inputSettingsWritable,
                         onDeviceSelected = actions.onDeviceSelected,
                     )
                 }
                 InputDeviceMode.TOUCH -> {
                     touchInputItems(
                         touchOverlayMode = state.touchOverlayMode,
+                        cloudTouchMode = state.cloudTouchMode,
+                        writable = state.inputSettingsWritable,
+                        effectiveStreamingTouchMode = state.effectiveStreamingTouchMode,
                         onTouchOverlayModeChanged = actions.onTouchOverlayModeChanged,
+                        onCloudTouchModeChanged = actions.onCloudTouchModeChanged,
                     )
                 }
             }

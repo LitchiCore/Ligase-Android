@@ -12,6 +12,9 @@ import androidx.preference.PreferenceManager;
 import com.limelight.ligase.feature.library.domain.HostSortMode;
 import com.limelight.ligase.feature.library.domain.LibraryLayoutMode;
 import com.limelight.ligase.input.LigaseInputCategory;
+import com.limelight.ligase.input.LigaseCloudTouchMode;
+import com.limelight.ligase.input.LigaseInputProfile;
+import com.limelight.ligase.input.LigaseTouchOverlayMode;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -60,6 +63,25 @@ public class LigasePreferencesTest {
         assertEquals(null, LigasePreferences.getSelectedInputDevice(
                 context,
                 LigaseInputCategory.KEYBOARD));
+    }
+
+    @Test
+    public void canonicalGameUuidOverrideRoundTripsWithoutChangingGlobal() {
+        String uuid = "67209ea3-7129-42d0-9349-52f8799d292d";
+        LigasePreferences.setInputDeviceMode(context, InputDeviceMode.TOUCH);
+        LigasePreferences.setTouchOverlayMode(context, LigaseTouchOverlayMode.CLOUD_CONTROLS);
+        LigaseInputProfile override = new LigaseInputProfile(
+                InputDeviceMode.GAMEPAD,
+                LigaseTouchOverlayMode.HIDDEN,
+                LigaseCloudTouchMode.TRACKPAD);
+
+        assertTrue(LigasePreferences.setGameInputOverride(context, uuid, override));
+        assertEquals(override, LigasePreferences.gameInputOverride(context, uuid));
+        assertEquals(InputDeviceMode.TOUCH,
+                LigasePreferences.globalInputProfile(context).getMode());
+        assertFalse(LigasePreferences.setGameInputOverride(
+                context, uuid.toUpperCase(), override));
+        assertEquals(null, LigasePreferences.gameInputOverride(context, uuid.toUpperCase()));
     }
 
     @Test

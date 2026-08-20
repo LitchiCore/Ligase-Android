@@ -37,7 +37,7 @@ open class LegacyGameStreamLauncher private constructor(
             plan.width,
             plan.height,
             plan.hostHdrSupported,
-            true,
+            plan.input,
         )
         return true
     }

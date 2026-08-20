@@ -8,6 +8,12 @@ import com.limelight.ligase.input.LigaseInputDevice
 import com.limelight.ligase.input.LigaseInputDeviceRepository
 import com.limelight.ligase.input.LigaseTouchOverlayMode
 import com.limelight.ligase.input.EffectiveStreamingTouchMode
+import com.limelight.ligase.input.LigaseCloudTouchMode
+import com.limelight.ligase.input.LigaseEffectiveInputProfile
+import com.limelight.ligase.input.LigaseInputProfilePolicy
+import com.limelight.ligase.input.LigaseInputProfile
+import com.limelight.ligase.input.LigaseInputOverrideWriteResult
+import com.limelight.ligase.input.LigaseCanonicalGameUuid
 
 data class InputSelectionState(
     val onboarding: Boolean,
@@ -17,6 +23,7 @@ data class InputSelectionState(
     val selectedKeyboardKey: String?,
     val selectedMouseKey: String?,
     val overlayMode: LigaseTouchOverlayMode,
+    val cloudTouchMode: LigaseCloudTouchMode,
     val effectiveStreamingTouchMode: EffectiveStreamingTouchMode,
 )
 
@@ -37,6 +44,11 @@ class InputSelectionCoordinator private constructor(
     private val writeSelectedDevice: (LigaseInputCategory, String) -> Unit,
     private val readOverlayMode: () -> LigaseTouchOverlayMode,
     private val writeOverlayMode: (LigaseTouchOverlayMode) -> Unit,
+    private val readCloudTouchMode: () -> LigaseCloudTouchMode,
+    private val writeCloudTouchMode: (LigaseCloudTouchMode) -> Unit,
+    private val resolveProfile: (String, Boolean) -> LigaseEffectiveInputProfile,
+    private val persistGameOverride: (String, LigaseInputProfile) -> Boolean,
+    private val removeGameOverride: (String) -> Boolean,
     private val readEffectiveStreamingTouchMode: () -> EffectiveStreamingTouchMode,
     private val createDeviceSession: ((List<LigaseInputDevice>) -> Unit) -> InputDeviceSession,
     private val onStateChanged: (InputSelectionState) -> Unit,
@@ -65,6 +77,17 @@ class InputSelectionCoordinator private constructor(
         writeSelectedDevice = preferences::setSelectedDevice,
         readOverlayMode = preferences::overlayMode,
         writeOverlayMode = preferences::setOverlayMode,
+        readCloudTouchMode = preferences::cloudTouchMode,
+        writeCloudTouchMode = preferences::setCloudTouchMode,
+        resolveProfile = { uuid, canOperate ->
+            LigaseInputProfilePolicy.resolve(
+                global = preferences.globalProfile(),
+                gameOverride = preferences.gameOverride(uuid),
+                canOperate = canOperate,
+            )
+        },
+        persistGameOverride = preferences::setGameOverride,
+        removeGameOverride = preferences::clearGameOverride,
         readEffectiveStreamingTouchMode = preferences::effectiveStreamingTouchMode,
         createDeviceSession = createDeviceSession,
         onStateChanged = onStateChanged,
@@ -78,6 +101,21 @@ class InputSelectionCoordinator private constructor(
         writeSelectedDevice: (LigaseInputCategory, String) -> Unit,
         readOverlayMode: () -> LigaseTouchOverlayMode,
         writeOverlayMode: (LigaseTouchOverlayMode) -> Unit,
+        readCloudTouchMode: () -> LigaseCloudTouchMode = { LigaseCloudTouchMode.SINGLE_TOUCH },
+        writeCloudTouchMode: (LigaseCloudTouchMode) -> Unit = {},
+        resolveProfile: (String, Boolean) -> LigaseEffectiveInputProfile = { _, canOperate ->
+            LigaseInputProfilePolicy.resolve(
+                global = com.limelight.ligase.input.LigaseInputProfile(
+                    readInputMode(),
+                    readOverlayMode(),
+                    readCloudTouchMode(),
+                ),
+                gameOverride = null,
+                canOperate = canOperate,
+            )
+        },
+        persistGameOverride: (String, LigaseInputProfile) -> Boolean = { _, _ -> true },
+        removeGameOverride: (String) -> Boolean = { true },
         readEffectiveStreamingTouchMode: () -> EffectiveStreamingTouchMode = {
             EffectiveStreamingTouchMode.ABSOLUTE_POINTER
         },
@@ -92,6 +130,11 @@ class InputSelectionCoordinator private constructor(
         writeSelectedDevice,
         readOverlayMode,
         writeOverlayMode,
+        readCloudTouchMode,
+        writeCloudTouchMode,
+        resolveProfile,
+        persistGameOverride,
+        removeGameOverride,
         readEffectiveStreamingTouchMode,
         createDeviceSession,
         onStateChanged,
@@ -154,6 +197,51 @@ class InputSelectionCoordinator private constructor(
         update(state.copy(overlayMode = mode))
     }
 
+    fun selectCloudTouchMode(mode: LigaseCloudTouchMode) {
+        writeCloudTouchMode(mode)
+        update(
+            state.copy(
+                cloudTouchMode = mode,
+                effectiveStreamingTouchMode =
+                    com.limelight.ligase.input.EffectiveStreamingTouchModePolicy.resolve(mode),
+            ),
+        )
+    }
+
+    fun launchProfile(canonicalGameUuid: String, canOperate: Boolean): LigaseEffectiveInputProfile =
+        resolveProfile(canonicalGameUuid, canOperate)
+
+    fun setGameOverride(
+        canonicalGameUuid: String,
+        profile: LigaseInputProfile,
+        canOperate: Boolean,
+    ): LigaseInputOverrideWriteResult {
+        if (!canOperate) return LigaseInputOverrideWriteResult.READ_ONLY
+        if (LigaseCanonicalGameUuid.parse(canonicalGameUuid) == null) {
+            return LigaseInputOverrideWriteResult.INVALID_GAME_UUID
+        }
+        return if (persistGameOverride(canonicalGameUuid, profile)) {
+            LigaseInputOverrideWriteResult.SAVED
+        } else {
+            LigaseInputOverrideWriteResult.WRITE_FAILED
+        }
+    }
+
+    fun clearGameOverride(
+        canonicalGameUuid: String,
+        canOperate: Boolean,
+    ): LigaseInputOverrideWriteResult {
+        if (!canOperate) return LigaseInputOverrideWriteResult.READ_ONLY
+        if (LigaseCanonicalGameUuid.parse(canonicalGameUuid) == null) {
+            return LigaseInputOverrideWriteResult.INVALID_GAME_UUID
+        }
+        return if (removeGameOverride(canonicalGameUuid)) {
+            LigaseInputOverrideWriteResult.CLEARED
+        } else {
+            LigaseInputOverrideWriteResult.WRITE_FAILED
+        }
+    }
+
     private fun initialState(): InputSelectionState {
         val onboarding = !hasInputMode()
         return InputSelectionState(
@@ -164,6 +252,7 @@ class InputSelectionCoordinator private constructor(
             selectedKeyboardKey = readSelectedDevice(LigaseInputCategory.KEYBOARD),
             selectedMouseKey = readSelectedDevice(LigaseInputCategory.MOUSE),
             overlayMode = readOverlayMode(),
+            cloudTouchMode = readCloudTouchMode(),
             effectiveStreamingTouchMode = readEffectiveStreamingTouchMode(),
         )
     }

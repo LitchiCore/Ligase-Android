@@ -123,6 +123,7 @@ fun InputOnboarding(
 fun CurrentInputSummaryCard(
     presentation: InputPresentation,
     touchOverlayMode: LigaseTouchOverlayMode,
+    writable: Boolean = true,
     onChange: () -> Unit,
 ) {
     val mode = presentation.mode
@@ -166,7 +167,7 @@ fun CurrentInputSummaryCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                TextButton(onClick = onChange) {
+                TextButton(onClick = onChange, enabled = writable) {
                     Text(stringResource(R.string.ligase_change))
                 }
             }
@@ -177,7 +178,7 @@ fun CurrentInputSummaryCard(
                         when {
                             touchOverlayMode == LigaseTouchOverlayMode.VIRTUAL_GAMEPAD ->
                                 R.string.ligase_touch_behavior_gamepad
-                            touchOverlayMode == LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD ->
+                            touchOverlayMode == LigaseTouchOverlayMode.CLOUD_CONTROLS ->
                                 R.string.ligase_touch_behavior_keyboard
                             else -> R.string.ligase_touch_behavior_gestures
                         },
@@ -319,7 +320,7 @@ private fun touchOverlaySummary(
 ): String = when {
     mode == LigaseTouchOverlayMode.VIRTUAL_GAMEPAD ->
         stringResource(R.string.ligase_virtual_gamepad)
-    mode == LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD ->
+    mode == LigaseTouchOverlayMode.CLOUD_CONTROLS ->
         stringResource(R.string.ligase_touch_layout_runtime_unavailable)
     else -> stringResource(R.string.ligase_touch_overlays_none_summary)
 }

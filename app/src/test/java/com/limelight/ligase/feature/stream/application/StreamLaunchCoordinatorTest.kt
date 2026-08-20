@@ -85,7 +85,7 @@ class StreamLaunchCoordinatorTest {
         )
         val none = ready(
             fixture.coordinator.plan(
-                request(overlay = LigaseTouchOverlayMode.GESTURES_ONLY),
+                request(overlay = LigaseTouchOverlayMode.HIDDEN),
             ),
         )
 
@@ -94,14 +94,14 @@ class StreamLaunchCoordinatorTest {
     }
 
     @Test
-    fun `v3 layout runtime fails closed while unavailable`() {
-        val result = fixture().coordinator.plan(
+    fun `cloud controls are a typed input path independent of v3 runtime`() {
+        val result = ready(fixture().coordinator.plan(
             request(
-                overlay = LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD,
+                overlay = LigaseTouchOverlayMode.CLOUD_CONTROLS,
             ),
-        )
+        ))
 
-        assertBlocked(result, StreamLaunchBlockReason.V3_LAYOUT_RUNTIME_UNAVAILABLE)
+        assertFalse(result.input.showVirtualGamepad)
     }
 
     @Test
@@ -191,7 +191,7 @@ class StreamLaunchCoordinatorTest {
         selectedKeyboard: String? = null,
         selectedMouse: String? = null,
         devices: List<LigaseInputDevice> = emptyList(),
-        overlay: LigaseTouchOverlayMode = LigaseTouchOverlayMode.GESTURES_ONLY,
+        overlay: LigaseTouchOverlayMode = LigaseTouchOverlayMode.HIDDEN,
         virtualDisplay: Boolean = false,
     ) = StreamLaunchRequest(
         item = item,

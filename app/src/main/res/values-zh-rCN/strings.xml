@@ -1312,4 +1312,11 @@
     <string name="ligase_layout_v3_radial_action_number">动作 %1$d</string>
     <string name="ligase_layout_v3_no_keys_selected">尚未选择按键</string>
     <string name="ligase_layout_v3_create">创建</string>
+    <string name="ligase_cloud_controls">云游戏控件</string>
+    <string name="ligase_cloud_controls_summary">使用单点、多点或触摸板输入，不显示虚拟手柄。</string>
+    <string name="ligase_cloud_touch_mode">全局触控设置</string>
+    <string name="ligase_cloud_touch_mode_summary">默认全局生效；仅在游戏存在 canonical UUID 覆盖时使用该游戏设置。</string>
+    <string name="ligase_effective_touch_direct">当前生效串流模式：直接多点触控</string>
+    <string name="ligase_effective_touch_absolute">当前生效串流模式：单点绝对指针</string>
+    <string name="ligase_effective_touch_trackpad">当前生效串流模式：触摸板</string>
 </resources>

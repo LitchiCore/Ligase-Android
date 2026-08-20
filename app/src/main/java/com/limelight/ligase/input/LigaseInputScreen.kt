@@ -16,10 +16,15 @@ fun LigaseInputPage(
     selectedKeyboardKey: String?,
     selectedMouseKey: String?,
     touchOverlayMode: LigaseTouchOverlayMode,
+    cloudTouchMode: LigaseCloudTouchMode = LigaseCloudTouchMode.SINGLE_TOUCH,
+    inputSettingsWritable: Boolean = true,
+    effectiveStreamingTouchMode: EffectiveStreamingTouchMode =
+        EffectiveStreamingTouchMode.ABSOLUTE_POINTER,
     onInputSelected: (InputDeviceMode) -> Unit,
     onInputConfirmed: () -> Unit,
     onDeviceSelected: (LigaseInputCategory, String) -> Unit,
     onTouchOverlayModeChanged: (LigaseTouchOverlayMode) -> Unit,
+    onCloudTouchModeChanged: (LigaseCloudTouchMode) -> Unit,
     listState: LazyListState? = null,
 ) {
     InputRoute(
@@ -31,12 +36,16 @@ fun LigaseInputPage(
             selectedKeyboardKey = selectedKeyboardKey,
             selectedMouseKey = selectedMouseKey,
             touchOverlayMode = touchOverlayMode,
+            cloudTouchMode = cloudTouchMode,
+            inputSettingsWritable = inputSettingsWritable,
+            effectiveStreamingTouchMode = effectiveStreamingTouchMode,
         ),
         actions = InputRouteActions(
             onInputSelected = onInputSelected,
             onInputConfirmed = onInputConfirmed,
             onDeviceSelected = onDeviceSelected,
             onTouchOverlayModeChanged = onTouchOverlayModeChanged,
+            onCloudTouchModeChanged = onCloudTouchModeChanged,
         ),
         listState = listState,
     )

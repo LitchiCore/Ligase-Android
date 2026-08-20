@@ -35,6 +35,8 @@ import com.limelight.ligase.feature.stream.domain.StreamBitratePresetId
 import com.limelight.ligase.input.LigaseInputCategory
 import com.limelight.ligase.input.LigaseInputDevice
 import com.limelight.ligase.input.LigaseTouchOverlayMode
+import com.limelight.ligase.input.LigaseCloudTouchMode
+import com.limelight.ligase.input.EffectiveStreamingTouchMode
 import com.limelight.ligase.library.LibraryConnectivity
 import com.limelight.ligase.library.ManualLibrarySortActionState
 import com.limelight.ligase.pairing.AttendedPairingUiState
@@ -51,6 +53,9 @@ fun LigaseRoot(
     selectedKeyboardKey: String?,
     selectedMouseKey: String?,
     touchOverlayMode: LigaseTouchOverlayMode,
+    cloudTouchMode: LigaseCloudTouchMode = LigaseCloudTouchMode.SINGLE_TOUCH,
+    effectiveStreamingTouchMode: EffectiveStreamingTouchMode =
+        EffectiveStreamingTouchMode.ABSOLUTE_POINTER,
     languageMode: LigaseLanguageMode,
     hosts: List<ComputerDetails>,
     libraryHost: ComputerDetails?,
@@ -79,6 +84,7 @@ fun LigaseRoot(
     onInputConfirmed: () -> Unit,
     onInputDeviceSelected: (LigaseInputCategory, String) -> Unit,
     onTouchOverlayModeChanged: (LigaseTouchOverlayMode) -> Unit,
+    onCloudTouchModeChanged: (LigaseCloudTouchMode) -> Unit = {},
     onThemeSelected: (LigaseThemeMode) -> Unit,
     onLanguageSelected: (LigaseLanguageMode) -> Unit,
     onHostClick: (ComputerDetails) -> Unit,
@@ -110,6 +116,8 @@ fun LigaseRoot(
     selectedKeyboardKey = selectedKeyboardKey,
     selectedMouseKey = selectedMouseKey,
     touchOverlayMode = touchOverlayMode,
+    cloudTouchMode = cloudTouchMode,
+    effectiveStreamingTouchMode = effectiveStreamingTouchMode,
     languageMode = languageMode,
     hosts = hosts,
     libraryHost = libraryHost,
@@ -137,6 +145,7 @@ fun LigaseRoot(
     onInputConfirmed = onInputConfirmed,
     onInputDeviceSelected = onInputDeviceSelected,
     onTouchOverlayModeChanged = onTouchOverlayModeChanged,
+    onCloudTouchModeChanged = onCloudTouchModeChanged,
     onThemeSelected = onThemeSelected,
     onLanguageSelected = onLanguageSelected,
     onHostClick = onHostClick,

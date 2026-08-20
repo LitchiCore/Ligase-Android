@@ -4,6 +4,8 @@ import com.limelight.ligase.InputDeviceMode
 import com.limelight.ligase.input.LigaseInputCategory
 import com.limelight.ligase.input.LigaseInputDevice
 import com.limelight.ligase.input.LigaseTouchOverlayMode
+import com.limelight.ligase.input.LigaseCloudTouchMode
+import com.limelight.ligase.input.EffectiveStreamingTouchMode
 
 data class InputRouteState(
     val selectedInput: InputDeviceMode?,
@@ -13,6 +15,10 @@ data class InputRouteState(
     val selectedKeyboardKey: String?,
     val selectedMouseKey: String?,
     val touchOverlayMode: LigaseTouchOverlayMode,
+    val cloudTouchMode: LigaseCloudTouchMode = LigaseCloudTouchMode.SINGLE_TOUCH,
+    val inputSettingsWritable: Boolean = true,
+    val effectiveStreamingTouchMode: EffectiveStreamingTouchMode =
+        EffectiveStreamingTouchMode.ABSOLUTE_POINTER,
 )
 
 data class InputRouteActions(
@@ -20,6 +26,7 @@ data class InputRouteActions(
     val onInputConfirmed: () -> Unit,
     val onDeviceSelected: (LigaseInputCategory, String) -> Unit,
     val onTouchOverlayModeChanged: (LigaseTouchOverlayMode) -> Unit,
+    val onCloudTouchModeChanged: (LigaseCloudTouchMode) -> Unit,
 )
 
 fun InputRouteState.presentation(): InputPresentation = inputPresentation(

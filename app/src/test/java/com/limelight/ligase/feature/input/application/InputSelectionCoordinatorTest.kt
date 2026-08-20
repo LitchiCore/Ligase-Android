@@ -105,13 +105,13 @@ class InputSelectionCoordinatorTest {
         val harness = Harness()
 
         harness.coordinator.selectOverlayMode(LigaseTouchOverlayMode.VIRTUAL_GAMEPAD)
-        harness.coordinator.selectOverlayMode(LigaseTouchOverlayMode.GESTURES_ONLY)
+        harness.coordinator.selectOverlayMode(LigaseTouchOverlayMode.HIDDEN)
 
-        assertEquals(LigaseTouchOverlayMode.GESTURES_ONLY, harness.coordinator.state.overlayMode)
+        assertEquals(LigaseTouchOverlayMode.HIDDEN, harness.coordinator.state.overlayMode)
         assertEquals(
             listOf(
                 LigaseTouchOverlayMode.VIRTUAL_GAMEPAD,
-                LigaseTouchOverlayMode.GESTURES_ONLY,
+                LigaseTouchOverlayMode.HIDDEN,
             ),
             harness.overlayWrites,
         )
@@ -177,7 +177,7 @@ class InputSelectionCoordinatorTest {
                 selectedDevices[category] = key
                 deviceWrites += category to key
             },
-            readOverlayMode = { LigaseTouchOverlayMode.TOUCHKIT_KEYBOARD },
+            readOverlayMode = { LigaseTouchOverlayMode.CLOUD_CONTROLS },
             writeOverlayMode = overlayWrites::add,
             readEffectiveStreamingTouchMode = { effectiveStreamingTouchMode },
             createDeviceSession = { callback ->
