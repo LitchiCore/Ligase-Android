@@ -109,7 +109,7 @@ fun InputRoute(
                     )
                 }
             }
-            if (state.gameOverrideTargets.isNotEmpty()) {
+            if (state.showsGameOverrideSection) {
                 item { InputSectionTitle(R.string.ligase_game_input_overrides) }
                 items(
                     count = state.gameOverrideTargets.size,

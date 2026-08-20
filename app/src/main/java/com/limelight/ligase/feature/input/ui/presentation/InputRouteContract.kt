@@ -21,7 +21,10 @@ data class InputRouteState(
     val effectiveStreamingTouchMode: EffectiveStreamingTouchMode =
         EffectiveStreamingTouchMode.ABSOLUTE_POINTER,
     val gameOverrideTargets: List<GameInputOverrideTarget> = emptyList(),
-)
+) {
+    val showsGameOverrideSection: Boolean
+        get() = gameOverrideTargets.isNotEmpty()
+}
 
 data class InputRouteActions(
     val onInputSelected: (InputDeviceMode) -> Unit,

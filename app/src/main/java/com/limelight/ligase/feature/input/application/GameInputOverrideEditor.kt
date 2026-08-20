@@ -6,6 +6,22 @@ import com.limelight.ligase.input.LigaseEffectiveInputProfile
 import com.limelight.ligase.input.LigaseInputOverrideWriteResult
 import com.limelight.ligase.input.LigaseInputProfile
 import com.limelight.ligase.input.LigaseTouchOverlayMode
+import com.limelight.ligase.feature.library.domain.LigaseLibraryItem
+
+fun gameInputOverrideTargets(items: List<LigaseLibraryItem>): List<GameInputOverrideTarget> {
+    val candidates = items.mapNotNull { item ->
+        if (item.isSystem) return@mapNotNull null
+        val uuid = LigaseCanonicalGameUuid.parse(item.id) ?: return@mapNotNull null
+        val identity = item.portableIdentity?.takeIf { it.provider == "steam" }
+            ?.let { "Steam · App ID ${it.id}" }
+        GameInputOverrideTarget(uuid, item.name, identity)
+    }
+    val duplicates = candidates.groupingBy(GameInputOverrideTarget::gameUuid)
+        .eachCount()
+        .filterValues { count -> count > 1 }
+        .keys
+    return candidates.filterNot { it.gameUuid in duplicates }
+}
 
 data class GameInputOverrideTarget(
     val gameUuid: String,

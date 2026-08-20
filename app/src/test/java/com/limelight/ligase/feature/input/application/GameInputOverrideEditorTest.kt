@@ -6,6 +6,10 @@ import com.limelight.ligase.input.LigaseEffectiveInputProfile
 import com.limelight.ligase.input.LigaseInputOverrideWriteResult
 import com.limelight.ligase.input.LigaseInputProfile
 import com.limelight.ligase.input.LigaseTouchOverlayMode
+import com.limelight.ligase.feature.library.domain.HostLibraryKind
+import com.limelight.ligase.feature.library.domain.HostPortableIdentity
+import com.limelight.ligase.feature.library.domain.LibraryItemKey
+import com.limelight.ligase.feature.library.domain.LigaseLibraryItem
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -18,6 +22,36 @@ class GameInputOverrideEditorTest {
         LigaseTouchOverlayMode.CLOUD_CONTROLS,
         LigaseCloudTouchMode.SINGLE_TOUCH,
     )
+
+    @Test
+    fun syncItemIdProjectsTargetWhenLegacyLaunchUuidIsAbsent() {
+        val targets = gameInputOverrideTargets(
+            listOf(item(uuid.uppercase(), hostAppUuid = null)),
+        )
+
+        assertEquals(
+            listOf(GameInputOverrideTarget(uuid, "Game", "Steam · App ID 3548580")),
+            targets,
+        )
+    }
+
+    @Test
+    fun systemInvalidAndDuplicateCanonicalIdsFailClosed() {
+        val targets = gameInputOverrideTargets(
+            listOf(
+                item(uuid, hostAppUuid = null),
+                item(uuid.uppercase(), hostAppUuid = "unrelated-legacy-value"),
+                item("not-a-uuid", hostAppUuid = uuid),
+                item(
+                    "78a25216-f239-45bd-b4aa-f41c814066e9",
+                    hostAppUuid = null,
+                    kind = HostLibraryKind.DESKTOP,
+                ),
+            ),
+        )
+
+        assertEquals(emptyList<GameInputOverrideTarget>(), targets)
+    }
 
     @Test
     fun saveCallsExactCanonicalTargetOnceAndRequiresReadback() {
@@ -140,5 +174,23 @@ class GameInputOverrideEditorTest {
             LigaseEffectiveInputProfile.Source.GLOBAL
         } else LigaseEffectiveInputProfile.Source.GAME_OVERRIDE,
         writable = true,
+    )
+
+    private fun item(
+        id: String,
+        hostAppUuid: String?,
+        kind: HostLibraryKind = HostLibraryKind.STEAM,
+    ) = LigaseLibraryItem(
+        key = LibraryItemKey.HostUuid(id),
+        name = "Game",
+        kind = kind,
+        hostAppUuid = hostAppUuid,
+        appId = null,
+        steamAppId = 3548580,
+        addedAt = null,
+        updatedAt = null,
+        lastPlayedAt = null,
+        launchApp = null,
+        portableIdentity = HostPortableIdentity("steam", "3548580"),
     )
 }

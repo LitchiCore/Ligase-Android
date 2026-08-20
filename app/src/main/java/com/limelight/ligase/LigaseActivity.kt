@@ -43,6 +43,7 @@ import com.limelight.ligase.feature.input.application.GameInputOverrideEditor
 import com.limelight.ligase.feature.input.application.GameInputOverrideEditorAction
 import com.limelight.ligase.feature.input.application.GameInputOverrideEditorResult
 import com.limelight.ligase.feature.input.application.GameInputOverrideTarget
+import com.limelight.ligase.feature.input.application.gameInputOverrideTargets
 import com.limelight.ligase.feature.input.ui.GameInputOverrideDialogFragment
 import com.limelight.ligase.feature.input.layout.v3.application.LayoutV3EditorWorkspaceViewModel
 import com.limelight.ligase.feature.input.layout.v3.ui.blackeditor.LayoutV3BlackEditorActivity
@@ -330,7 +331,7 @@ class LigaseActivity : AppCompatActivity() {
                 effectiveStreamingTouchMode =
                     checkNotNull(inputSelectionState).effectiveStreamingTouchMode,
                 gameInputOverrideTargets = libraryState.content?.items.orEmpty()
-                    .mapNotNull(::gameInputOverrideTarget),
+                    .let(::gameInputOverrideTargets),
                 languageMode = languageMode,
                 hosts = hosts,
                 libraryHost = libraryHost,
@@ -946,15 +947,6 @@ class LigaseActivity : AppCompatActivity() {
         )
     }
 
-    private fun gameInputOverrideTarget(item: LigaseLibraryItem): GameInputOverrideTarget? {
-        if (item.isSystem) return null
-        val uuid = com.limelight.ligase.input.LigaseCanonicalGameUuid.parse(item.hostAppUuid)
-            ?: return null
-        val identity = item.portableIdentity?.takeIf { it.provider == "steam" }
-            ?.let { "Steam · App ID ${it.id}" }
-        return GameInputOverrideTarget(uuid, item.name, identity)
-    }
-
     private fun gameInputOverrideEditor() = GameInputOverrideEditor(
         resolve = inputSelectionCoordinator::launchProfile,
         save = inputSelectionCoordinator::setGameOverride,
@@ -963,7 +955,7 @@ class LigaseActivity : AppCompatActivity() {
 
     private fun showGameInputOverride(target: GameInputOverrideTarget) {
         val exact = librarySessionViewModel.state.content?.items.orEmpty()
-            .mapNotNull(::gameInputOverrideTarget)
+            .let(::gameInputOverrideTargets)
             .firstOrNull { it.gameUuid == target.gameUuid }
             ?: return
         val state = gameInputOverrideEditor().state(
@@ -991,7 +983,7 @@ class LigaseActivity : AppCompatActivity() {
             is GameInputOverrideEditorAction.Clear -> action.gameUuid
         }
         val targetExists = librarySessionViewModel.state.content?.items.orEmpty()
-            .mapNotNull(::gameInputOverrideTarget)
+            .let(::gameInputOverrideTargets)
             .any { it.gameUuid == uuid }
         val result = gameInputOverrideEditor().submit(
             action = action,

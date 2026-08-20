@@ -89,6 +89,12 @@ data class LigaseLibraryItem(
     val layoutBinding: HostLayoutBinding? = null,
     val coverAuthority: HostCoverAuthority? = null,
 ) {
+    /** Host-owned canonical item identity. Never derived from launch IDs or names. */
+    val id: String?
+        get() = (key as? LibraryItemKey.HostUuid)?.uuid
+            ?.lowercase(Locale.ROOT)
+            ?.takeIf(CANONICAL_LOWERCASE_UUID::matches)
+
     val isSystem: Boolean
         get() = kind?.isSystem == true
 
@@ -260,3 +266,6 @@ data class HostCoverAuthority(
 ) {
     override fun toString(): String = "HostCoverAuthority(authority=redacted)"
 }
+
+private val CANONICAL_LOWERCASE_UUID =
+    Regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
