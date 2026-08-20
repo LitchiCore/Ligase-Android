@@ -119,6 +119,8 @@
   `ColorScheme` 槽位；未审议的新槽位禁止回退 Material factory default。
 - XML `LigaseThemeBase` 使用同一组 light/dark 资源。Compose 与 XML 资源由自动测试
   对照，避免再次形成两套漂移的主题。
+- 游戏库下拉刷新区域使用当前Material主题的`surfaceContainerHigh/onSurface`投影，
+  深色主题不再回退为硬编码白底黑字；刷新交互与状态机不因此改变。
 - 默认关闭系统动态色；“跟随系统”只跟随明暗模式，不能覆盖品牌色、状态色或焦点色。
 - `selected` 只作为选中容器，普通文字和图标使用 `textPrimary`，`brandPrimary`
   只用于选中指示或关键图标。状态必须同时提供文字或图标，不能只靠颜色。

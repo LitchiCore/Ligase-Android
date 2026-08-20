@@ -169,6 +169,7 @@ handoff、exclusive lease、adaptive mapper与全屏浮层Activity已进入生�
 - `StreamMenuEntryPolicy` 冻结Ligase会话的非持久菜单入口与legacy隔离；
   `StreamClipboardPolicy` 是双向剪贴板类型/UTF-8 64KiB边界的唯一Android owner。
   `GameMenu`仅发起显式确认，`Game`只在policy接受后调用既有NvHTTP剪贴板ABI。
+- Library pull-to-refresh indicator只消费Material theme token，不持有独立明暗色或刷新状态。
 
 ## 开发环境与提交纪律
 
