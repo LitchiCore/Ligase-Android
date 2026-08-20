@@ -52,6 +52,10 @@ async main handler，避免释放边被串流帧同步屏障延迟。viewport ma
 lowercase app UUID 读写，不按名称、Steam App ID 或 launch ID 猜测。launch plan 携带已解析的
 typed profile，`Game` 不再重新读取另一份全局触控选择。observe 权限只投影 `HIDDEN` 且只读，
 不会清除或改写用户原有全局/单游戏偏好；离线本机全局设置仍可编辑。
+输入页的单游戏入口只接收从当前 Host library snapshot 投影出的 canonical UUID、title 与
+safe portable identity。`GameInputOverrideEditor` 保留现有 input mode，提交 closed overlay/
+cloud-touch profile，并以 coordinator readback 确认成功；游戏消失、UUID 非 canonical、
+observe/read-only 或 readback 不一致均 fail closed 且不由 Compose 写第二份状态。
 
 分辨率与帧率保持两条正交 authority：global/app resolution 仍由 Host Sync revision writer
 拥有，Android 只用本机 display modes 投影设备最大、最佳16:9、720p/1080p/1440p/2160p

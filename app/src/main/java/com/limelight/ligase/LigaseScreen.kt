@@ -24,6 +24,7 @@ import com.limelight.grid.assets.CachedAppAssetLoader
 import com.limelight.ligase.feature.library.application.HostVerifiedCoverLoader
 import com.limelight.ligase.app.root.LigaseRootContent
 import com.limelight.ligase.feature.input.layout.v3.application.LayoutV3EditorWorkspaceUiState
+import com.limelight.ligase.feature.input.application.GameInputOverrideTarget
 import com.limelight.ligase.feature.library.data.dto.LigaseResolutionDto
 import com.limelight.ligase.feature.library.domain.HostSortMode
 import com.limelight.ligase.feature.library.domain.LibraryHdrState
@@ -58,6 +59,7 @@ fun LigaseRoot(
     cloudTouchMode: LigaseCloudTouchMode = LigaseCloudTouchMode.SINGLE_TOUCH,
     effectiveStreamingTouchMode: EffectiveStreamingTouchMode =
         EffectiveStreamingTouchMode.ABSOLUTE_POINTER,
+    gameInputOverrideTargets: List<GameInputOverrideTarget> = emptyList(),
     languageMode: LigaseLanguageMode,
     hosts: List<ComputerDetails>,
     libraryHost: ComputerDetails?,
@@ -90,6 +92,7 @@ fun LigaseRoot(
     onInputDeviceSelected: (LigaseInputCategory, String) -> Unit,
     onTouchOverlayModeChanged: (LigaseTouchOverlayMode) -> Unit,
     onCloudTouchModeChanged: (LigaseCloudTouchMode) -> Unit = {},
+    onGameInputOverrideSelected: (GameInputOverrideTarget) -> Unit = {},
     onThemeSelected: (LigaseThemeMode) -> Unit,
     onLanguageSelected: (LigaseLanguageMode) -> Unit,
     onHostClick: (ComputerDetails) -> Unit,
@@ -124,6 +127,7 @@ fun LigaseRoot(
     touchOverlayMode = touchOverlayMode,
     cloudTouchMode = cloudTouchMode,
     effectiveStreamingTouchMode = effectiveStreamingTouchMode,
+    gameInputOverrideTargets = gameInputOverrideTargets,
     languageMode = languageMode,
     hosts = hosts,
     libraryHost = libraryHost,
@@ -154,6 +158,7 @@ fun LigaseRoot(
     onInputDeviceSelected = onInputDeviceSelected,
     onTouchOverlayModeChanged = onTouchOverlayModeChanged,
     onCloudTouchModeChanged = onCloudTouchModeChanged,
+    onGameInputOverrideSelected = onGameInputOverrideSelected,
     onThemeSelected = onThemeSelected,
     onLanguageSelected = onLanguageSelected,
     onHostClick = onHostClick,

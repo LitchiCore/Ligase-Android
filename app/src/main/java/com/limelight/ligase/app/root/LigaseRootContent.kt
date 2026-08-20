@@ -55,6 +55,7 @@ import com.limelight.ligase.app.navigation.LigaseNavigationShell
 import com.limelight.ligase.app.navigation.currentLigaseNavigationPlacement
 import com.limelight.ligase.feature.input.layout.v3.ui.LayoutV3HallScreen
 import com.limelight.ligase.feature.input.layout.v3.application.LayoutV3EditorWorkspaceUiState
+import com.limelight.ligase.feature.input.application.GameInputOverrideTarget
 import com.limelight.ligase.feature.library.ui.LibraryManualEditorUiState
 import com.limelight.ligase.feature.library.ui.LibraryRouteActions
 import com.limelight.ligase.feature.library.ui.LibraryRouteUiState
@@ -94,6 +95,7 @@ internal fun LigaseRootContent(
     cloudTouchMode: LigaseCloudTouchMode = LigaseCloudTouchMode.SINGLE_TOUCH,
     effectiveStreamingTouchMode: EffectiveStreamingTouchMode =
         EffectiveStreamingTouchMode.ABSOLUTE_POINTER,
+    gameInputOverrideTargets: List<GameInputOverrideTarget> = emptyList(),
     languageMode: LigaseLanguageMode,
     hosts: List<ComputerDetails>,
     libraryHost: ComputerDetails?,
@@ -126,6 +128,7 @@ internal fun LigaseRootContent(
     onInputDeviceSelected: (LigaseInputCategory, String) -> Unit,
     onTouchOverlayModeChanged: (LigaseTouchOverlayMode) -> Unit,
     onCloudTouchModeChanged: (LigaseCloudTouchMode) -> Unit = {},
+    onGameInputOverrideSelected: (GameInputOverrideTarget) -> Unit = {},
     onThemeSelected: (LigaseThemeMode) -> Unit,
     onLanguageSelected: (LigaseLanguageMode) -> Unit,
     onHostClick: (ComputerDetails) -> Unit,
@@ -168,11 +171,13 @@ internal fun LigaseRootContent(
                     cloudTouchMode = cloudTouchMode,
                     inputSettingsWritable = true,
                     effectiveStreamingTouchMode = effectiveStreamingTouchMode,
+                    gameOverrideTargets = emptyList(),
                     onInputSelected = onInputSelected,
                     onInputConfirmed = onInputConfirmed,
                     onDeviceSelected = onInputDeviceSelected,
                     onTouchOverlayModeChanged = onTouchOverlayModeChanged,
                     onCloudTouchModeChanged = onCloudTouchModeChanged,
+                    onGameInputOverrideSelected = onGameInputOverrideSelected,
                 )
             } else {
                 val navigationPlacement = currentLigaseNavigationPlacement()
@@ -330,11 +335,13 @@ internal fun LigaseRootContent(
                                 cloudTouchMode = cloudTouchMode,
                                 inputSettingsWritable = libraryCanConfigureInput,
                                 effectiveStreamingTouchMode = effectiveStreamingTouchMode,
+                                gameOverrideTargets = gameInputOverrideTargets,
                                 onInputSelected = onInputSelected,
                                 onInputConfirmed = onInputConfirmed,
                                 onDeviceSelected = onInputDeviceSelected,
                                 onTouchOverlayModeChanged = onTouchOverlayModeChanged,
                                 onCloudTouchModeChanged = onCloudTouchModeChanged,
+                                onGameInputOverrideSelected = onGameInputOverrideSelected,
                                 listState = inputListState,
                             )
                             LigasePage.SETTINGS -> SettingsScreen(

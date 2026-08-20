@@ -1366,4 +1366,12 @@
     <string name="ligase_network_test_recommended_bitrate">Suggested bitrate: %1$.1f Mbps</string>
     <string name="ligase_network_test_disclaimer">The suggestion is an estimate, not a guarantee. It never changes bitrate, public-network, or firewall settings automatically.</string>
     <string name="ligase_network_test_action">Start network test</string>
+    <string name="ligase_game_input_overrides">Per-game input</string>
+    <string name="ligase_game_input_override_summary">Choose whether this canonical game uses the global input profile or its own local override.</string>
+    <string name="ligase_game_input_use_global">Use global</string>
+    <string name="ligase_game_input_custom">Custom override</string>
+    <string name="ligase_game_input_clear">Clear override</string>
+    <string name="ligase_game_input_saved">Game input override saved</string>
+    <string name="ligase_game_input_cleared">Game input override cleared</string>
+    <string name="ligase_game_input_invalid_target">This game is no longer available. Nothing was changed.</string>
 </resources>

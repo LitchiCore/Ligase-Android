@@ -6,6 +6,7 @@ import com.limelight.ligase.input.LigaseInputDevice
 import com.limelight.ligase.input.LigaseTouchOverlayMode
 import com.limelight.ligase.input.LigaseCloudTouchMode
 import com.limelight.ligase.input.EffectiveStreamingTouchMode
+import com.limelight.ligase.feature.input.application.GameInputOverrideTarget
 
 data class InputRouteState(
     val selectedInput: InputDeviceMode?,
@@ -19,6 +20,7 @@ data class InputRouteState(
     val inputSettingsWritable: Boolean = true,
     val effectiveStreamingTouchMode: EffectiveStreamingTouchMode =
         EffectiveStreamingTouchMode.ABSOLUTE_POINTER,
+    val gameOverrideTargets: List<GameInputOverrideTarget> = emptyList(),
 )
 
 data class InputRouteActions(
@@ -27,6 +29,7 @@ data class InputRouteActions(
     val onDeviceSelected: (LigaseInputCategory, String) -> Unit,
     val onTouchOverlayModeChanged: (LigaseTouchOverlayMode) -> Unit,
     val onCloudTouchModeChanged: (LigaseCloudTouchMode) -> Unit,
+    val onGameInputOverrideSelected: (GameInputOverrideTarget) -> Unit = {},
 )
 
 fun InputRouteState.presentation(): InputPresentation = inputPresentation(

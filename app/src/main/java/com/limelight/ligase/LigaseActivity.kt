@@ -39,6 +39,11 @@ import com.limelight.ligase.feature.host.application.DevicePresenceTarget
 import com.limelight.ligase.feature.host.infrastructure.LegacyComputerRegistryTransport
 import com.limelight.ligase.feature.input.application.InputSelectionCoordinator
 import com.limelight.ligase.feature.input.application.InputSelectionState
+import com.limelight.ligase.feature.input.application.GameInputOverrideEditor
+import com.limelight.ligase.feature.input.application.GameInputOverrideEditorAction
+import com.limelight.ligase.feature.input.application.GameInputOverrideEditorResult
+import com.limelight.ligase.feature.input.application.GameInputOverrideTarget
+import com.limelight.ligase.feature.input.ui.GameInputOverrideDialogFragment
 import com.limelight.ligase.feature.input.layout.v3.application.LayoutV3EditorWorkspaceViewModel
 import com.limelight.ligase.feature.input.layout.v3.ui.blackeditor.LayoutV3BlackEditorActivity
 import com.limelight.ligase.feature.library.application.LibraryHostCoordinator
@@ -292,6 +297,7 @@ class LigaseActivity : AppCompatActivity() {
             },
         )
         registerStreamingResolutionResult()
+        registerGameInputOverrideResult()
         layoutV3EditorWorkspaceViewModel =
             ViewModelProvider(this)[LayoutV3EditorWorkspaceViewModel::class.java]
 
@@ -323,6 +329,8 @@ class LigaseActivity : AppCompatActivity() {
                 cloudTouchMode = checkNotNull(inputSelectionState).cloudTouchMode,
                 effectiveStreamingTouchMode =
                     checkNotNull(inputSelectionState).effectiveStreamingTouchMode,
+                gameInputOverrideTargets = libraryState.content?.items.orEmpty()
+                    .mapNotNull(::gameInputOverrideTarget),
                 languageMode = languageMode,
                 hosts = hosts,
                 libraryHost = libraryHost,
@@ -359,6 +367,7 @@ class LigaseActivity : AppCompatActivity() {
                 onInputDeviceSelected = ::selectInputDevice,
                 onTouchOverlayModeChanged = ::selectTouchOverlayMode,
                 onCloudTouchModeChanged = ::selectCloudTouchMode,
+                onGameInputOverrideSelected = ::showGameInputOverride,
                 onThemeSelected = ::selectTheme,
                 onLanguageSelected = ::selectLanguage,
                 onHostClick = ::onHostClicked,
@@ -934,6 +943,74 @@ class LigaseActivity : AppCompatActivity() {
                 deviceCapabilities = deviceStreamCapabilities,
             ),
             themeMode,
+        )
+    }
+
+    private fun gameInputOverrideTarget(item: LigaseLibraryItem): GameInputOverrideTarget? {
+        if (item.isSystem) return null
+        val uuid = com.limelight.ligase.input.LigaseCanonicalGameUuid.parse(item.hostAppUuid)
+            ?: return null
+        val identity = item.portableIdentity?.takeIf { it.provider == "steam" }
+            ?.let { "Steam · App ID ${it.id}" }
+        return GameInputOverrideTarget(uuid, item.name, identity)
+    }
+
+    private fun gameInputOverrideEditor() = GameInputOverrideEditor(
+        resolve = inputSelectionCoordinator::launchProfile,
+        save = inputSelectionCoordinator::setGameOverride,
+        clear = inputSelectionCoordinator::clearGameOverride,
+    )
+
+    private fun showGameInputOverride(target: GameInputOverrideTarget) {
+        val exact = librarySessionViewModel.state.content?.items.orEmpty()
+            .mapNotNull(::gameInputOverrideTarget)
+            .firstOrNull { it.gameUuid == target.gameUuid }
+            ?: return
+        val state = gameInputOverrideEditor().state(
+            exact,
+            LibraryOperationGate.canOperate(
+                librarySessionViewModel.state.connectivity,
+                libraryAccessMode,
+            ),
+        ) ?: return
+        GameInputOverrideDialogFragment.show(supportFragmentManager, state, themeMode)
+    }
+
+    private fun registerGameInputOverrideResult() {
+        supportFragmentManager.setFragmentResultListener(
+            GameInputOverrideDialogFragment.RESULT_KEY,
+            this,
+        ) { _, bundle ->
+            GameInputOverrideDialogFragment.resultFrom(bundle)?.let(::submitGameInputOverride)
+        }
+    }
+
+    private fun submitGameInputOverride(action: GameInputOverrideEditorAction) {
+        val uuid = when (action) {
+            is GameInputOverrideEditorAction.Save -> action.gameUuid
+            is GameInputOverrideEditorAction.Clear -> action.gameUuid
+        }
+        val targetExists = librarySessionViewModel.state.content?.items.orEmpty()
+            .mapNotNull(::gameInputOverrideTarget)
+            .any { it.gameUuid == uuid }
+        val result = gameInputOverrideEditor().submit(
+            action = action,
+            targetStillExists = targetExists,
+            canOperate = LibraryOperationGate.canOperate(
+                librarySessionViewModel.state.connectivity,
+                libraryAccessMode,
+            ),
+        )
+        toast(
+            when (result) {
+                GameInputOverrideEditorResult.SAVED -> R.string.ligase_game_input_saved
+                GameInputOverrideEditorResult.CLEARED -> R.string.ligase_game_input_cleared
+                GameInputOverrideEditorResult.READ_ONLY -> R.string.ligase_observe_mode_action_blocked
+                GameInputOverrideEditorResult.INVALID_TARGET -> R.string.ligase_game_input_invalid_target
+                GameInputOverrideEditorResult.WRITE_FAILED,
+                GameInputOverrideEditorResult.READBACK_FAILED,
+                -> R.string.ligase_sync_write_failed
+            },
         )
     }
 

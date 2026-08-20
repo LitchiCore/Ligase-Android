@@ -6,6 +6,7 @@ import com.limelight.ligase.InputDeviceMode
 import com.limelight.ligase.feature.input.ui.InputRoute
 import com.limelight.ligase.feature.input.ui.presentation.InputRouteActions
 import com.limelight.ligase.feature.input.ui.presentation.InputRouteState
+import com.limelight.ligase.feature.input.application.GameInputOverrideTarget
 
 @Composable
 fun LigaseInputPage(
@@ -20,11 +21,13 @@ fun LigaseInputPage(
     inputSettingsWritable: Boolean = true,
     effectiveStreamingTouchMode: EffectiveStreamingTouchMode =
         EffectiveStreamingTouchMode.ABSOLUTE_POINTER,
+    gameOverrideTargets: List<GameInputOverrideTarget> = emptyList(),
     onInputSelected: (InputDeviceMode) -> Unit,
     onInputConfirmed: () -> Unit,
     onDeviceSelected: (LigaseInputCategory, String) -> Unit,
     onTouchOverlayModeChanged: (LigaseTouchOverlayMode) -> Unit,
     onCloudTouchModeChanged: (LigaseCloudTouchMode) -> Unit,
+    onGameInputOverrideSelected: (GameInputOverrideTarget) -> Unit = {},
     listState: LazyListState? = null,
 ) {
     InputRoute(
@@ -39,6 +42,7 @@ fun LigaseInputPage(
             cloudTouchMode = cloudTouchMode,
             inputSettingsWritable = inputSettingsWritable,
             effectiveStreamingTouchMode = effectiveStreamingTouchMode,
+            gameOverrideTargets = gameOverrideTargets,
         ),
         actions = InputRouteActions(
             onInputSelected = onInputSelected,
@@ -46,6 +50,7 @@ fun LigaseInputPage(
             onDeviceSelected = onDeviceSelected,
             onTouchOverlayModeChanged = onTouchOverlayModeChanged,
             onCloudTouchModeChanged = onCloudTouchModeChanged,
+            onGameInputOverrideSelected = onGameInputOverrideSelected,
         ),
         listState = listState,
     )

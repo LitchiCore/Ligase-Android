@@ -1352,4 +1352,12 @@
     <string name="ligase_network_test_recommended_bitrate">建议码率：%1$.1f Mbps</string>
     <string name="ligase_network_test_disclaimer">建议仅为估算，不是质量保证；不会自动修改码率、公网或防火墙设置。</string>
     <string name="ligase_network_test_action">开始网络测试</string>
+    <string name="ligase_game_input_overrides">单游戏输入设置</string>
+    <string name="ligase_game_input_override_summary">选择此 canonical 游戏使用全局输入配置，或使用仅存于本机的独立覆盖。</string>
+    <string name="ligase_game_input_use_global">使用全局设置</string>
+    <string name="ligase_game_input_custom">自定义覆盖</string>
+    <string name="ligase_game_input_clear">清除覆盖</string>
+    <string name="ligase_game_input_saved">已保存单游戏输入覆盖</string>
+    <string name="ligase_game_input_cleared">已清除单游戏输入覆盖</string>
+    <string name="ligase_game_input_invalid_target">此游戏已不可用，未做任何更改。</string>
 </resources>

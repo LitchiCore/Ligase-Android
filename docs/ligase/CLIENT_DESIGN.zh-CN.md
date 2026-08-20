@@ -69,6 +69,10 @@
   云游戏控件仅有单点触控、多点触控、触摸板。单游戏覆盖只绑定 Host Sync 的 canonical
   game UUID，不按名称或 App ID 推断。observe 权限强制投影“不显示”并禁用修改，但不会
   写回或清除已保存偏好；恢复 operate 后原偏好重新生效。
+- 全局设置下方按当前游戏库列出可安全识别的游戏。进入单游戏输入设置后可选择“使用全局”
+  或自定义 overlay/cloud-touch，并可显式清除覆盖；保存、清除都必须以 canonical UUID
+  写入并由 application readback 确认。取消、Back、游戏刷新消失、system item、缺失 UUID
+  与 observe 只读状态均零写。
 - 输入页与设置页只提供同一个 v3 布局大厅入口；不再展示 v1 布局选择、编辑当前布局、
   copy-on-write 或全屏预览入口。
 - Hall 只展示 v3 新建、恢复与已严格验证的本机 generation。产品启动不携带 v1 layout
