@@ -1,6 +1,8 @@
 package com.limelight.ligase.feature.library.ui.settings
 
 import androidx.fragment.app.FragmentActivity
+import android.view.ViewGroup
+import android.view.WindowManager
 import com.limelight.ligase.LigaseThemeMode
 import com.limelight.ligase.feature.library.data.dto.LigaseResolutionDto
 import org.junit.Assert.assertEquals
@@ -47,6 +49,27 @@ class StreamingResolutionDialogFragmentTest {
         activity.supportFragmentManager.executePendingTransactions()
 
         assertEquals(0, results)
+    }
+
+    @Test
+    fun `dialog uses bounded full window and resize mode for reachable actions`() {
+        val activity = Robolectric.buildActivity(FragmentActivity::class.java).setup().get()
+        StreamingResolutionDialogFragment.show(
+            activity.supportFragmentManager,
+            request(),
+            LigaseThemeMode.SYSTEM,
+        )
+        activity.supportFragmentManager.executePendingTransactions()
+        val fragment = activity.supportFragmentManager.fragments
+            .single() as StreamingResolutionDialogFragment
+        val window = fragment.requireDialog().window!!
+
+        assertEquals(ViewGroup.LayoutParams.MATCH_PARENT, window.attributes.width)
+        assertEquals(ViewGroup.LayoutParams.MATCH_PARENT, window.attributes.height)
+        assertEquals(
+            WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE,
+            window.attributes.softInputMode and WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST,
+        )
     }
 
     private fun request() = StreamingResolutionEditorRequest(

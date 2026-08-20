@@ -5,8 +5,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -39,7 +43,9 @@ internal fun StreamingResolutionEditor(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .widthIn(max = 560.dp),
+            .widthIn(max = 560.dp)
+            .heightIn(max = 720.dp)
+            .fillMaxHeight(),
         shape = MaterialTheme.shapes.extraLarge,
         tonalElevation = 6.dp,
     ) {
@@ -52,89 +58,89 @@ internal fun StreamingResolutionEditor(
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
             )
-            if (request.allowUseGlobal) {
-                ResolutionChoice(
-                    selected = draft.useGlobal,
-                    label = stringResource(R.string.ligase_resolution_use_global),
-                    onClick = {
-                        onDraftChanged(draft.copy(useGlobal = true))
-                    },
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                if (request.allowUseGlobal) {
+                    ResolutionChoice(
+                        selected = draft.useGlobal,
+                        label = stringResource(R.string.ligase_resolution_use_global),
+                        onClick = { onDraftChanged(draft.copy(useGlobal = true)) },
+                    )
+                    ResolutionChoice(
+                        selected = !draft.useGlobal,
+                        label = stringResource(R.string.ligase_resolution_custom),
+                        onClick = { onDraftChanged(draft.copy(useGlobal = false)) },
+                    )
+                }
+                StreamDisplayPolicy.resolutionPresets(request.deviceCapabilities).forEach { preset ->
+                    val resolution = preset.resolution
+                    val available = resolution != null &&
+                        preset.reason == StreamCapabilityReason.AVAILABLE
+                    ResolutionChoice(
+                        selected = !draft.useGlobal && resolution != null &&
+                            draft.widthText == resolution.width.toString() &&
+                            draft.heightText == resolution.height.toString(),
+                        enabled = available,
+                        label = buildString {
+                            append(stringResource(preset.id.labelResource()))
+                            resolution?.let { append(" · ${it.label}") }
+                            if (!available) {
+                                append(" · ")
+                                append(
+                                    stringResource(
+                                        if (preset.reason == StreamCapabilityReason.EXCEEDS_DEVICE_DISPLAY) {
+                                            R.string.ligase_stream_exceeds_display
+                                        } else {
+                                            R.string.ligase_stream_capability_unknown
+                                        },
+                                    ),
+                                )
+                            }
+                        },
+                        onClick = {
+                            if (resolution != null) {
+                                onDraftChanged(
+                                    draft.copy(
+                                        widthText = resolution.width.toString(),
+                                        heightText = resolution.height.toString(),
+                                        useGlobal = false,
+                                    ),
+                                )
+                            }
+                        },
+                    )
+                }
+                OutlinedTextField(
+                    value = draft.widthText,
+                    onValueChange = { onDraftChanged(draft.copy(widthText = it)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !request.allowUseGlobal || !draft.useGlobal,
+                    label = { Text(stringResource(R.string.ligase_resolution_width)) },
+                    isError = invalid,
+                    supportingText = if (invalid) {
+                        { Text(stringResource(R.string.ligase_resolution_invalid)) }
+                    } else null,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
-                ResolutionChoice(
-                    selected = !draft.useGlobal,
-                    label = stringResource(R.string.ligase_resolution_custom),
-                    onClick = {
-                        onDraftChanged(draft.copy(useGlobal = false))
-                    },
+                OutlinedTextField(
+                    value = draft.heightText,
+                    onValueChange = { onDraftChanged(draft.copy(heightText = it)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !request.allowUseGlobal || !draft.useGlobal,
+                    label = { Text(stringResource(R.string.ligase_resolution_height)) },
+                    isError = invalid,
+                    supportingText = if (invalid) {
+                        { Text(stringResource(R.string.ligase_resolution_invalid)) }
+                    } else null,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
             }
-            StreamDisplayPolicy.resolutionPresets(request.deviceCapabilities).forEach { preset ->
-                val resolution = preset.resolution
-                val available = resolution != null && preset.reason == StreamCapabilityReason.AVAILABLE
-                ResolutionChoice(
-                    selected = !draft.useGlobal && resolution != null &&
-                        draft.widthText == resolution.width.toString() &&
-                        draft.heightText == resolution.height.toString(),
-                    enabled = available,
-                    label = buildString {
-                        append(stringResource(preset.id.labelResource()))
-                        resolution?.let { append(" · ${it.label}") }
-                        if (!available) {
-                            append(" · ")
-                            append(
-                                stringResource(
-                                    if (preset.reason == StreamCapabilityReason.EXCEEDS_DEVICE_DISPLAY) {
-                                        R.string.ligase_stream_exceeds_display
-                                    } else {
-                                        R.string.ligase_stream_capability_unknown
-                                    },
-                                ),
-                            )
-                        }
-                    },
-                    onClick = {
-                        if (resolution != null) {
-                            onDraftChanged(
-                                draft.copy(
-                                    widthText = resolution.width.toString(),
-                                    heightText = resolution.height.toString(),
-                                    useGlobal = false,
-                                ),
-                            )
-                        }
-                    },
-                )
-            }
-            OutlinedTextField(
-                value = draft.widthText,
-                onValueChange = { onDraftChanged(draft.copy(widthText = it)) },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !request.allowUseGlobal || !draft.useGlobal,
-                label = { Text(stringResource(R.string.ligase_resolution_width)) },
-                isError = invalid,
-                supportingText = if (invalid) {
-                    { Text(stringResource(R.string.ligase_resolution_invalid)) }
-                } else {
-                    null
-                },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            )
-            OutlinedTextField(
-                value = draft.heightText,
-                onValueChange = { onDraftChanged(draft.copy(heightText = it)) },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !request.allowUseGlobal || !draft.useGlobal,
-                label = { Text(stringResource(R.string.ligase_resolution_height)) },
-                isError = invalid,
-                supportingText = if (invalid) {
-                    { Text(stringResource(R.string.ligase_resolution_invalid)) }
-                } else {
-                    null
-                },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
