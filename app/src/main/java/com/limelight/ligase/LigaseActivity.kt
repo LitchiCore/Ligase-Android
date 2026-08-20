@@ -34,6 +34,8 @@ import com.limelight.ligase.feature.host.application.HostAddResult
 import com.limelight.ligase.feature.host.application.HostClickAction
 import com.limelight.ligase.feature.host.application.HostEndpointCoordinator
 import com.limelight.ligase.feature.host.application.HostWakeResult
+import com.limelight.ligase.feature.host.application.DevicePresenceCoordinator
+import com.limelight.ligase.feature.host.application.DevicePresenceTarget
 import com.limelight.ligase.feature.host.infrastructure.LegacyComputerRegistryTransport
 import com.limelight.ligase.feature.input.application.InputSelectionCoordinator
 import com.limelight.ligase.feature.input.application.InputSelectionState
@@ -118,6 +120,7 @@ class LigaseActivity : AppCompatActivity() {
     private lateinit var pairingViewModel: AttendedPairingViewModel
     private lateinit var hostPairingCoordinator: HostPairingCoordinator
     private lateinit var hostEndpointCoordinator: HostEndpointCoordinator
+    private lateinit var devicePresenceCoordinator: DevicePresenceCoordinator
     private lateinit var streamLaunchCoordinator: StreamLaunchCoordinator
     private lateinit var streamBitrateState: StreamBitrateState
     private var streamBitrateUiState by mutableStateOf<StreamBitrateUiState?>(null)
@@ -126,6 +129,7 @@ class LigaseActivity : AppCompatActivity() {
     private lateinit var hdrCapabilityProbe: AndroidHdrCapabilityProbe
     private lateinit var librarySessionViewModel: LibrarySessionViewModel
     private lateinit var libraryHostCoordinator: LibraryHostCoordinator
+    private lateinit var libraryTransport: LegacyGameStreamLibraryTransport
     private lateinit var libraryManualSortCoordinator: LibraryManualSortCoordinator
     private lateinit var libraryStreamingSettingsCoordinator:
         LibraryStreamingSettingsCoordinator
@@ -148,6 +152,8 @@ class LigaseActivity : AppCompatActivity() {
                     hostEndpointCoordinator.onTransportAvailable(::handleHostUpdate)
                     if (currentPage == LigasePage.HOME && restoredHost != null) {
                         openLibrary(restoredHost)
+                    } else {
+                        refreshDevicePresenceTarget()
                     }
                 }
                 PlatformBinding.getCryptoProvider(this@LigaseActivity).clientCertificate
@@ -157,6 +163,7 @@ class LigaseActivity : AppCompatActivity() {
         override fun onServiceDisconnected(name: ComponentName?) {
             managerBinder = null
             hostEndpointCoordinator.onTransportUnavailable()
+            devicePresenceCoordinator.onInactive()
             if (::libraryHostCoordinator.isInitialized) {
                 libraryHostCoordinator.stopAppListUpdates()
             }
@@ -201,6 +208,7 @@ class LigaseActivity : AppCompatActivity() {
             transport = LegacyComputerRegistryTransport(this) { managerBinder },
             postToMain = { action -> runOnUiThread(action) },
         )
+        devicePresenceCoordinator = DevicePresenceCoordinator()
         streamLaunchCoordinator = StreamLaunchCoordinator(
             currentHost = { libraryHost },
             launcher = LegacyGameStreamLauncher(this) { managerBinder },
@@ -213,10 +221,11 @@ class LigaseActivity : AppCompatActivity() {
             beforeLegacyPairing = { stopComputerUpdates(true) },
         )
         librarySessionViewModel = ViewModelProvider(this)[LibrarySessionViewModel::class.java]
+        libraryTransport = LegacyGameStreamLibraryTransport(this) { managerBinder }
         libraryHostCoordinator = LibraryHostCoordinator(
             session = librarySessionViewModel,
             repository = syncRepository,
-            transport = LegacyGameStreamLibraryTransport(this) { managerBinder },
+            transport = libraryTransport,
             hdrState = ::currentHdrState,
             postToMain = { action -> runOnUiThread(action) },
             onAssetLoaderChanged = { loader -> libraryAssetLoader = loader },
@@ -507,6 +516,7 @@ class LigaseActivity : AppCompatActivity() {
                 stopAppListUpdates()
             }
             handleSelectedHostCapabilities(details)
+            refreshDevicePresenceTarget()
             if (
                 details.state == ComputerDetails.State.ONLINE &&
                 previousConnectivity != LibraryConnectivity.ONLINE &&
@@ -639,6 +649,7 @@ class LigaseActivity : AppCompatActivity() {
         librarySortMode = LigasePreferences.getLibrarySortMode(this, host.uuid)
         startComputerUpdates()
         handleSelectedHostCapabilities(host)
+        refreshDevicePresenceTarget()
     }
 
     private fun clearLibraryState() {
@@ -647,6 +658,25 @@ class LigaseActivity : AppCompatActivity() {
         libraryAccessMode = null
         libraryHostCoordinator.clearHost()
         pendingLibraryHostUuid = null
+        devicePresenceCoordinator.onInactive()
+    }
+
+    private fun refreshDevicePresenceTarget() {
+        val host = libraryHost
+        if (
+            !foreground || host == null || host.state != ComputerDetails.State.ONLINE ||
+            host.pairState != PairState.PAIRED || host.serverCert == null || managerBinder == null
+        ) {
+            devicePresenceCoordinator.onInactive()
+            return
+        }
+        try {
+            devicePresenceCoordinator.onActive(
+                DevicePresenceTarget.authenticated(host.uuid, libraryTransport.createHttp(host)),
+            )
+        } catch (_: IOException) {
+            devicePresenceCoordinator.onInactive()
+        }
     }
 
     private fun startAppListUpdates() {
@@ -1068,6 +1098,7 @@ class LigaseActivity : AppCompatActivity() {
         streamBitrateState.refresh(PreferenceConfiguration.getDefaultBitrate(this))
         inputSelectionCoordinator.start()
         hostEndpointCoordinator.onForeground(::handleHostUpdate)
+        refreshDevicePresenceTarget()
         startAppListUpdates()
         UiHelper.showDecoderCrashDialog(this)
     }
@@ -1084,6 +1115,7 @@ class LigaseActivity : AppCompatActivity() {
         inputSelectionCoordinator.stop()
         stopAppListUpdates()
         hostEndpointCoordinator.onBackground()
+        devicePresenceCoordinator.onInactive()
         super.onPause()
     }
 
@@ -1100,6 +1132,9 @@ class LigaseActivity : AppCompatActivity() {
         }
         if (::hostEndpointCoordinator.isInitialized) {
             hostEndpointCoordinator.close()
+        }
+        if (::devicePresenceCoordinator.isInitialized) {
+            devicePresenceCoordinator.close()
         }
         if (::libraryManualSortCoordinator.isInitialized) {
             libraryManualSortCoordinator.close()

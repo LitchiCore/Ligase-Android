@@ -172,6 +172,10 @@ handoff、exclusive lease、adaptive mapper与全屏浮层Activity已进入生�
 - Library pull-to-refresh indicator只消费Material theme token，不持有独立明暗色或刷新状态。
 - 网络测试与码率建议通过closed typed UI state投影。Host path/quality machine contract未冻结时，
   production固定为`HOST_CONTRACT_NOT_READY`，不发网络请求、不选择路径，也不写码率或网络设置。
+- Device Presence v1 heartbeat由application coordinator单独调度：前台选中且已认证Host，或实际
+  串流Activity的证书绑定Host，均只形成一个generation target；立即发送后按单调5秒tick、
+  single-flight执行。切换、后台、onStop与销毁只失效generation，不发送final heartbeat，也不
+  创建后台service。Android仅投影本机请求ACK/失败，不把响应解释为Host presence真值。
 
 ## 开发环境与提交纪律
 

@@ -611,6 +611,58 @@ public class NvHTTP {
                 RequestBody.create(json, MediaType.parse("application/json")));
     }
 
+    public static final class DevicePresenceResponse {
+        public final int statusCode;
+        public final String contentType;
+        public final byte[] body;
+
+        public DevicePresenceResponse(int statusCode, String contentType, byte[] body) {
+            this.statusCode = statusCode;
+            this.contentType = contentType;
+            this.body = body;
+        }
+    }
+
+    public DevicePresenceResponse postDevicePresenceHeartbeat() throws IOException {
+        HttpUrl url = getHttpsUrl(true).newBuilder()
+                .addPathSegments("ligase/v1/device-presence/heartbeat")
+                .build();
+        Request request = new Request.Builder()
+                .url(url)
+                .header("Accept", "application/json")
+                .post(RequestBody.create("{\"schemaVersion\":1}", MediaType.parse("application/json")))
+                .build();
+        OkHttpClient client = performAndroidTlsHack(httpClientLongConnectTimeout.newBuilder()
+                .followRedirects(false)
+                .followSslRedirects(false)
+                .callTimeout(SHORT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS)
+                .build());
+        try (Response response = client.newCall(request).execute()) {
+            ResponseBody responseBody = response.body();
+            byte[] bytes = readBounded(responseBody, 513);
+            return new DevicePresenceResponse(
+                    response.code(), response.header("Content-Type"), bytes);
+        }
+    }
+
+    private static byte[] readBounded(ResponseBody responseBody, int maximumBytes) throws IOException {
+        if (responseBody == null) return new byte[0];
+        try (InputStream input = responseBody.byteStream();
+             ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[512];
+            int total = 0;
+            while (true) {
+                int count = input.read(buffer);
+                if (count < 0) break;
+                int accepted = Math.min(count, maximumBytes - total);
+                if (accepted > 0) output.write(buffer, 0, accepted);
+                total += count;
+                if (total >= maximumBytes) break;
+            }
+            return output.toByteArray();
+        }
+    }
+
     private String normalizeLigasePath(String path) {
         if (path == null) {
             throw new IllegalArgumentException("Ligase path is required");

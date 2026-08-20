@@ -41,6 +41,8 @@ import com.limelight.nvstream.StreamConfiguration;
 import com.limelight.nvstream.http.ComputerDetails;
 import com.limelight.nvstream.http.NvApp;
 import com.limelight.nvstream.http.NvHTTP;
+import com.limelight.ligase.feature.host.application.DevicePresenceCoordinator;
+import com.limelight.ligase.feature.host.application.DevicePresenceTarget;
 import com.limelight.nvstream.input.KeyboardPacket;
 import com.limelight.nvstream.input.MouseButtonPacket;
 import com.limelight.nvstream.jni.MoonBridge;
@@ -295,6 +297,7 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
     private int appId;
     private String uniqueId;
     private X509Certificate serverCert;
+    private DevicePresenceCoordinator devicePresenceCoordinator;
     private boolean vDisplay;
     private ArrayList<String> serverCommands;
 
@@ -649,6 +652,7 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
                         .generateCertificate(new ByteArrayInputStream(derCertData));
 
                 httpConn = new NvHTTP(new ComputerDetails.AddressTuple(host, port), httpsPort, uniqueId, serverCert, PlatformBinding.getCryptoProvider(this));
+                devicePresenceCoordinator = new DevicePresenceCoordinator();
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -1758,6 +1762,10 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
 
     @Override
     protected void onDestroy() {
+        if (devicePresenceCoordinator != null) {
+            devicePresenceCoordinator.close();
+            devicePresenceCoordinator = null;
+        }
         super.onDestroy();
 
         instance = null;
@@ -1817,6 +1825,9 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
 
     @Override
     protected void onStop() {
+        if (devicePresenceCoordinator != null) {
+            devicePresenceCoordinator.onInactive();
+        }
         super.onStop();
 
         SpinnerDialog.closeDialogs(this);
@@ -3503,6 +3514,9 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
     }
 
     private void stopConnection() {
+        if (devicePresenceCoordinator != null) {
+            devicePresenceCoordinator.onInactive();
+        }
         if (connecting || connected) {
             connecting = connected = false;
             updatePipAutoEnter();
@@ -3734,6 +3748,9 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
 
     @Override
     public void connectionStarted() {
+        if (devicePresenceCoordinator != null && pcUuid != null && httpConn != null) {
+            devicePresenceCoordinator.onActive(DevicePresenceTarget.authenticated(pcUuid, httpConn));
+        }
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
