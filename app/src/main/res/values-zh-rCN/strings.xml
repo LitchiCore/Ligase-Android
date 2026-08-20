@@ -1319,4 +1319,17 @@
     <string name="ligase_effective_touch_direct">当前生效串流模式：直接多点触控</string>
     <string name="ligase_effective_touch_absolute">当前生效串流模式：单点绝对指针</string>
     <string name="ligase_effective_touch_trackpad">当前生效串流模式：触摸板</string>
+    <string name="ligase_stream_frame_rate">帧率</string>
+    <string name="ligase_stream_frame_rate_summary">Android 本机启动设置；推荐只作提示，绝不自动改写选择。</string>
+    <string name="ligase_stream_frame_rate_follow">跟随设备显示</string>
+    <string name="ligase_stream_frame_rate_fixed">%1$d FPS</string>
+    <string name="ligase_recommended">推荐</string>
+    <string name="ligase_stream_exceeds_display">超过设备显示能力</string>
+    <string name="ligase_stream_capability_unknown">无法确认设备能力</string>
+    <string name="ligase_resolution_device_max">设备最大</string>
+    <string name="ligase_resolution_best_16_9">最佳 16:9</string>
+    <string name="ligase_resolution_720p">720p</string>
+    <string name="ligase_resolution_1080p">1080p</string>
+    <string name="ligase_resolution_1440p">1440p</string>
+    <string name="ligase_resolution_2160p">2160p</string>
 </resources>

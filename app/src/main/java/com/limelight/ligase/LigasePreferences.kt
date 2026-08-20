@@ -12,6 +12,7 @@ import com.limelight.ligase.input.LigaseTouchOverlayMode
 import com.limelight.ligase.input.LigaseCloudTouchMode
 import com.limelight.ligase.input.LigaseCanonicalGameUuid
 import com.limelight.ligase.input.LigaseInputProfile
+import com.limelight.ligase.feature.stream.domain.StreamFrameRateMode
 
 enum class InputDeviceMode(val storedValue: String) {
     GAMEPAD("gamepad"),
@@ -58,6 +59,7 @@ object LigasePreferences {
     private const val KEY_TOUCH_OVERLAY_MODE = "touch_overlay_mode"
     private const val KEY_CLOUD_TOUCH_MODE = "cloud_touch_mode"
     private const val KEY_GAME_INPUT_PREFIX = "game_input:"
+    private const val KEY_STREAM_FRAME_RATE = "stream_frame_rate"
     private const val KEY_GAMEPAD_DEVICE = "input_device:gamepad"
     private const val KEY_KEYBOARD_DEVICE = "input_device:keyboard"
     private const val KEY_MOUSE_DEVICE = "input_device:mouse"
@@ -106,6 +108,17 @@ object LigasePreferences {
     @JvmStatic
     fun setCloudTouchMode(context: Context, mode: LigaseCloudTouchMode) {
         preferences(context).edit().putString(KEY_CLOUD_TOUCH_MODE, mode.storedValue).apply()
+    }
+
+    @JvmStatic
+    fun getStreamFrameRateMode(context: Context): StreamFrameRateMode =
+        StreamFrameRateMode.fromStoredValue(
+            preferences(context).getString(KEY_STREAM_FRAME_RATE, null),
+        )
+
+    @JvmStatic
+    fun setStreamFrameRateMode(context: Context, mode: StreamFrameRateMode) {
+        preferences(context).edit().putString(KEY_STREAM_FRAME_RATE, mode.storedValue).apply()
     }
 
     @JvmStatic

@@ -170,6 +170,7 @@ public class ServerHelper {
             boolean withVDisplay,
             int ligaseWidth,
             int ligaseHeight,
+            float ligaseFps,
             boolean ligaseHostHdrSupported,
             LigaseInputLaunchDecision input
     ) {
@@ -179,6 +180,7 @@ public class ServerHelper {
         intent.putExtra(Game.EXTRA_LIGASE_VIRTUAL_GAMEPAD, input.getShowVirtualGamepad());
         intent.putExtra(Game.EXTRA_LIGASE_CLOUD_TOUCH_MODE,
                 input.getCloudTouchMode().getStoredValue());
+        intent.putExtra(Game.EXTRA_LIGASE_FPS, ligaseFps);
         return intent;
     }
 
@@ -202,6 +204,7 @@ public class ServerHelper {
             boolean withVDisplay,
             int ligaseWidth,
             int ligaseHeight,
+            float ligaseFps,
             boolean ligaseHostHdrSupported,
             LigaseInputLaunchDecision input
     ) {
@@ -210,7 +213,7 @@ public class ServerHelper {
             return;
         }
         Intent intent = createLigaseStartIntent(parent, app, computer, managerBinder, withVDisplay,
-                ligaseWidth, ligaseHeight, ligaseHostHdrSupported, input);
+                ligaseWidth, ligaseHeight, ligaseFps, ligaseHostHdrSupported, input);
         parent.startActivity(intent);
     }
 

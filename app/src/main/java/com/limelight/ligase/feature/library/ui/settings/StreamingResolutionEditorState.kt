@@ -2,6 +2,7 @@ package com.limelight.ligase.feature.library.ui.settings
 
 import com.limelight.ligase.feature.library.data.dto.LigaseResolutionDto
 import com.limelight.ligase.library.LibraryConnectivity
+import com.limelight.ligase.feature.stream.domain.DeviceStreamCapabilities
 import java.util.Locale
 
 internal enum class StreamingResolutionTarget {
@@ -17,6 +18,8 @@ internal data class StreamingResolutionEditorRequest(
     val initialResolution: LigaseResolutionDto,
     val appUuid: String? = null,
     val useGlobal: Boolean = false,
+    val deviceCapabilities: DeviceStreamCapabilities =
+        DeviceStreamCapabilities(1920, 1080, 60f, false),
 ) {
     val allowUseGlobal: Boolean
         get() = target == StreamingResolutionTarget.APP

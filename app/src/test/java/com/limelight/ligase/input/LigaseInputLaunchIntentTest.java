@@ -85,11 +85,12 @@ public class LigaseInputLaunchIntentTest {
 
         Intent intent = ServerHelper.createLigaseStartIntent(
                 activity, new NvApp("Game", "app-uuid", 42, false), computer(), binder,
-                true, 1920, 1080, true, decision);
+                true, 1920, 1080, 60f, true, decision);
 
         assertEquals("touch", intent.getStringExtra(Game.EXTRA_LIGASE_INPUT_MODE));
         assertEquals("trackpad", intent.getStringExtra(Game.EXTRA_LIGASE_CLOUD_TOUCH_MODE));
         assertFalse(intent.getBooleanExtra(Game.EXTRA_LIGASE_VIRTUAL_GAMEPAD, true));
+        assertEquals(60f, intent.getFloatExtra(Game.EXTRA_LIGASE_FPS, 0f), 0f);
     }
 
     @Test

@@ -11,6 +11,10 @@ import com.limelight.ligase.feature.stream.application.StreamBitrateUiState
 import com.limelight.ligase.feature.stream.domain.CustomBitrateParseResult
 import com.limelight.ligase.feature.stream.domain.StreamBitratePolicy
 import com.limelight.ligase.feature.stream.domain.StreamBitratePresetId
+import com.limelight.ligase.feature.stream.domain.DeviceStreamCapabilities
+import com.limelight.ligase.feature.stream.domain.StreamDisplayPolicy
+import com.limelight.ligase.feature.stream.domain.StreamFrameRateChoice
+import com.limelight.ligase.feature.stream.domain.StreamFrameRateMode
 
 data class SettingsUiState(
     val selectedInput: InputDeviceMode,
@@ -20,6 +24,9 @@ data class SettingsUiState(
     val hdrState: LibraryHdrState,
     val canOperate: Boolean,
     val streamBitrate: StreamBitrateUiState,
+    val deviceStreamCapabilities: DeviceStreamCapabilities =
+        DeviceStreamCapabilities(1920, 1080, 60f, false),
+    val streamFrameRateMode: StreamFrameRateMode = StreamFrameRateMode.FOLLOW_DISPLAY,
 ) {
     val inputEnabled: Boolean
         get() = canOperate
@@ -29,6 +36,9 @@ data class SettingsUiState(
 
     val hasResolutionContent: Boolean
         get() = globalResolution != null
+
+    val frameRateChoices: List<StreamFrameRateChoice>
+        get() = StreamDisplayPolicy.frameRateChoices(deviceStreamCapabilities)
 }
 
 sealed interface StreamBitrateDraftValidation {

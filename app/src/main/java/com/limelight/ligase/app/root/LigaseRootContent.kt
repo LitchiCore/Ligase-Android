@@ -63,6 +63,8 @@ import com.limelight.ligase.feature.settings.ui.SettingsScreen
 import com.limelight.ligase.feature.settings.ui.rememberStreamBitrateDialogState
 import com.limelight.ligase.feature.stream.application.StreamBitrateUiState
 import com.limelight.ligase.feature.stream.domain.StreamBitratePresetId
+import com.limelight.ligase.feature.stream.domain.DeviceStreamCapabilities
+import com.limelight.ligase.feature.stream.domain.StreamFrameRateMode
 import com.limelight.ligase.library.LibraryRoute
 import com.limelight.ligase.library.LibraryConnectivity
 import com.limelight.ligase.library.ManualLibraryOrderDraft
@@ -102,6 +104,9 @@ internal fun LigaseRootContent(
     libraryConnectivity: LibraryConnectivity,
     libraryRevision: Long?,
     libraryGlobalResolution: LigaseResolutionDto?,
+    deviceStreamCapabilities: DeviceStreamCapabilities =
+        DeviceStreamCapabilities(1920, 1080, 60f, false),
+    streamFrameRateMode: StreamFrameRateMode = StreamFrameRateMode.FOLLOW_DISPLAY,
     libraryHdrState: LibraryHdrState,
     libraryRunningAppId: Int,
     librarySortMode: HostSortMode,
@@ -138,6 +143,7 @@ internal fun LigaseRootContent(
     onLayoutV3DiscardRecovery: (String) -> Unit = {},
     onLayoutV3OpenCommitted: (String, Long, String) -> Unit = { _, _, _ -> },
     onGlobalResolutionClick: () -> Unit,
+    onStreamFrameRateModeChanged: (StreamFrameRateMode) -> Unit = {},
     onStreamBitratePresetSelected: (StreamBitratePresetId) -> Unit,
     onStreamBitrateCustomSubmitted: (String) -> Unit,
     onPairingCancel: () -> Unit,
@@ -340,6 +346,8 @@ internal fun LigaseRootContent(
                                     hdrState = libraryHdrState,
                                     canOperate = libraryCanOperate && libraryOnline,
                                     streamBitrate = streamBitrateState,
+                                    deviceStreamCapabilities = deviceStreamCapabilities,
+                                    streamFrameRateMode = streamFrameRateMode,
                                 ),
                                 streamBitrateDialogState = streamBitrateDialogState,
                                 onOpenInput = {
@@ -351,6 +359,7 @@ internal fun LigaseRootContent(
                                 onThemeSelected = onThemeSelected,
                                 onLanguageSelected = onLanguageSelected,
                                 onGlobalResolutionClick = onGlobalResolutionClick,
+                                onStreamFrameRateModeChanged = onStreamFrameRateModeChanged,
                                 onStreamBitratePresetSelected =
                                     onStreamBitratePresetSelected,
                                 onStreamBitrateCustomSubmitted =

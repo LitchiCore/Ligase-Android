@@ -36,6 +36,7 @@ open class LegacyGameStreamLauncher private constructor(
             plan.withVirtualDisplay,
             plan.width,
             plan.height,
+            plan.fps,
             plan.hostHdrSupported,
             plan.input,
         )

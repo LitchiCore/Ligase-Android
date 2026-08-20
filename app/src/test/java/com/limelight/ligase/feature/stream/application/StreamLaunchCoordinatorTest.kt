@@ -134,6 +134,7 @@ class StreamLaunchCoordinatorTest {
         assertEquals(42, plan.numericAppId)
         assertEquals(2560, plan.width)
         assertEquals(1440, plan.height)
+        assertEquals(60f, plan.fps)
         assertTrue(plan.hostHdrSupported)
     }
 

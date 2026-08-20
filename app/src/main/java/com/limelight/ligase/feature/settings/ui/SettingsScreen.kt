@@ -38,6 +38,8 @@ import com.limelight.ligase.LigaseSemanticTheme
 import com.limelight.ligase.LigaseThemeMode
 import com.limelight.ligase.feature.settings.presentation.SettingsUiState
 import com.limelight.ligase.feature.stream.domain.StreamBitratePresetId
+import com.limelight.ligase.feature.stream.domain.StreamCapabilityReason
+import com.limelight.ligase.feature.stream.domain.StreamFrameRateMode
 import com.limelight.ligase.inputTitle
 import com.limelight.ligase.library.messageResource
 import com.limelight.ligase.ligaseNavigationContentBottomPadding
@@ -51,6 +53,7 @@ fun SettingsScreen(
     onThemeSelected: (LigaseThemeMode) -> Unit,
     onLanguageSelected: (LigaseLanguageMode) -> Unit,
     onGlobalResolutionClick: () -> Unit,
+    onStreamFrameRateModeChanged: (StreamFrameRateMode) -> Unit,
     onStreamBitratePresetSelected: (StreamBitratePresetId) -> Unit,
     onStreamBitrateCustomSubmitted: (String) -> Unit,
     onAdvancedSettings: () -> Unit,
@@ -205,6 +208,69 @@ fun SettingsScreen(
                                     LigaseSemanticTheme.colors.disabled
                                 },
                                 style = MaterialTheme.typography.labelMedium,
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    ),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.ligase_stream_frame_rate),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            text = stringResource(R.string.ligase_stream_frame_rate_summary),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        state.frameRateChoices.forEach { choice ->
+                            val enabled = choice.reason == StreamCapabilityReason.AVAILABLE
+                            FilterChip(
+                                selected = state.streamFrameRateMode == choice.mode,
+                                onClick = { onStreamFrameRateModeChanged(choice.mode) },
+                                enabled = enabled,
+                                label = {
+                                    Text(
+                                        text = buildString {
+                                            append(
+                                                if (choice.mode == StreamFrameRateMode.FOLLOW_DISPLAY) {
+                                                    stringResource(R.string.ligase_stream_frame_rate_follow)
+                                                } else {
+                                                    stringResource(
+                                                        R.string.ligase_stream_frame_rate_fixed,
+                                                        choice.mode.fixedFps ?: 0,
+                                                    )
+                                                },
+                                            )
+                                            if (choice.recommended) {
+                                                append(" · ")
+                                                append(stringResource(R.string.ligase_recommended))
+                                            }
+                                            if (!enabled) {
+                                                append(" · ")
+                                                append(
+                                                    stringResource(
+                                                        if (choice.reason == StreamCapabilityReason.EXCEEDS_DEVICE_DISPLAY) {
+                                                            R.string.ligase_stream_exceeds_display
+                                                        } else {
+                                                            R.string.ligase_stream_capability_unknown
+                                                        },
+                                                    ),
+                                                )
+                                            }
+                                        },
+                                    )
+                                },
                             )
                         }
                     }

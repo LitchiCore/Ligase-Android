@@ -147,6 +147,10 @@ internal class StreamingResolutionDialogFragment : DialogFragment() {
         private const val ARG_HEIGHT = "height"
         private const val ARG_APP_UUID = "appUuid"
         private const val ARG_USE_GLOBAL = "useGlobal"
+        private const val ARG_DEVICE_MAX_WIDTH = "deviceMaxWidth"
+        private const val ARG_DEVICE_MAX_HEIGHT = "deviceMaxHeight"
+        private const val ARG_DEVICE_MAX_FPS = "deviceMaxFps"
+        private const val ARG_DEVICE_CAPABILITY_KNOWN = "deviceCapabilityKnown"
         private const val ARG_THEME = "theme"
         private const val RESULT_HAS_RESOLUTION = "hasResolution"
 
@@ -183,6 +187,12 @@ internal class StreamingResolutionDialogFragment : DialogFragment() {
                 appUuid = appUuid,
                 useGlobal = target == StreamingResolutionTarget.APP &&
                     bundle.getBoolean(ARG_USE_GLOBAL),
+                deviceCapabilities = com.limelight.ligase.feature.stream.domain.DeviceStreamCapabilities(
+                    maxWidth = bundle.getInt(ARG_DEVICE_MAX_WIDTH, 1920),
+                    maxHeight = bundle.getInt(ARG_DEVICE_MAX_HEIGHT, 1080),
+                    maxRefreshRateHz = bundle.getFloat(ARG_DEVICE_MAX_FPS, 60f),
+                    known = bundle.getBoolean(ARG_DEVICE_CAPABILITY_KNOWN),
+                ),
             )
         }
 
@@ -231,6 +241,10 @@ internal class StreamingResolutionDialogFragment : DialogFragment() {
             putInt(ARG_HEIGHT, request.initialResolution.height)
             putString(ARG_APP_UUID, request.appUuid)
             putBoolean(ARG_USE_GLOBAL, request.useGlobal)
+            putInt(ARG_DEVICE_MAX_WIDTH, request.deviceCapabilities.maxWidth)
+            putInt(ARG_DEVICE_MAX_HEIGHT, request.deviceCapabilities.maxHeight)
+            putFloat(ARG_DEVICE_MAX_FPS, request.deviceCapabilities.maxRefreshRateHz)
+            putBoolean(ARG_DEVICE_CAPABILITY_KNOWN, request.deviceCapabilities.known)
             putString(ARG_THEME, themeMode.name)
         }
 

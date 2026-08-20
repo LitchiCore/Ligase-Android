@@ -277,6 +277,7 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
     public static final String EXTRA_LIGASE_VIRTUAL_GAMEPAD = "LigaseVirtualGamepad";
     public static final String EXTRA_LIGASE_WIDTH = "LigaseWidth";
     public static final String EXTRA_LIGASE_HEIGHT = "LigaseHeight";
+    public static final String EXTRA_LIGASE_FPS = "LigaseFps";
     public static final String EXTRA_LIGASE_HOST_HDR_SUPPORTED = "LigaseHostHdrSupported";
     public static final String EXTRA_LIGASE_SESSION_CONTROLS = "LigaseSessionControls";
 
@@ -382,6 +383,10 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
         if (ligaseWidth > 0 && ligaseHeight > 0) {
             prefConfig.width = ligaseWidth;
             prefConfig.height = ligaseHeight;
+        }
+        float ligaseFps = getIntent().getFloatExtra(EXTRA_LIGASE_FPS, 0f);
+        if (ligaseFps > 0f && Float.isFinite(ligaseFps)) {
+            prefConfig.fps = ligaseFps;
         }
         String ligaseInputMode = getIntent().getStringExtra(EXTRA_LIGASE_INPUT_MODE);
         Boolean ligaseShowTouchControls =

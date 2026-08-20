@@ -32,6 +32,8 @@ import com.limelight.ligase.feature.library.domain.LigaseLibraryItem
 import com.limelight.ligase.feature.library.domain.LigaseLibraryStatus
 import com.limelight.ligase.feature.stream.application.StreamBitrateUiState
 import com.limelight.ligase.feature.stream.domain.StreamBitratePresetId
+import com.limelight.ligase.feature.stream.domain.DeviceStreamCapabilities
+import com.limelight.ligase.feature.stream.domain.StreamFrameRateMode
 import com.limelight.ligase.input.LigaseInputCategory
 import com.limelight.ligase.input.LigaseInputDevice
 import com.limelight.ligase.input.LigaseTouchOverlayMode
@@ -66,6 +68,9 @@ fun LigaseRoot(
     libraryConnectivity: LibraryConnectivity,
     libraryRevision: Long?,
     libraryGlobalResolution: LigaseResolutionDto?,
+    deviceStreamCapabilities: DeviceStreamCapabilities =
+        DeviceStreamCapabilities(1920, 1080, 60f, false),
+    streamFrameRateMode: StreamFrameRateMode = StreamFrameRateMode.FOLLOW_DISPLAY,
     libraryHdrState: LibraryHdrState,
     libraryRunningAppId: Int,
     librarySortMode: HostSortMode,
@@ -102,6 +107,7 @@ fun LigaseRoot(
     onLayoutV3DiscardRecovery: (String) -> Unit = {},
     onLayoutV3OpenCommitted: (String, Long, String) -> Unit = { _, _, _ -> },
     onGlobalResolutionClick: () -> Unit,
+    onStreamFrameRateModeChanged: (StreamFrameRateMode) -> Unit = {},
     onStreamBitratePresetSelected: (StreamBitratePresetId) -> Unit,
     onStreamBitrateCustomSubmitted: (String) -> Unit,
     onPairingCancel: () -> Unit,
@@ -128,6 +134,8 @@ fun LigaseRoot(
     libraryConnectivity = libraryConnectivity,
     libraryRevision = libraryRevision,
     libraryGlobalResolution = libraryGlobalResolution,
+    deviceStreamCapabilities = deviceStreamCapabilities,
+    streamFrameRateMode = streamFrameRateMode,
     libraryHdrState = libraryHdrState,
     libraryRunningAppId = libraryRunningAppId,
     librarySortMode = librarySortMode,
@@ -163,6 +171,7 @@ fun LigaseRoot(
     onLayoutV3DiscardRecovery = onLayoutV3DiscardRecovery,
     onLayoutV3OpenCommitted = onLayoutV3OpenCommitted,
     onGlobalResolutionClick = onGlobalResolutionClick,
+    onStreamFrameRateModeChanged = onStreamFrameRateModeChanged,
     onStreamBitratePresetSelected = onStreamBitratePresetSelected,
     onStreamBitrateCustomSubmitted = onStreamBitrateCustomSubmitted,
     onPairingCancel = onPairingCancel,

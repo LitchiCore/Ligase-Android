@@ -73,6 +73,9 @@ import com.limelight.ligase.feature.stream.application.StreamBitrateState
 import com.limelight.ligase.feature.stream.application.StreamBitrateUiState
 import com.limelight.ligase.feature.stream.domain.StreamBitratePresetId
 import com.limelight.ligase.feature.stream.infrastructure.LegacyGameStreamLauncher
+import com.limelight.ligase.feature.stream.infrastructure.AndroidStreamDisplayCapabilityProbe
+import com.limelight.ligase.feature.stream.domain.DeviceStreamCapabilities
+import com.limelight.ligase.feature.stream.domain.StreamFrameRateMode
 import com.limelight.ligase.feature.stream.infrastructure.StreamBitratePreferences
 import com.limelight.ligase.library.LibraryConnectivity
 import com.limelight.ligase.library.LibrarySessionError
@@ -118,6 +121,8 @@ class LigaseActivity : AppCompatActivity() {
     private lateinit var streamLaunchCoordinator: StreamLaunchCoordinator
     private lateinit var streamBitrateState: StreamBitrateState
     private var streamBitrateUiState by mutableStateOf<StreamBitrateUiState?>(null)
+    private lateinit var deviceStreamCapabilities: DeviceStreamCapabilities
+    private var streamFrameRateMode by mutableStateOf(StreamFrameRateMode.FOLLOW_DISPLAY)
     private lateinit var hdrCapabilityProbe: AndroidHdrCapabilityProbe
     private lateinit var librarySessionViewModel: LibrarySessionViewModel
     private lateinit var libraryHostCoordinator: LibraryHostCoordinator
@@ -171,6 +176,8 @@ class LigaseActivity : AppCompatActivity() {
         hdrCapabilityProbe = AndroidHdrCapabilityProbe(this)
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false)
         localHdrCapabilities = hdrCapabilityProbe.probe()
+        deviceStreamCapabilities = AndroidStreamDisplayCapabilityProbe.probe(this)
+        streamFrameRateMode = LigasePreferences.getStreamFrameRateMode(this)
         streamBitrateState = StreamBitrateState(
             preferences = StreamBitratePreferences(
                 PreferenceManager.getDefaultSharedPreferences(this),
@@ -317,6 +324,8 @@ class LigaseActivity : AppCompatActivity() {
                 libraryStatus = libraryState.status,
                 libraryRevision = libraryState.content?.sync?.library?.revision,
                 libraryGlobalResolution = libraryState.content?.sync?.streaming?.globalResolution,
+                deviceStreamCapabilities = deviceStreamCapabilities,
+                streamFrameRateMode = streamFrameRateMode,
                 libraryHdrState = libraryState.content?.hdr ?: currentHdrState(null),
                 libraryRunningAppId = libraryRunningAppId,
                 librarySortMode = librarySortMode,
@@ -361,6 +370,7 @@ class LigaseActivity : AppCompatActivity() {
                     layoutV3EditorWorkspaceViewModel::discardRecovery,
                 onLayoutV3OpenCommitted = ::openCommittedLayoutV3Editor,
                 onGlobalResolutionClick = ::showGlobalResolutionSettings,
+                onStreamFrameRateModeChanged = ::selectStreamFrameRateMode,
                 onPairingCancel = pairingViewModel::cancel,
                 onPairingDismiss = pairingViewModel::dismissStopped,
             )
@@ -421,6 +431,11 @@ class LigaseActivity : AppCompatActivity() {
         LigasePreferences.setLanguageMode(this, mode)
         UiHelper.setLocale(this)
         recreate()
+    }
+
+    private fun selectStreamFrameRateMode(mode: StreamFrameRateMode) {
+        streamFrameRateMode = mode
+        LigasePreferences.setStreamFrameRateMode(this, mode)
     }
 
     private fun selectStreamBitratePreset(id: StreamBitratePresetId) {
@@ -793,6 +808,8 @@ class LigaseActivity : AppCompatActivity() {
                 connectedInputDevices = inputState.devices,
                 overlayMode = inputProfile.overlayMode,
                 cloudTouchMode = inputProfile.cloudTouchMode,
+                frameRateMode = streamFrameRateMode,
+                deviceCapabilities = deviceStreamCapabilities,
                 preferVirtualDisplay =
                     PreferenceConfiguration.readPreferences(this).useVirtualDisplay,
             ),
@@ -866,6 +883,7 @@ class LigaseActivity : AppCompatActivity() {
                 initialResolution = override ?: snapshot.streaming.globalResolution,
                 appUuid = appUuid,
                 useGlobal = override == null,
+                deviceCapabilities = deviceStreamCapabilities,
             ),
             themeMode,
         )
@@ -883,6 +901,7 @@ class LigaseActivity : AppCompatActivity() {
                 hostKey = host.uuid.normalizedHostKey(),
                 baseRevision = snapshot.streaming.revision,
                 initialResolution = snapshot.streaming.globalResolution,
+                deviceCapabilities = deviceStreamCapabilities,
             ),
             themeMode,
         )

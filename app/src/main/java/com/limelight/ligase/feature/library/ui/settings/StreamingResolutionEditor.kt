@@ -1,5 +1,6 @@
 package com.limelight.ligase.feature.library.ui.settings
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,6 +23,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.limelight.R
+import com.limelight.ligase.feature.stream.domain.StreamCapabilityReason
+import com.limelight.ligase.feature.stream.domain.StreamDisplayPolicy
+import com.limelight.ligase.feature.stream.domain.StreamResolutionPresetId
 
 @Composable
 internal fun StreamingResolutionEditor(
@@ -61,6 +65,43 @@ internal fun StreamingResolutionEditor(
                     label = stringResource(R.string.ligase_resolution_custom),
                     onClick = {
                         onDraftChanged(draft.copy(useGlobal = false))
+                    },
+                )
+            }
+            StreamDisplayPolicy.resolutionPresets(request.deviceCapabilities).forEach { preset ->
+                val resolution = preset.resolution
+                val available = resolution != null && preset.reason == StreamCapabilityReason.AVAILABLE
+                ResolutionChoice(
+                    selected = !draft.useGlobal && resolution != null &&
+                        draft.widthText == resolution.width.toString() &&
+                        draft.heightText == resolution.height.toString(),
+                    enabled = available,
+                    label = buildString {
+                        append(stringResource(preset.id.labelResource()))
+                        resolution?.let { append(" · ${it.label}") }
+                        if (!available) {
+                            append(" · ")
+                            append(
+                                stringResource(
+                                    if (preset.reason == StreamCapabilityReason.EXCEEDS_DEVICE_DISPLAY) {
+                                        R.string.ligase_stream_exceeds_display
+                                    } else {
+                                        R.string.ligase_stream_capability_unknown
+                                    },
+                                ),
+                            )
+                        }
+                    },
+                    onClick = {
+                        if (resolution != null) {
+                            onDraftChanged(
+                                draft.copy(
+                                    widthText = resolution.width.toString(),
+                                    heightText = resolution.height.toString(),
+                                    useGlobal = false,
+                                ),
+                            )
+                        }
                     },
                 )
             }
@@ -113,6 +154,7 @@ internal fun StreamingResolutionEditor(
 private fun ResolutionChoice(
     selected: Boolean,
     label: String,
+    enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     Row(
@@ -122,7 +164,22 @@ private fun ResolutionChoice(
         RadioButton(
             selected = selected,
             onClick = onClick,
+            enabled = enabled,
         )
-        Text(text = label)
+        Text(
+            text = label,
+            color = if (enabled) MaterialTheme.colorScheme.onSurface else
+                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+        )
     }
+}
+
+@StringRes
+private fun StreamResolutionPresetId.labelResource(): Int = when (this) {
+    StreamResolutionPresetId.DEVICE_MAX -> R.string.ligase_resolution_device_max
+    StreamResolutionPresetId.BEST_16_9 -> R.string.ligase_resolution_best_16_9
+    StreamResolutionPresetId.HD_720 -> R.string.ligase_resolution_720p
+    StreamResolutionPresetId.FULL_HD_1080 -> R.string.ligase_resolution_1080p
+    StreamResolutionPresetId.QHD_1440 -> R.string.ligase_resolution_1440p
+    StreamResolutionPresetId.UHD_2160 -> R.string.ligase_resolution_2160p
 }

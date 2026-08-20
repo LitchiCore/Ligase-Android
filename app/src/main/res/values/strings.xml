@@ -1333,4 +1333,17 @@
     <string name="ligase_effective_touch_direct">Effective stream mode: direct multi-touch</string>
     <string name="ligase_effective_touch_absolute">Effective stream mode: single-touch absolute pointer</string>
     <string name="ligase_effective_touch_trackpad">Effective stream mode: trackpad</string>
+    <string name="ligase_stream_frame_rate">Frame rate</string>
+    <string name="ligase_stream_frame_rate_summary">A local Android launch setting. Recommendations never change your choice.</string>
+    <string name="ligase_stream_frame_rate_follow">Follow display</string>
+    <string name="ligase_stream_frame_rate_fixed">%1$d FPS</string>
+    <string name="ligase_recommended">Recommended</string>
+    <string name="ligase_stream_exceeds_display">Exceeds device display</string>
+    <string name="ligase_stream_capability_unknown">Device capability unavailable</string>
+    <string name="ligase_resolution_device_max">Device maximum</string>
+    <string name="ligase_resolution_best_16_9">Best 16:9</string>
+    <string name="ligase_resolution_720p">720p</string>
+    <string name="ligase_resolution_1080p">1080p</string>
+    <string name="ligase_resolution_1440p">1440p</string>
+    <string name="ligase_resolution_2160p">2160p</string>
 </resources>

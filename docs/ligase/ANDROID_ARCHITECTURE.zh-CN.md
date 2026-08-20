@@ -36,6 +36,7 @@ LigaseActivity（composition / Android lifecycle / legacy ABI bridge）
 | Streaming settings | `LibraryStreamingSettingsCoordinator` | global/app 分辨率使用同一 revision 与 operate gate；UI 不持 repository |
 | Stream launch | `StreamLaunchCoordinator` 与 legacy launcher | 输入选择、分辨率、HDR、码率在 launch 前由 typed policy 合成 |
 | Bitrate | `StreamBitrateState`、`StreamBitratePolicy`、`StreamBitratePreferences` | UI 遍历 owner 给出的 preset；custom parser、推荐与持久化不在 Compose |
+| Display capability | `AndroidStreamDisplayCapabilityProbe` 与 `StreamDisplayPolicy` | Display modes 只产生设备最大值、16:9档位和FPS能力原因；推荐不写选择，Host resolution authority不变 |
 | Input | `InputSelectionCoordinator` | UI 展示输入模式、稳定设备选择和布局摘要，不按设备名或易变 deviceId 猜测 |
 | Settings | application owners 的组合投影 | Settings route 不创建第二份偏好或 Host state |
 
@@ -51,6 +52,11 @@ async main handler，避免释放边被串流帧同步屏障延迟。viewport ma
 lowercase app UUID 读写，不按名称、Steam App ID 或 launch ID 猜测。launch plan 携带已解析的
 typed profile，`Game` 不再重新读取另一份全局触控选择。observe 权限只投影 `HIDDEN` 且只读，
 不会清除或改写用户原有全局/单游戏偏好；离线本机全局设置仍可编辑。
+
+分辨率与帧率保持两条正交 authority：global/app resolution 仍由 Host Sync revision writer
+拥有，Android 只用本机 display modes 投影设备最大、最佳16:9、720p/1080p/1440p/2160p
+及明确能力原因；FPS 是 Android 本机 launch 设置，支持跟随显示与固定30/60/90/120档。
+推荐只作标记，不自动写偏好；launch intent 携带已解析的精确 FPS，`Game` 不二次猜测。
 
 Library 的 Host identity/binding/cover consumer 由 `AndroidSyncV1StrictCodec`、
 `HostLayoutBindingResolver` 与 `HostAppAssetRepository` 分责：codec 在进入 session 前执行

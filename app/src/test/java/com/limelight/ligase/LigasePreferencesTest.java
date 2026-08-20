@@ -3,6 +3,7 @@ package com.limelight.ligase;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import com.limelight.ligase.feature.stream.domain.StreamFrameRateMode;
 
 import android.content.Context;
 
@@ -82,6 +83,15 @@ public class LigasePreferencesTest {
         assertFalse(LigasePreferences.setGameInputOverride(
                 context, uuid.toUpperCase(), override));
         assertEquals(null, LigasePreferences.gameInputOverride(context, uuid.toUpperCase()));
+    }
+
+    @Test
+    public void frameRateDefaultsToFollowAndPersistsExplicitFixedChoice() {
+        assertEquals(StreamFrameRateMode.FOLLOW_DISPLAY,
+                LigasePreferences.getStreamFrameRateMode(context));
+        LigasePreferences.setStreamFrameRateMode(context, StreamFrameRateMode.FPS_90);
+        assertEquals(StreamFrameRateMode.FPS_90,
+                LigasePreferences.getStreamFrameRateMode(context));
     }
 
     @Test

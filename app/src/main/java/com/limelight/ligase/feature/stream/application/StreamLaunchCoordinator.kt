@@ -10,6 +10,9 @@ import com.limelight.ligase.input.LigaseInputLaunchDecision
 import com.limelight.ligase.input.LigaseInputLaunchPolicy
 import com.limelight.ligase.input.LigaseTouchOverlayMode
 import com.limelight.ligase.input.LigaseCloudTouchMode
+import com.limelight.ligase.feature.stream.domain.DeviceStreamCapabilities
+import com.limelight.ligase.feature.stream.domain.StreamDisplayPolicy
+import com.limelight.ligase.feature.stream.domain.StreamFrameRateMode
 import com.limelight.ligase.library.LibraryConnectivity
 import com.limelight.ligase.library.LibraryOperationGate
 import com.limelight.nvstream.http.ComputerDetails
@@ -58,6 +61,9 @@ data class StreamLaunchRequest(
     val connectedInputDevices: List<LigaseInputDevice>,
     val overlayMode: LigaseTouchOverlayMode,
     val cloudTouchMode: LigaseCloudTouchMode = LigaseCloudTouchMode.SINGLE_TOUCH,
+    val frameRateMode: StreamFrameRateMode = StreamFrameRateMode.FOLLOW_DISPLAY,
+    val deviceCapabilities: DeviceStreamCapabilities =
+        DeviceStreamCapabilities(1920, 1080, 60f, false),
     val preferVirtualDisplay: Boolean,
 )
 
@@ -70,6 +76,7 @@ data class StreamLaunchPlan internal constructor(
     val withVirtualDisplay: Boolean,
     val width: Int,
     val height: Int,
+    val fps: Float,
     val hostHdrSupported: Boolean,
     val confirmation: StreamLaunchConfirmation,
     internal val ticket: Long,
@@ -176,6 +183,10 @@ class StreamLaunchCoordinator(
                 withVirtualDisplay = withVirtualDisplay,
                 width = resolution.width,
                 height = resolution.height,
+                fps = StreamDisplayPolicy.launchFps(
+                    request.frameRateMode,
+                    request.deviceCapabilities,
+                ),
                 hostHdrSupported = request.snapshot.capabilities.hdrEncodingSupported,
                 confirmation = confirmation,
                 ticket = ticket,
