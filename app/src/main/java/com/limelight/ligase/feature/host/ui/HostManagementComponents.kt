@@ -46,6 +46,7 @@ import com.limelight.ligase.LigaseSemanticTheme
 import com.limelight.ligase.feature.host.presentation.HostManagementStatus
 import com.limelight.ligase.feature.host.presentation.hostManagementPresentation
 import com.limelight.ligase.feature.host.presentation.hostManagementStatus
+import com.limelight.ligase.feature.host.presentation.lanPairingCandidates
 import com.limelight.ligase.library.LibraryConnectivity
 import com.limelight.nvstream.http.ComputerDetails
 
@@ -61,6 +62,7 @@ fun LibraryHostStatus(
 ) {
     var managingHosts by remember { mutableStateOf(false) }
     val presentation = hostManagementPresentation(hosts, selectedHost?.uuid)
+    val pairingCandidates = lanPairingCandidates(hosts)
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -128,6 +130,51 @@ fun LibraryHostStatus(
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold,
                 )
+            }
+        }
+        pairingCandidates.forEach { candidate ->
+            val host = hosts[candidate.sourceIndex]
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onHostSelected(host) },
+                shape = RoundedCornerShape(22.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                ),
+            ) {
+                Row(
+                    modifier = Modifier.padding(18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_ligase_monitor),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.secondary,
+                    )
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 14.dp),
+                    ) {
+                        Text(
+                            text = candidate.name,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            text = stringResource(R.string.ligase_lan_host_pairing_summary),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                    Text(
+                        text = stringResource(R.string.ligase_pair_computer),
+                        color = MaterialTheme.colorScheme.secondary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
             }
         }
     }

@@ -1346,4 +1346,6 @@
     <string name="ligase_resolution_1080p">1080p</string>
     <string name="ligase_resolution_1440p">1440p</string>
     <string name="ligase_resolution_2160p">2160p</string>
+    <string name="ligase_lan_host_pairing_summary">Found on your local network · Pairing requires your confirmation and Host approval.</string>
+    <string name="ligase_pair_computer">Pair</string>
 </resources>

@@ -169,6 +169,11 @@
 
 ## 多客户端可见性与配对演进
 
+- LAN discovery 对已完成 `serverinfo` 身份校验、状态为 ONLINE 且明确 NOT_PAIRED 的
+  Host 在首页直接投影配对卡。卡片身份只使用 canonical Host UUID，并以已取得的证书
+  指纹辅助去重；IPv4/IPv6/多地址不产生重复卡片，缺失或非法 UUID fail closed。
+  点击仍进入既有 attended/legacy 用户确认与 Host 审批流程，发现本身绝不自动配对。
+
 - Host 后续 Sync item 的 `publishedToClients` 在 Android DTO 中必须是 nullable
   Boolean；字段缺失按可见处理，即 `hostPublished = value != false`。
 - 本机隐藏按规范化小写 `(hostUniqueId, appUuid)` 分区，只存 Android 本地，

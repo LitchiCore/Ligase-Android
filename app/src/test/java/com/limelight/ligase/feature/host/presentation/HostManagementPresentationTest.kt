@@ -68,6 +68,38 @@ class HostManagementPresentationTest {
         assertFalse(rendered.contains("AA:BB:CC:DD:EE:FF"))
     }
 
+    @Test
+    fun lanPairingCandidatesRequireOnlineExplicitUnpairedCanonicalIdentity() {
+        val eligible = host(
+            name = "LAN Host",
+            uuid = "d85c6f4a-6a15-4af2-bfc4-15900690b2f2",
+            pairState = PairingManager.PairState.NOT_PAIRED,
+        )
+        val result = lanPairingCandidates(
+            listOf(
+                eligible,
+                host(
+                    uuid = eligible.uuid.uppercase(),
+                    pairState = PairingManager.PairState.NOT_PAIRED,
+                ),
+                host(
+                    uuid = "not-a-uuid",
+                    pairState = PairingManager.PairState.NOT_PAIRED,
+                ),
+                host(
+                    uuid = "d85c6f4a-6a15-4af2-bfc4-15900690b2f3",
+                    state = ComputerDetails.State.OFFLINE,
+                    pairState = PairingManager.PairState.NOT_PAIRED,
+                ),
+                host(uuid = "d85c6f4a-6a15-4af2-bfc4-15900690b2f4"),
+            ),
+        )
+
+        assertEquals(1, result.size)
+        assertEquals("LAN Host", result.single().name)
+        assertEquals(0, result.single().sourceIndex)
+    }
+
     private fun host(
         name: String = "Host",
         uuid: String = "host-uuid",

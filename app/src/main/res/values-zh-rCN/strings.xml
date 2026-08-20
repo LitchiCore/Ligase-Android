@@ -1332,4 +1332,6 @@
     <string name="ligase_resolution_1080p">1080p</string>
     <string name="ligase_resolution_1440p">1440p</string>
     <string name="ligase_resolution_2160p">2160p</string>
+    <string name="ligase_lan_host_pairing_summary">局域网发现 · 配对仍需你的确认与电脑端批准。</string>
+    <string name="ligase_pair_computer">配对</string>
 </resources>

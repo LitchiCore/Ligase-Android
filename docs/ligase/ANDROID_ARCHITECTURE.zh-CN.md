@@ -163,6 +163,9 @@ handoff、exclusive lease、adaptive mapper与全屏浮层Activity已进入生�
   成功。
 - 每个最终 APK 的 JVM、Release R8、lintVital、Debug assemble 和设备证据必须对应同一
   冻结源码；旧 APK 或旧 Host 身份不向后继提交自动继承。
+- `HostEndpointCoordinator` 继续唯一消费 `ComputerManagerService` 的LAN discovery更新；
+  首页配对候选只是ONLINE+NOT_PAIRED canonical UUID的安全投影，按UUID/已验证证书去重，
+  不按名称或地址建立身份，也不绕过 `HostPairingCoordinator` 的确认与Host审批。
 
 ## 开发环境与提交纪律
 
