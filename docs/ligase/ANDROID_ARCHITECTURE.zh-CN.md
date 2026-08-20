@@ -184,6 +184,8 @@ handoff、exclusive lease、adaptive mapper与全屏浮层Activity已进入生�
   H0诊断只记录去标识化的eligibility reason、前台/串流/认证target布尔值、generation、首个
   attempt及结果类别；同generation重复状态去重，晚结果只记录discard。日志不得包含Host UUID、
   地址、端口、证书、token、body或异常文本，且诊断结果永远不作为presence truth。
+  heartbeat request使用UTF-8 byte-array body，保证wire `Content-Type`与`Accept`均逐字为
+  `application/json`；不得使用会追加charset参数的String request body，也不得放宽Host envelope。
 - Resolution Dialog使用受window、safe drawing与IME约束的全高容器；标题和底部actions固定，
   preset、能力原因、自定义字段与错误信息位于单一可滚动内容区。响应式布局不改变A2 policy。
 

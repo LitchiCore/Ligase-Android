@@ -11,6 +11,7 @@ import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.Proxy;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -623,15 +624,25 @@ public class NvHTTP {
         }
     }
 
+    private static final MediaType DEVICE_PRESENCE_JSON = MediaType.parse("application/json");
+    private static final byte[] DEVICE_PRESENCE_BODY =
+            "{\"schemaVersion\":1}".getBytes(StandardCharsets.UTF_8);
+
+    static Request buildDevicePresenceHeartbeatRequest(HttpUrl url) {
+        return new Request.Builder()
+                .url(url)
+                .header("Accept", "application/json")
+                // The byte-array overload preserves the exact media type. The String overload
+                // appends charset=utf-8 and is rejected by the Host's closed envelope contract.
+                .post(RequestBody.create(DEVICE_PRESENCE_BODY, DEVICE_PRESENCE_JSON))
+                .build();
+    }
+
     public DevicePresenceResponse postDevicePresenceHeartbeat() throws IOException {
         HttpUrl url = getHttpsUrl(true).newBuilder()
                 .addPathSegments("ligase/v1/device-presence/heartbeat")
                 .build();
-        Request request = new Request.Builder()
-                .url(url)
-                .header("Accept", "application/json")
-                .post(RequestBody.create("{\"schemaVersion\":1}", MediaType.parse("application/json")))
-                .build();
+        Request request = buildDevicePresenceHeartbeatRequest(url);
         OkHttpClient client = performAndroidTlsHack(httpClientLongConnectTimeout.newBuilder()
                 .followRedirects(false)
                 .followSslRedirects(false)
