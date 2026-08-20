@@ -35,6 +35,8 @@ import com.limelight.ligase.feature.host.application.HostClickAction
 import com.limelight.ligase.feature.host.application.HostEndpointCoordinator
 import com.limelight.ligase.feature.host.application.HostWakeResult
 import com.limelight.ligase.feature.host.application.DevicePresenceCoordinator
+import com.limelight.ligase.feature.host.application.DevicePresenceEligibility
+import com.limelight.ligase.feature.host.application.DevicePresenceEligibilityReason
 import com.limelight.ligase.feature.host.application.DevicePresenceTarget
 import com.limelight.ligase.feature.host.infrastructure.LegacyComputerRegistryTransport
 import com.limelight.ligase.feature.input.application.InputSelectionCoordinator
@@ -673,19 +675,44 @@ class LigaseActivity : AppCompatActivity() {
 
     private fun refreshDevicePresenceTarget() {
         val host = libraryHost
-        if (
-            !foreground || host == null || host.state != ComputerDetails.State.ONLINE ||
-            host.pairState != PairState.PAIRED || host.serverCert == null || managerBinder == null
-        ) {
+        val reason = when {
+            !foreground -> DevicePresenceEligibilityReason.BACKGROUND
+            host == null -> DevicePresenceEligibilityReason.NO_SELECTED_HOST
+            host.state != ComputerDetails.State.ONLINE -> DevicePresenceEligibilityReason.HOST_NOT_ONLINE
+            host.pairState != PairState.PAIRED -> DevicePresenceEligibilityReason.HOST_NOT_PAIRED
+            host.serverCert == null -> DevicePresenceEligibilityReason.MISSING_SERVER_CERT
+            managerBinder == null -> DevicePresenceEligibilityReason.TRANSPORT_UNAVAILABLE
+            else -> DevicePresenceEligibilityReason.ELIGIBLE
+        }
+        val authenticated = reason == DevicePresenceEligibilityReason.ELIGIBLE
+        if (!authenticated) {
             devicePresenceCoordinator.onInactive()
+            devicePresenceCoordinator.updateEligibility(
+                DevicePresenceEligibility(reason, foreground, false, false),
+            )
             return
         }
+        val authenticatedHost = requireNotNull(host)
         try {
             devicePresenceCoordinator.onActive(
-                DevicePresenceTarget.authenticated(host.uuid, libraryTransport.createHttp(host)),
+                DevicePresenceTarget.authenticated(
+                    authenticatedHost.uuid,
+                    libraryTransport.createHttp(authenticatedHost),
+                ),
+            )
+            devicePresenceCoordinator.updateEligibility(
+                DevicePresenceEligibility(reason, foreground, false, true),
             )
         } catch (_: IOException) {
             devicePresenceCoordinator.onInactive()
+            devicePresenceCoordinator.updateEligibility(
+                DevicePresenceEligibility(
+                    DevicePresenceEligibilityReason.TARGET_CREATION_FAILED,
+                    foreground = true,
+                    activeStream = false,
+                    selectedAuthenticatedTarget = true,
+                ),
+            )
         }
     }
 

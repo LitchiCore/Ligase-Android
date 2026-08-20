@@ -6,6 +6,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class DevicePresenceV1Test {
@@ -33,6 +34,15 @@ class DevicePresenceV1Test {
     }
 
     @Test
+    fun `safe result classification preserves no response details`() {
+        assertEquals(DevicePresenceAttemptResult.HTTP_STATUS_CLASS, repository.classify(response("{}", status = 503)))
+        assertEquals(DevicePresenceAttemptResult.CONTENT_TYPE, repository.classify(response("{}", contentType = "text/html")))
+        assertEquals(DevicePresenceAttemptResult.TOO_LARGE, repository.classify(NvHTTP.DevicePresenceResponse(200, "application/json", ByteArray(513))))
+        assertEquals(DevicePresenceAttemptResult.EOF_SHAPE, repository.classify(response("{} {}")))
+        assertEquals(DevicePresenceAttemptResult.BODY_SCHEMA, repository.classify(response("{}")))
+    }
+
+    @Test
     fun `target switch discards late result from old generation`() {
         val firstStarted = CountDownLatch(1)
         val releaseFirst = CountDownLatch(1)
@@ -45,12 +55,12 @@ class DevicePresenceV1Test {
                 DevicePresenceTarget.test("first") {
                     firstStarted.countDown()
                     releaseFirst.await(2, TimeUnit.SECONDS)
-                    false
+                    DevicePresenceAttemptResult.IO_OTHER
                 },
             )
             assertTrue(firstStarted.await(2, TimeUnit.SECONDS))
             val switchIndex = states.size
-            coordinator.onActive(DevicePresenceTarget.test("second") { true })
+            coordinator.onActive(DevicePresenceTarget.test("second") { DevicePresenceAttemptResult.ACK_200_VALID })
             releaseFirst.countDown()
             Thread.sleep(100)
             assertFalse(states.drop(switchIndex).contains(DevicePresenceClientState.FAILED))
@@ -69,13 +79,66 @@ class DevicePresenceV1Test {
             if (state == DevicePresenceClientState.ACKNOWLEDGED) ack.countDown()
         }
         try {
-            coordinator.onActive(DevicePresenceTarget.test("host") { calls += 1; true })
+            coordinator.onActive(DevicePresenceTarget.test("host") { calls += 1; DevicePresenceAttemptResult.ACK_200_VALID })
             assertTrue(ack.await(1, TimeUnit.SECONDS))
             coordinator.onInactive()
             assertTrue(idle.await(1, TimeUnit.SECONDS))
             val callsAtStop = calls
             Thread.sleep(100)
             assertTrue(calls == callsAtStop)
+        } finally {
+            coordinator.close()
+        }
+    }
+
+    @Test
+    fun `diagnostics deduplicate recurring attempts and results per generation`() {
+        val events = Collections.synchronizedList(mutableListOf<DevicePresenceDiagnosticEvent>())
+        val twoCalls = CountDownLatch(2)
+        val coordinator = DevicePresenceCoordinator(
+            diagnostics = DevicePresenceDiagnosticSink { events += it },
+        )
+        try {
+            val eligibility = DevicePresenceEligibility(
+                DevicePresenceEligibilityReason.ELIGIBLE,
+                foreground = true,
+                activeStream = false,
+                selectedAuthenticatedTarget = true,
+            )
+            coordinator.updateEligibility(eligibility)
+            coordinator.updateEligibility(eligibility)
+            coordinator.onActive(DevicePresenceTarget.test("host") {
+                twoCalls.countDown()
+                DevicePresenceAttemptResult.ACK_200_VALID
+            })
+            assertTrue(twoCalls.await(7, TimeUnit.SECONDS))
+            assertEquals(1, events.filterIsInstance<DevicePresenceDiagnosticEvent.Eligibility>().size)
+            assertEquals(1, events.filterIsInstance<DevicePresenceDiagnosticEvent.AttemptStarted>().size)
+            assertEquals(1, events.filterIsInstance<DevicePresenceDiagnosticEvent.Result>().size)
+        } finally {
+            coordinator.close()
+        }
+    }
+
+    @Test
+    fun `late result emits one generation discarded diagnostic`() {
+        val started = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val events = Collections.synchronizedList(mutableListOf<DevicePresenceDiagnosticEvent>())
+        val coordinator = DevicePresenceCoordinator(
+            diagnostics = DevicePresenceDiagnosticSink { events += it },
+        )
+        try {
+            coordinator.onActive(DevicePresenceTarget.test("host") {
+                started.countDown()
+                release.await(2, TimeUnit.SECONDS)
+                DevicePresenceAttemptResult.CANCELLED
+            })
+            assertTrue(started.await(1, TimeUnit.SECONDS))
+            coordinator.onInactive()
+            release.countDown()
+            Thread.sleep(100)
+            assertEquals(1, events.filterIsInstance<DevicePresenceDiagnosticEvent.GenerationDiscarded>().size)
         } finally {
             coordinator.close()
         }

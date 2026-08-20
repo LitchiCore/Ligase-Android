@@ -181,6 +181,9 @@ handoff、exclusive lease、adaptive mapper与全屏浮层Activity已进入生�
   串流Activity的证书绑定Host，均只形成一个generation target；立即发送后按单调5秒tick、
   single-flight执行。切换、后台、onStop与销毁只失效generation，不发送final heartbeat，也不
   创建后台service。Android仅投影本机请求ACK/失败，不把响应解释为Host presence真值。
+  H0诊断只记录去标识化的eligibility reason、前台/串流/认证target布尔值、generation、首个
+  attempt及结果类别；同generation重复状态去重，晚结果只记录discard。日志不得包含Host UUID、
+  地址、端口、证书、token、body或异常文本，且诊断结果永远不作为presence truth。
 - Resolution Dialog使用受window、safe drawing与IME约束的全高容器；标题和底部actions固定，
   preset、能力原因、自定义字段与错误信息位于单一可滚动内容区。响应式布局不改变A2 policy。
 

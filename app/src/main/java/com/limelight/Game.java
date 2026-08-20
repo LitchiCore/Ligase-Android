@@ -42,6 +42,8 @@ import com.limelight.nvstream.http.ComputerDetails;
 import com.limelight.nvstream.http.NvApp;
 import com.limelight.nvstream.http.NvHTTP;
 import com.limelight.ligase.feature.host.application.DevicePresenceCoordinator;
+import com.limelight.ligase.feature.host.application.DevicePresenceEligibility;
+import com.limelight.ligase.feature.host.application.DevicePresenceEligibilityReason;
 import com.limelight.ligase.feature.host.application.DevicePresenceTarget;
 import com.limelight.nvstream.input.KeyboardPacket;
 import com.limelight.nvstream.input.MouseButtonPacket;
@@ -3750,6 +3752,11 @@ public class Game extends AppCompatActivity implements SurfaceHolder.Callback,
     public void connectionStarted() {
         if (devicePresenceCoordinator != null && pcUuid != null && httpConn != null) {
             devicePresenceCoordinator.onActive(DevicePresenceTarget.authenticated(pcUuid, httpConn));
+            devicePresenceCoordinator.updateEligibility(new DevicePresenceEligibility(
+                    DevicePresenceEligibilityReason.ELIGIBLE,
+                    true,
+                    true,
+                    true));
         }
         runOnUiThread(new Runnable() {
             @Override
